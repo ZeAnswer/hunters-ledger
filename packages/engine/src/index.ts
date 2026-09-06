@@ -1,7 +1,7 @@
 export const ENGINE_VERSION = '0.1.0';
 export * from './schema';
 export * from './context';
-export * from './expr';
+export { evalExpr, type ExprVars } from './expr';
 export * from './stacking';
 export * from './levels';
 export * from './log';
