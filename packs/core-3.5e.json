@@ -1,0 +1,1584 @@
+{
+  "id": "core-3.5e",
+  "name": "Core 3.5e",
+  "version": 1,
+  "description": "Creature types, subtypes, conditions, skills, XP table, Ranger class, common feats and buffs.",
+  "tags": [
+    {
+      "id": "aberration",
+      "label": "Aberration",
+      "category": "creatureType"
+    },
+    {
+      "id": "animal",
+      "label": "Animal",
+      "category": "creatureType"
+    },
+    {
+      "id": "construct",
+      "label": "Construct",
+      "category": "creatureType"
+    },
+    {
+      "id": "dragon",
+      "label": "Dragon",
+      "category": "creatureType"
+    },
+    {
+      "id": "elemental",
+      "label": "Elemental",
+      "category": "creatureType"
+    },
+    {
+      "id": "fey",
+      "label": "Fey",
+      "category": "creatureType"
+    },
+    {
+      "id": "giant",
+      "label": "Giant",
+      "category": "creatureType"
+    },
+    {
+      "id": "humanoid",
+      "label": "Humanoid",
+      "category": "creatureType"
+    },
+    {
+      "id": "magical-beast",
+      "label": "Magical Beast",
+      "category": "creatureType"
+    },
+    {
+      "id": "monstrous-humanoid",
+      "label": "Monstrous Humanoid",
+      "category": "creatureType"
+    },
+    {
+      "id": "ooze",
+      "label": "Ooze",
+      "category": "creatureType"
+    },
+    {
+      "id": "outsider",
+      "label": "Outsider",
+      "category": "creatureType"
+    },
+    {
+      "id": "plant",
+      "label": "Plant",
+      "category": "creatureType"
+    },
+    {
+      "id": "undead",
+      "label": "Undead",
+      "category": "creatureType"
+    },
+    {
+      "id": "vermin",
+      "label": "Vermin",
+      "category": "creatureType"
+    },
+    {
+      "id": "air",
+      "label": "Air",
+      "category": "subtype"
+    },
+    {
+      "id": "earth",
+      "label": "Earth",
+      "category": "subtype"
+    },
+    {
+      "id": "fire",
+      "label": "Fire",
+      "category": "subtype"
+    },
+    {
+      "id": "water",
+      "label": "Water",
+      "category": "subtype"
+    },
+    {
+      "id": "cold",
+      "label": "Cold",
+      "category": "subtype"
+    },
+    {
+      "id": "evil",
+      "label": "Evil",
+      "category": "subtype"
+    },
+    {
+      "id": "good",
+      "label": "Good",
+      "category": "subtype"
+    },
+    {
+      "id": "chaotic",
+      "label": "Chaotic",
+      "category": "subtype"
+    },
+    {
+      "id": "lawful",
+      "label": "Lawful",
+      "category": "subtype"
+    },
+    {
+      "id": "incorporeal",
+      "label": "Incorporeal",
+      "category": "subtype"
+    },
+    {
+      "id": "shapechanger",
+      "label": "Shapechanger",
+      "category": "subtype"
+    },
+    {
+      "id": "swarm",
+      "label": "Swarm",
+      "category": "subtype"
+    },
+    {
+      "id": "extraplanar",
+      "label": "Extraplanar",
+      "category": "subtype"
+    },
+    {
+      "id": "native",
+      "label": "Native",
+      "category": "subtype"
+    },
+    {
+      "id": "augmented",
+      "label": "Augmented",
+      "category": "subtype"
+    },
+    {
+      "id": "reptilian",
+      "label": "Reptilian",
+      "category": "subtype"
+    },
+    {
+      "id": "goblinoid",
+      "label": "Goblinoid",
+      "category": "subtype"
+    },
+    {
+      "id": "elf",
+      "label": "Elf",
+      "category": "subtype"
+    },
+    {
+      "id": "dwarf",
+      "label": "Dwarf",
+      "category": "subtype"
+    },
+    {
+      "id": "human",
+      "label": "Human",
+      "category": "subtype"
+    },
+    {
+      "id": "orc",
+      "label": "Orc",
+      "category": "subtype"
+    },
+    {
+      "id": "gnome",
+      "label": "Gnome",
+      "category": "subtype"
+    },
+    {
+      "id": "halfling",
+      "label": "Halfling",
+      "category": "subtype"
+    },
+    {
+      "id": "aquatic",
+      "label": "Aquatic",
+      "category": "habitat"
+    },
+    {
+      "id": "subterranean",
+      "label": "Subterranean",
+      "category": "habitat"
+    },
+    {
+      "id": "forest",
+      "label": "Forest",
+      "category": "habitat"
+    },
+    {
+      "id": "swamp",
+      "label": "Swamp",
+      "category": "habitat"
+    },
+    {
+      "id": "desert",
+      "label": "Desert",
+      "category": "habitat"
+    },
+    {
+      "id": "mountain",
+      "label": "Mountain",
+      "category": "habitat"
+    },
+    {
+      "id": "urban",
+      "label": "Urban",
+      "category": "habitat"
+    },
+    {
+      "id": "flying",
+      "label": "Flying",
+      "category": "habitat"
+    },
+    {
+      "id": "flanked",
+      "label": "Flanked",
+      "category": "condition"
+    },
+    {
+      "id": "prone",
+      "label": "Prone",
+      "category": "condition"
+    },
+    {
+      "id": "stunned",
+      "label": "Stunned",
+      "category": "condition"
+    },
+    {
+      "id": "dazed",
+      "label": "Dazed",
+      "category": "condition"
+    },
+    {
+      "id": "entangled",
+      "label": "Entangled",
+      "category": "condition"
+    },
+    {
+      "id": "invisible",
+      "label": "Invisible",
+      "category": "condition"
+    },
+    {
+      "id": "concealed",
+      "label": "Concealed",
+      "category": "condition"
+    },
+    {
+      "id": "blinded",
+      "label": "Blinded",
+      "category": "condition"
+    },
+    {
+      "id": "paralyzed",
+      "label": "Paralyzed",
+      "category": "condition"
+    },
+    {
+      "id": "helpless",
+      "label": "Helpless",
+      "category": "condition"
+    },
+    {
+      "id": "frightened",
+      "label": "Frightened",
+      "category": "condition"
+    },
+    {
+      "id": "shaken",
+      "label": "Shaken",
+      "category": "condition"
+    },
+    {
+      "id": "panicked",
+      "label": "Panicked",
+      "category": "condition"
+    },
+    {
+      "id": "fatigued",
+      "label": "Fatigued",
+      "category": "condition"
+    },
+    {
+      "id": "exhausted",
+      "label": "Exhausted",
+      "category": "condition"
+    },
+    {
+      "id": "sickened",
+      "label": "Sickened",
+      "category": "condition"
+    },
+    {
+      "id": "nauseated",
+      "label": "Nauseated",
+      "category": "condition"
+    },
+    {
+      "id": "grappled",
+      "label": "Grappled",
+      "category": "condition"
+    },
+    {
+      "id": "flat-footed",
+      "label": "Flat-Footed",
+      "category": "condition"
+    },
+    {
+      "id": "hasted",
+      "label": "Hasted",
+      "category": "condition"
+    },
+    {
+      "id": "slowed",
+      "label": "Slowed",
+      "category": "condition"
+    },
+    {
+      "id": "cowering",
+      "label": "Cowering",
+      "category": "condition"
+    },
+    {
+      "id": "immobile",
+      "label": "Immobile",
+      "category": "condition"
+    },
+    {
+      "id": "fine",
+      "label": "Fine",
+      "category": "size"
+    },
+    {
+      "id": "diminutive",
+      "label": "Diminutive",
+      "category": "size"
+    },
+    {
+      "id": "tiny",
+      "label": "Tiny",
+      "category": "size"
+    },
+    {
+      "id": "small",
+      "label": "Small",
+      "category": "size"
+    },
+    {
+      "id": "medium",
+      "label": "Medium",
+      "category": "size"
+    },
+    {
+      "id": "large",
+      "label": "Large",
+      "category": "size"
+    },
+    {
+      "id": "huge",
+      "label": "Huge",
+      "category": "size"
+    },
+    {
+      "id": "gargantuan",
+      "label": "Gargantuan",
+      "category": "size"
+    },
+    {
+      "id": "colossal",
+      "label": "Colossal",
+      "category": "size"
+    }
+  ],
+  "abilities": [
+    {
+      "id": "favored-enemy-1",
+      "name": "Favored Enemy (1st)",
+      "source": "class",
+      "text": "+2 on Bluff, Listen, Sense Motive, Spot and Survival checks and weapon damage rolls against the chosen creature type. Increases by +2 at ranger levels 5, 10, 15, 20 (choose which favored enemy improves).",
+      "sourceRef": "PHB p.47",
+      "params": {
+        "types": {
+          "kind": "tags",
+          "label": "Creature type",
+          "category": "creatureType",
+          "count": 1
+        }
+      },
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "fe",
+          "label": "Favored enemy",
+          "trigger": "always",
+          "when": {
+            "kind": "param",
+            "name": "types",
+            "includesTargetTag": true
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.bluff",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.listen",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.sense-motive",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.spot",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.survival",
+              "value": "favoredEnemyBonus1",
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "favored-enemy-2",
+      "name": "Favored Enemy (2nd)",
+      "source": "class",
+      "text": "Second favored enemy, gained at ranger level 5.",
+      "sourceRef": "PHB p.47",
+      "params": {
+        "types": {
+          "kind": "tags",
+          "label": "Creature type",
+          "category": "creatureType",
+          "count": 1
+        }
+      },
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "fe",
+          "label": "Favored enemy",
+          "trigger": "always",
+          "when": {
+            "kind": "param",
+            "name": "types",
+            "includesTargetTag": true
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.bluff",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.listen",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.sense-motive",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.spot",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "skill.survival",
+              "value": "favoredEnemyBonus2",
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "track",
+      "name": "Track",
+      "source": "feat",
+      "text": "Use Survival to follow tracks.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "endurance",
+      "name": "Endurance",
+      "source": "feat",
+      "text": "+4 on checks and saves to resist nonlethal damage from exertion, environment, starvation, etc. Sleep in light or medium armor without fatigue.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "wild-empathy",
+      "name": "Wild Empathy",
+      "source": "class",
+      "text": "Improve the attitude of an animal like a Diplomacy check: 1d20 + ranger level + Cha mod.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "point-blank-shot",
+      "name": "Point Blank Shot",
+      "source": "feat",
+      "text": "+1 on attack and damage rolls with ranged weapons at ranges up to 30 feet.",
+      "sourceRef": "PHB p.98",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "pbs",
+          "label": "Point Blank Shot",
+          "trigger": "always",
+          "when": {
+            "kind": "all",
+            "of": [
+              {
+                "kind": "attack.kind",
+                "attackKind": "ranged"
+              },
+              {
+                "kind": "toggle",
+                "id": "within-30ft"
+              }
+            ]
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": 1,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "precise-shot",
+      "name": "Precise Shot",
+      "source": "feat",
+      "text": "No -4 penalty for shooting into melee.",
+      "sourceRef": "PHB p.98",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "n",
+          "trigger": "always",
+          "when": {
+            "kind": "attack.kind",
+            "attackKind": "ranged"
+          },
+          "do": [
+            {
+              "kind": "note",
+              "text": "Precise Shot: no -4 for firing into melee."
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "rapid-shot",
+      "name": "Rapid Shot",
+      "source": "feat",
+      "text": "One extra ranged attack at your highest bonus during a full attack; all attacks that round take -2.",
+      "sourceRef": "PHB p.99",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "mode",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "attackMode",
+              "modeId": "rapid-shot",
+              "label": "Rapid Shot",
+              "base": "full",
+              "extraAttacksAtTop": 1,
+              "penalty": -2,
+              "attackKind": "ranged"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "manyshot",
+      "name": "Manyshot",
+      "source": "feat",
+      "text": "As a standard action fire two arrows at a single target within 30 ft with one attack roll at -4 (three arrows at BAB +11 for -6, four at +16 for -8). Precision damage applies once.",
+      "sourceRef": "PHB p.97",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "mode",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "attackMode",
+              "modeId": "manyshot",
+              "label": "Manyshot (2 arrows)",
+              "base": "single",
+              "extraAttacksAtTop": 0,
+              "penalty": -4,
+              "attackKind": "ranged",
+              "note": "Manyshot: one roll, both arrows hit or miss together; roll weapon damage twice, precision/extra dice once. Target within 30 ft."
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "weapon-focus-ranged",
+      "name": "Weapon Focus (ranged weapon)",
+      "source": "feat",
+      "text": "+1 on attack rolls with the chosen weapon.",
+      "sourceRef": "PHB p.102",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "wf",
+          "trigger": "always",
+          "when": {
+            "kind": "attack.kind",
+            "attackKind": "ranged"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "improved-initiative",
+      "name": "Improved Initiative",
+      "source": "feat",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "ii",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "init",
+              "value": 4,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "dodge",
+      "name": "Dodge",
+      "source": "feat",
+      "text": "+1 dodge bonus to AC against one designated opponent.",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "d",
+          "trigger": "always",
+          "when": {
+            "kind": "toggle",
+            "id": "dodge-target"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "ac",
+              "value": 1,
+              "bonusType": "dodge"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "haste",
+      "name": "Haste",
+      "source": "buff",
+      "text": "One extra attack at full BAB on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed.",
+      "activation": "passive",
+      "duration": {
+        "rounds": 10
+      },
+      "effects": [
+        {
+          "id": "h",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "extraAttack",
+              "appliesToBase": "full",
+              "count": 1
+            },
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "dodge"
+            },
+            {
+              "kind": "bonus",
+              "to": "ac",
+              "value": 1,
+              "bonusType": "dodge"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.ref",
+              "value": 1,
+              "bonusType": "dodge"
+            },
+            {
+              "kind": "bonus",
+              "to": "speed",
+              "value": 30,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "bless",
+      "name": "Bless",
+      "source": "buff",
+      "activation": "passive",
+      "duration": {
+        "rounds": 10
+      },
+      "effects": [
+        {
+          "id": "b",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "morale"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.will",
+              "value": 1,
+              "bonusType": "morale"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "inspire-courage-1",
+      "name": "Inspire Courage +1",
+      "source": "buff",
+      "text": "Bard song: +1 morale on attack and weapon damage, +1 vs charm and fear.",
+      "activation": "passive",
+      "duration": "untilRemoved",
+      "effects": [
+        {
+          "id": "ic",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "morale"
+            },
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": 1,
+              "bonusType": "morale"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "inspire-courage-2",
+      "name": "Inspire Courage +2",
+      "source": "buff",
+      "activation": "passive",
+      "duration": "untilRemoved",
+      "effects": [
+        {
+          "id": "ic",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 2,
+              "bonusType": "morale"
+            },
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": 2,
+              "bonusType": "morale"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "source": "buff",
+      "activation": "passive",
+      "duration": {
+        "rounds": 6
+      },
+      "effects": [
+        {
+          "id": "p",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "luck"
+            },
+            {
+              "kind": "bonus",
+              "to": "damage",
+              "value": 1,
+              "bonusType": "luck"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.fort",
+              "value": 1,
+              "bonusType": "luck"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.ref",
+              "value": 1,
+              "bonusType": "luck"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.will",
+              "value": 1,
+              "bonusType": "luck"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "shaken",
+      "name": "Shaken",
+      "source": "condition",
+      "activation": "passive",
+      "duration": "untilRemoved",
+      "effects": [
+        {
+          "id": "s",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": -2,
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.fort",
+              "value": -2,
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.ref",
+              "value": -2,
+              "bonusType": "untyped"
+            },
+            {
+              "kind": "bonus",
+              "to": "save.will",
+              "value": -2,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "prone-self",
+      "name": "Prone",
+      "source": "condition",
+      "text": "Prone: -4 melee attack, cannot use bows effectively (crossbows ok), +4 AC vs ranged, -4 AC vs melee.",
+      "activation": "passive",
+      "duration": "untilRemoved",
+      "effects": [
+        {
+          "id": "p",
+          "trigger": "always",
+          "when": {
+            "kind": "attack.kind",
+            "attackKind": "melee"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": -4,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "higher-ground",
+      "name": "Higher ground",
+      "source": "situational",
+      "activation": "passive",
+      "duration": "untilRemoved",
+      "effects": [
+        {
+          "id": "h",
+          "trigger": "always",
+          "when": {
+            "kind": "attack.kind",
+            "attackKind": "melee"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "attack",
+              "value": 1,
+              "bonusType": "untyped"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "knowledge-devotion-table",
+      "name": "Knowledge Devotion table (reference)",
+      "source": "core",
+      "text": "Reference: Knowledge check 15- +1, 16-25 +2, 26-30 +3, 31-35 +4, 36+ +5.",
+      "activation": "passive",
+      "effects": [
+        {
+          "id": "t",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonusFromTable",
+              "promptId": "knowledge",
+              "perTagCategory": "creatureType",
+              "table": [
+                {
+                  "upTo": 15,
+                  "value": 1
+                },
+                {
+                  "upTo": 25,
+                  "value": 2
+                },
+                {
+                  "upTo": 30,
+                  "value": 3
+                },
+                {
+                  "upTo": 35,
+                  "value": 4
+                },
+                {
+                  "value": 5
+                }
+              ],
+              "to": "attack",
+              "bonusType": "insight"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": false
+    }
+  ],
+  "monsters": [],
+  "skills": [
+    {
+      "id": "appraise",
+      "name": "Appraise",
+      "ability": "int",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "balance",
+      "name": "Balance",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "bluff",
+      "name": "Bluff",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "climb",
+      "name": "Climb",
+      "ability": "str",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "concentration",
+      "name": "Concentration",
+      "ability": "con",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "craft",
+      "name": "Craft",
+      "ability": "int",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "decipher-script",
+      "name": "Decipher Script",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "diplomacy",
+      "name": "Diplomacy",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "disable-device",
+      "name": "Disable Device",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "disguise",
+      "name": "Disguise",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "escape-artist",
+      "name": "Escape Artist",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "forgery",
+      "name": "Forgery",
+      "ability": "int",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "gather-information",
+      "name": "Gather Information",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "handle-animal",
+      "name": "Handle Animal",
+      "ability": "cha",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "heal",
+      "name": "Heal",
+      "ability": "wis",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "hide",
+      "name": "Hide",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "intimidate",
+      "name": "Intimidate",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "jump",
+      "name": "Jump",
+      "ability": "str",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "knowledge-arcana",
+      "name": "Knowledge (Arcana)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-architecture",
+      "name": "Knowledge (Architecture)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-dungeoneering",
+      "name": "Knowledge (Dungeoneering)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-geography",
+      "name": "Knowledge (Geography)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-history",
+      "name": "Knowledge (History)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-local",
+      "name": "Knowledge (Local)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-nature",
+      "name": "Knowledge (Nature)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-nobility",
+      "name": "Knowledge (Nobility)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-religion",
+      "name": "Knowledge (Religion)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "knowledge-the-planes",
+      "name": "Knowledge (The Planes)",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "listen",
+      "name": "Listen",
+      "ability": "wis",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "move-silently",
+      "name": "Move Silently",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "open-lock",
+      "name": "Open Lock",
+      "ability": "dex",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "perform",
+      "name": "Perform",
+      "ability": "cha",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "profession",
+      "name": "Profession",
+      "ability": "wis",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "ride",
+      "name": "Ride",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "ability": "int",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "sense-motive",
+      "name": "Sense Motive",
+      "ability": "wis",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "sleight-of-hand",
+      "name": "Sleight of Hand",
+      "ability": "dex",
+      "trainedOnly": true,
+      "armorCheck": true
+    },
+    {
+      "id": "spellcraft",
+      "name": "Spellcraft",
+      "ability": "int",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "spot",
+      "name": "Spot",
+      "ability": "wis",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "survival",
+      "name": "Survival",
+      "ability": "wis",
+      "trainedOnly": false,
+      "armorCheck": false
+    },
+    {
+      "id": "swim",
+      "name": "Swim",
+      "ability": "str",
+      "trainedOnly": false,
+      "armorCheck": true
+    },
+    {
+      "id": "tumble",
+      "name": "Tumble",
+      "ability": "dex",
+      "trainedOnly": true,
+      "armorCheck": true
+    },
+    {
+      "id": "use-magic-device",
+      "name": "Use Magic Device",
+      "ability": "cha",
+      "trainedOnly": true,
+      "armorCheck": false
+    },
+    {
+      "id": "use-rope",
+      "name": "Use Rope",
+      "ability": "dex",
+      "trainedOnly": false,
+      "armorCheck": false
+    }
+  ],
+  "classTables": [
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "hitDie": 8,
+      "skillPointsPerLevel": 6,
+      "classSkills": [
+        "climb",
+        "concentration",
+        "craft",
+        "handle-animal",
+        "heal",
+        "hide",
+        "jump",
+        "knowledge-dungeoneering",
+        "knowledge-geography",
+        "knowledge-nature",
+        "listen",
+        "move-silently",
+        "profession",
+        "ride",
+        "search",
+        "spot",
+        "survival",
+        "swim",
+        "use-rope"
+      ],
+      "babProgression": "full",
+      "saves": {
+        "fort": "good",
+        "ref": "good",
+        "will": "poor"
+      },
+      "levelFeatures": {
+        "1": [
+          "favored-enemy-1",
+          "track",
+          "wild-empathy"
+        ],
+        "2": [
+          "rapid-shot"
+        ],
+        "3": [
+          "endurance"
+        ],
+        "4": [
+          "animal-companion"
+        ],
+        "5": [
+          "favored-enemy-2"
+        ],
+        "6": [
+          "manyshot"
+        ],
+        "7": [
+          "woodland-stride"
+        ],
+        "8": [
+          "swift-tracker"
+        ],
+        "9": [
+          "evasion"
+        ],
+        "10": [
+          "favored-enemy-3"
+        ],
+        "11": [
+          "improved-precise-shot"
+        ],
+        "13": [
+          "camouflage"
+        ],
+        "15": [
+          "favored-enemy-4"
+        ],
+        "17": [
+          "hide-in-plain-sight"
+        ],
+        "20": [
+          "favored-enemy-5"
+        ]
+      }
+    }
+  ],
+  "characters": [],
+  "xpTable": [
+    {
+      "level": 1,
+      "xp": 0
+    },
+    {
+      "level": 2,
+      "xp": 1000
+    },
+    {
+      "level": 3,
+      "xp": 3000
+    },
+    {
+      "level": 4,
+      "xp": 6000
+    },
+    {
+      "level": 5,
+      "xp": 10000
+    },
+    {
+      "level": 6,
+      "xp": 15000
+    },
+    {
+      "level": 7,
+      "xp": 21000
+    },
+    {
+      "level": 8,
+      "xp": 28000
+    },
+    {
+      "level": 9,
+      "xp": 36000
+    },
+    {
+      "level": 10,
+      "xp": 45000
+    },
+    {
+      "level": 11,
+      "xp": 55000
+    },
+    {
+      "level": 12,
+      "xp": 66000
+    },
+    {
+      "level": 13,
+      "xp": 78000
+    },
+    {
+      "level": 14,
+      "xp": 91000
+    },
+    {
+      "level": 15,
+      "xp": 105000
+    },
+    {
+      "level": 16,
+      "xp": 120000
+    },
+    {
+      "level": 17,
+      "xp": 136000
+    },
+    {
+      "level": 18,
+      "xp": 153000
+    },
+    {
+      "level": 19,
+      "xp": 171000
+    },
+    {
+      "level": 20,
+      "xp": 190000
+    }
+  ]
+}

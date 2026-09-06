@@ -1,0 +1,131 @@
+/**
+ * Generates packs/core-3.5e.json: creature type tags, subtypes, conditions, skills, XP table,
+ * Ranger class table, and common feats/buffs. Run: npx tsx tools/gen-core-pack.ts
+ */
+import { writeFileSync } from 'node:fs';
+import { PackSchema, type Pack } from '../packages/engine/src/schema';
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const tag = (label: string, category: Pack['tags'][number]['category']) => ({ id: slug(label), label, category });
+
+const creatureTypes = ['Aberration', 'Animal', 'Construct', 'Dragon', 'Elemental', 'Fey', 'Giant', 'Humanoid', 'Magical Beast', 'Monstrous Humanoid', 'Ooze', 'Outsider', 'Plant', 'Undead', 'Vermin'];
+const subtypes = ['Air', 'Earth', 'Fire', 'Water', 'Cold', 'Evil', 'Good', 'Chaotic', 'Lawful', 'Incorporeal', 'Shapechanger', 'Swarm', 'Extraplanar', 'Native', 'Augmented', 'Reptilian', 'Goblinoid', 'Elf', 'Dwarf', 'Human', 'Orc', 'Gnome', 'Halfling'];
+const habitats = ['Aquatic', 'Subterranean', 'Forest', 'Swamp', 'Desert', 'Mountain', 'Urban', 'Flying'];
+const conditions = ['Flanked', 'Prone', 'Stunned', 'Dazed', 'Entangled', 'Invisible', 'Concealed', 'Blinded', 'Paralyzed', 'Helpless', 'Frightened', 'Shaken', 'Panicked', 'Fatigued', 'Exhausted', 'Sickened', 'Nauseated', 'Grappled', 'Flat-Footed', 'Hasted', 'Slowed', 'Cowering', 'Immobile'];
+const sizes = ['Fine', 'Diminutive', 'Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan', 'Colossal'];
+
+const skillDefs: [string, 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', boolean?, boolean?][] = [
+  ['Appraise', 'int'], ['Balance', 'dex', false, true], ['Bluff', 'cha'], ['Climb', 'str', false, true], ['Concentration', 'con'],
+  ['Craft', 'int'], ['Decipher Script', 'int', true], ['Diplomacy', 'cha'], ['Disable Device', 'int', true], ['Disguise', 'cha'],
+  ['Escape Artist', 'dex', false, true], ['Forgery', 'int'], ['Gather Information', 'cha'], ['Handle Animal', 'cha', true], ['Heal', 'wis'],
+  ['Hide', 'dex', false, true], ['Intimidate', 'cha'], ['Jump', 'str', false, true],
+  ['Knowledge (Arcana)', 'int', true], ['Knowledge (Architecture)', 'int', true], ['Knowledge (Dungeoneering)', 'int', true], ['Knowledge (Geography)', 'int', true],
+  ['Knowledge (History)', 'int', true], ['Knowledge (Local)', 'int', true], ['Knowledge (Nature)', 'int', true], ['Knowledge (Nobility)', 'int', true],
+  ['Knowledge (Religion)', 'int', true], ['Knowledge (The Planes)', 'int', true],
+  ['Listen', 'wis'], ['Move Silently', 'dex', false, true], ['Open Lock', 'dex', true], ['Perform', 'cha'], ['Profession', 'wis', true], ['Ride', 'dex'],
+  ['Search', 'int'], ['Sense Motive', 'wis'], ['Sleight of Hand', 'dex', true, true], ['Spellcraft', 'int', true], ['Spot', 'wis'], ['Survival', 'wis'],
+  ['Swim', 'str', false, true], ['Tumble', 'dex', true, true], ['Use Magic Device', 'cha', true], ['Use Rope', 'dex'],
+];
+
+const xpTable = Array.from({ length: 20 }, (_, i) => ({ level: i + 1, xp: (i * (i + 1) * 1000) / 2 }));
+
+const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
+
+const pack: Pack = PackSchema.parse({
+  id: 'core-3.5e',
+  name: 'Core 3.5e',
+  version: 1,
+  description: 'Creature types, subtypes, conditions, skills, XP table, Ranger class, common feats and buffs.',
+  tags: [
+    ...creatureTypes.map((t) => tag(t, 'creatureType')),
+    ...subtypes.map((t) => tag(t, 'subtype')),
+    ...habitats.map((t) => tag(t, 'habitat')),
+    ...conditions.map((t) => tag(t, 'condition')),
+    ...sizes.map((t) => tag(t, 'size')),
+  ],
+  skills: skillDefs.map(([name, ability, trainedOnly, armorCheck]) => ({ id: slug(name), name, ability, trainedOnly: !!trainedOnly, armorCheck: !!armorCheck })),
+  xpTable,
+  classTables: [
+    {
+      id: 'ranger', name: 'Ranger', hitDie: 8, skillPointsPerLevel: 6, babProgression: 'full',
+      saves: { fort: 'good', ref: 'good', will: 'poor' },
+      classSkills: ['climb', 'concentration', 'craft', 'handle-animal', 'heal', 'hide', 'jump', 'knowledge-dungeoneering', 'knowledge-geography', 'knowledge-nature', 'listen', 'move-silently', 'profession', 'ride', 'search', 'spot', 'survival', 'swim', 'use-rope'],
+      levelFeatures: { '1': ['favored-enemy-1', 'track', 'wild-empathy'], '2': ['rapid-shot'], '3': ['endurance'], '4': ['animal-companion'], '5': ['favored-enemy-2'], '6': ['manyshot'], '7': ['woodland-stride'], '8': ['swift-tracker'], '9': ['evasion'], '10': ['favored-enemy-3'], '11': ['improved-precise-shot'], '13': ['camouflage'], '15': ['favored-enemy-4'], '17': ['hide-in-plain-sight'], '20': ['favored-enemy-5'] },
+    },
+  ],
+  abilities: [
+    // ---- ranger class features ----
+    {
+      id: 'favored-enemy-1', name: 'Favored Enemy (1st)', source: 'class', sourceRef: 'PHB p.47',
+      text: '+2 on Bluff, Listen, Sense Motive, Spot and Survival checks and weapon damage rolls against the chosen creature type. Increases by +2 at ranger levels 5, 10, 15, 20 (choose which favored enemy improves).',
+      params: { types: { kind: 'tags', label: 'Creature type', category: 'creatureType', count: 1 } },
+      effects: [{
+        id: 'fe', label: 'Favored enemy', when: { kind: 'param', name: 'types', includesTargetTag: true },
+        do: [
+          { kind: 'bonus', to: 'damage', value: 'favoredEnemyBonus1' },
+          { kind: 'bonus', to: 'skill.bluff', value: 'favoredEnemyBonus1' }, { kind: 'bonus', to: 'skill.listen', value: 'favoredEnemyBonus1' },
+          { kind: 'bonus', to: 'skill.sense-motive', value: 'favoredEnemyBonus1' }, { kind: 'bonus', to: 'skill.spot', value: 'favoredEnemyBonus1' },
+          { kind: 'bonus', to: 'skill.survival', value: 'favoredEnemyBonus1' },
+        ],
+      }],
+    },
+    {
+      id: 'favored-enemy-2', name: 'Favored Enemy (2nd)', source: 'class', sourceRef: 'PHB p.47',
+      text: 'Second favored enemy, gained at ranger level 5.',
+      params: { types: { kind: 'tags', label: 'Creature type', category: 'creatureType', count: 1 } },
+      effects: [{
+        id: 'fe', label: 'Favored enemy', when: { kind: 'param', name: 'types', includesTargetTag: true },
+        do: [
+          { kind: 'bonus', to: 'damage', value: 'favoredEnemyBonus2' },
+          { kind: 'bonus', to: 'skill.bluff', value: 'favoredEnemyBonus2' }, { kind: 'bonus', to: 'skill.listen', value: 'favoredEnemyBonus2' },
+          { kind: 'bonus', to: 'skill.sense-motive', value: 'favoredEnemyBonus2' }, { kind: 'bonus', to: 'skill.spot', value: 'favoredEnemyBonus2' },
+          { kind: 'bonus', to: 'skill.survival', value: 'favoredEnemyBonus2' },
+        ],
+      }],
+    },
+    { id: 'track', name: 'Track', source: 'feat', text: 'Use Survival to follow tracks.', effects: [] },
+    { id: 'endurance', name: 'Endurance', source: 'feat', text: '+4 on checks and saves to resist nonlethal damage from exertion, environment, starvation, etc. Sleep in light or medium armor without fatigue.', effects: [] },
+    { id: 'wild-empathy', name: 'Wild Empathy', source: 'class', text: 'Improve the attitude of an animal like a Diplomacy check: 1d20 + ranger level + Cha mod.', effects: [] },
+    // ---- archery feats ----
+    {
+      id: 'point-blank-shot', name: 'Point Blank Shot', source: 'feat', sourceRef: 'PHB p.98',
+      text: '+1 on attack and damage rolls with ranged weapons at ranges up to 30 feet.',
+      effects: [{
+        id: 'pbs', label: 'Point Blank Shot', when: { kind: 'all', of: [{ kind: 'attack.kind', attackKind: 'ranged' }, { kind: 'toggle', id: 'within-30ft' }] },
+        do: [{ kind: 'bonus', to: 'attack', value: 1 }, { kind: 'bonus', to: 'damage', value: 1 }],
+      }],
+    },
+    { id: 'precise-shot', name: 'Precise Shot', source: 'feat', sourceRef: 'PHB p.98', text: 'No -4 penalty for shooting into melee.', effects: [{ id: 'n', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'note', text: 'Precise Shot: no -4 for firing into melee.' }] }] },
+    {
+      id: 'rapid-shot', name: 'Rapid Shot', source: 'feat', sourceRef: 'PHB p.99',
+      text: 'One extra ranged attack at your highest bonus during a full attack; all attacks that round take -2.',
+      effects: [{ id: 'mode', do: [{ kind: 'attackMode', modeId: 'rapid-shot', label: 'Rapid Shot', base: 'full', extraAttacksAtTop: 1, penalty: -2, attackKind: 'ranged' }] }],
+    },
+    {
+      id: 'manyshot', name: 'Manyshot', source: 'feat', sourceRef: 'PHB p.97',
+      text: 'As a standard action fire two arrows at a single target within 30 ft with one attack roll at -4 (three arrows at BAB +11 for -6, four at +16 for -8). Precision damage applies once.',
+      effects: [{ id: 'mode', do: [{ kind: 'attackMode', modeId: 'manyshot', label: 'Manyshot (2 arrows)', base: 'single', penalty: -4, attackKind: 'ranged', note: 'Manyshot: one roll, both arrows hit or miss together; roll weapon damage twice, precision/extra dice once. Target within 30 ft.' }] }],
+    },
+    { id: 'weapon-focus-ranged', name: 'Weapon Focus (ranged weapon)', source: 'feat', sourceRef: 'PHB p.102', text: '+1 on attack rolls with the chosen weapon.', effects: [{ id: 'wf', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'bonus', to: 'attack', value: 1 }] }] },
+    { id: 'improved-initiative', name: 'Improved Initiative', source: 'feat', effects: [{ id: 'ii', do: [{ kind: 'bonus', to: 'init', value: 4 }] }] },
+    { id: 'dodge', name: 'Dodge', source: 'feat', text: '+1 dodge bonus to AC against one designated opponent.', effects: [{ id: 'd', when: { kind: 'toggle', id: 'dodge-target' }, do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'dodge' }] }] },
+    // ---- buffs ----
+    {
+      id: 'haste', name: 'Haste', source: 'buff', duration: { rounds: 10 },
+      text: 'One extra attack at full BAB on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed.',
+      effects: [{ id: 'h', do: [{ kind: 'extraAttack', appliesToBase: 'full' }, { kind: 'bonus', to: 'attack', value: 1, bonusType: 'dodge' }, { kind: 'bonus', to: 'ac', value: 1, bonusType: 'dodge' }, { kind: 'bonus', to: 'save.ref', value: 1, bonusType: 'dodge' }, { kind: 'bonus', to: 'speed', value: 30 }] }],
+    },
+    { id: 'bless', name: 'Bless', source: 'buff', duration: { rounds: 10 }, effects: [{ id: 'b', do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'morale' }, { kind: 'bonus', to: 'save.will', value: 1, bonusType: 'morale' }] }] },
+    { id: 'inspire-courage-1', name: 'Inspire Courage +1', source: 'buff', duration: 'untilRemoved', text: 'Bard song: +1 morale on attack and weapon damage, +1 vs charm and fear.', effects: [{ id: 'ic', do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'morale' }, { kind: 'bonus', to: 'damage', value: 1, bonusType: 'morale' }] }] },
+    { id: 'inspire-courage-2', name: 'Inspire Courage +2', source: 'buff', duration: 'untilRemoved', effects: [{ id: 'ic', do: [{ kind: 'bonus', to: 'attack', value: 2, bonusType: 'morale' }, { kind: 'bonus', to: 'damage', value: 2, bonusType: 'morale' }] }] },
+    { id: 'prayer', name: 'Prayer', source: 'buff', duration: { rounds: 6 }, effects: [{ id: 'p', do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'luck' }, { kind: 'bonus', to: 'damage', value: 1, bonusType: 'luck' }, { kind: 'bonus', to: 'save.fort', value: 1, bonusType: 'luck' }, { kind: 'bonus', to: 'save.ref', value: 1, bonusType: 'luck' }, { kind: 'bonus', to: 'save.will', value: 1, bonusType: 'luck' }] }] },
+    { id: 'shaken', name: 'Shaken', source: 'condition', duration: 'untilRemoved', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'attack', value: -2 }, { kind: 'bonus', to: 'save.fort', value: -2 }, { kind: 'bonus', to: 'save.ref', value: -2 }, { kind: 'bonus', to: 'save.will', value: -2 }] }] },
+    { id: 'prone-self', name: 'Prone', source: 'condition', duration: 'untilRemoved', text: 'Prone: -4 melee attack, cannot use bows effectively (crossbows ok), +4 AC vs ranged, -4 AC vs melee.', effects: [{ id: 'p', when: { kind: 'attack.kind', attackKind: 'melee' }, do: [{ kind: 'bonus', to: 'attack', value: -4 }] }] },
+    // ---- generic situational helpers (targets) ----
+    { id: 'higher-ground', name: 'Higher ground', source: 'situational', duration: 'untilRemoved', effects: [{ id: 'h', when: { kind: 'attack.kind', attackKind: 'melee' }, do: [{ kind: 'bonus', to: 'attack', value: 1 }] }] },
+    { id: 'knowledge-devotion-table', name: 'Knowledge Devotion table (reference)', source: 'core', enabledByDefault: false, text: 'Reference: Knowledge check 15- +1, 16-25 +2, 26-30 +3, 31-35 +4, 36+ +5.', effects: [{ id: 't', do: [{ kind: 'bonusFromTable', promptId: 'knowledge', perTagCategory: 'creatureType', to: 'attack', bonusType: 'insight', table: KD_TABLE }] }] },
+  ],
+});
+
+writeFileSync(new URL('../packs/core-3.5e.json', import.meta.url), JSON.stringify(pack, null, 2) + '\n');
+console.log(`core pack: ${pack.tags.length} tags, ${pack.skills.length} skills, ${pack.abilities.length} abilities`);

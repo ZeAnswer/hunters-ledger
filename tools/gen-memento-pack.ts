@@ -1,0 +1,212 @@
+/**
+ * Generates packs/memento.json from what the RPG Scribe export + DM handouts say.
+ * Fields marked `todo` need the player's confirmation. Run: npx tsx tools/gen-memento-pack.ts
+ */
+import { writeFileSync } from 'node:fs';
+import { PackSchema, type Pack } from '../packages/engine/src/schema';
+
+const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
+const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
+
+const pack: Pack = PackSchema.parse({
+  id: 'memento',
+  name: 'Memento (Ranger 5 / Monster Hunter 1)',
+  version: 1,
+  description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
+  tags: [
+    { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
+    { id: 'oversized', label: 'Oversized (above Large)', category: 'custom' },
+  ],
+  skills: [
+    { id: 'knowledge-monsters', name: 'Knowledge (Monsters)', ability: 'int', trainedOnly: true },
+    { id: 'craft-taxidermy', name: 'Craft (Taxidermy/Trophy)', ability: 'int' },
+  ],
+  classTables: [
+    {
+      id: 'monster-hunter', name: 'Monster Hunter', hitDie: 10, skillPointsPerLevel: 4, babProgression: 'full',
+      saves: { fort: 'good', ref: 'poor', will: 'poor' },
+      classSkills: ['knowledge-monsters', 'craft-taxidermy', 'survival', 'spot', 'listen', 'hide', 'move-silently', 'knowledge-nature', 'knowledge-dungeoneering'],
+      levelFeatures: { '1': ['monster-killer', 'monster-blow', 'trophy-crafting'], '2': ['monster-lore'], '3': ['imbue-trophy-arms'], '4': ['modify-trophy'], '6': ['imbue-trophy-wondrous'], '10': ['monster-horror'] },
+    },
+  ],
+  abilities: [
+    // ---- DM feats / memories ----
+    {
+      id: 'woodland-archer', name: 'Woodland Archer', source: 'feat', sourceRef: 'Races of the Wild p.154',
+      text: 'Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round. Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.',
+      effects: [
+        {
+          id: 'adjust', label: 'Adjust for Range',
+          when: { kind: 'all', of: [{ kind: 'attack.kind', attackKind: 'ranged' }, { kind: 'log', event: 'miss', target: 'current', scope: 'thisRound' }] },
+          do: [{ kind: 'bonus', to: 'attack', value: 4 }],
+        },
+        {
+          id: 'pierce', label: 'Pierce the Foliage',
+          when: { kind: 'all', of: [{ kind: 'attack.kind', attackKind: 'ranged' }, { kind: 'target.hasCondition', condition: 'concealed' }, { kind: 'log', event: 'hit', target: 'current', scope: 'lastRound' }] },
+          do: [{ kind: 'ignoreConcealment' }, { kind: 'note', text: 'Pierce the Foliage: ignore this foe\'s concealment miss chance this round.' }],
+        },
+        { id: 'sniper', label: 'Moving Sniper', when: { kind: 'toggle', id: 'sniping' }, do: [{ kind: 'note', text: 'Moving Sniper: after a hit while sniping, take one move action before re-hiding.' }] },
+      ],
+    },
+    {
+      id: 'knowledge-devotion', name: 'Knowledge Devotion', source: 'feat', sourceRef: 'Complete Champion',
+      text: 'Once per creature type per combat, make a Knowledge check (need 1+ rank in the matching Knowledge skill). Insight bonus on attack and damage vs that type: 15 or less +1, 16-25 +2, 26-30 +3, 31-35 +4, 36+ +5.',
+      effects: [{
+        id: 'kd', label: 'Knowledge Devotion',
+        do: [
+          { kind: 'bonusFromTable', promptId: 'knowledge', perTagCategory: 'creatureType', to: 'attack', bonusType: 'insight', table: KD_TABLE },
+          { kind: 'bonusFromTable', promptId: 'knowledge', perTagCategory: 'creatureType', to: 'damage', bonusType: 'insight', table: KD_TABLE },
+        ],
+      }],
+    },
+    {
+      id: 'distracting-attack', name: 'Distracting Attack', source: 'class', sourceRef: 'PHB2 ranger variant (replaces animal companion)',
+      text: 'Whenever you hit an enemy with a weapon attack, that enemy is considered flanked by you until the end of your next turn.',
+      todo: 'Confirm exact duration and whether the flank counts for you or only allies.',
+      effects: [{ id: 'flank', trigger: 'onHit', do: [{ kind: 'applyTag', to: 'target', tag: 'flanked', duration: 'endOfNextTurn' }] }],
+    },
+    {
+      id: 'memento-aqua', name: 'Memento Aqua', source: 'memory',
+      text: 'Memory fragment: +2 Swim; +2 attack and damage vs creatures whose habitat is mainly aquatic.',
+      effects: [
+        { id: 'swim', do: [{ kind: 'bonus', to: 'skill.swim', value: 2 }] },
+        { id: 'aqua', label: 'vs aquatic', when: { kind: 'target.hasTag', tag: 'aquatic' }, do: [{ kind: 'bonus', to: 'attack', value: 2 }, { kind: 'bonus', to: 'damage', value: 2 }] },
+      ],
+    },
+    {
+      id: 'memento-formido', name: 'Memento Formido', source: 'memory',
+      text: 'Memory fragment: +2 Will vs any monster of your favored enemy or Monster Killer types.',
+      params: { types: { kind: 'tags', label: 'Favored + Monster Killer types', category: 'creatureType' } },
+      effects: [{ id: 'will', when: MK, do: [{ kind: 'bonus', to: 'save.will', value: 2 }] }],
+    },
+    { id: 'the-shit-ive-seen', name: 'The Shit I\'ve Seen', source: 'feat', text: '+4 Survival.', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'skill.survival', value: 4 }] }] },
+    // ---- Monster Hunter class ----
+    {
+      id: 'monster-killer', name: 'Monster Killer', source: 'class',
+      text: 'Chosen monster types (3 at MH1, 5 at MH5, 7 at MH8) usable for trophies, Monster Blow and Monster Horror. Monstrous Humanoid, Magical Beast and Outsider cost 2 picks; Dragon+Giant together cost 1.',
+      todo: 'Confirm the 3 chosen types.',
+      params: { types: { kind: 'tags', label: 'Monster Killer types', category: 'creatureType' } },
+      effects: [],
+    },
+    {
+      id: 'monster-blow', name: 'Monster Blow', source: 'class', activation: 'declare',
+      text: 'Declare before the attack roll. Target must be a Monster Killer type and below 50% HP. On hit: Fortitude save DC = damage dealt + MH level + Wis mod or die.',
+      params: { types: { kind: 'tags', label: 'Monster Killer types', category: 'creatureType' } },
+      resources: [{ id: 'monster-blow', label: 'Monster Blow', max: '1 + floor(classLevel(monster-hunter) / 5) + floor(classLevel(monster-hunter) / 8)', per: 'day' }],
+      effects: [
+        {
+          id: 'declared', label: 'Monster Blow',
+          when: { kind: 'all', of: [{ kind: 'toggle', id: 'monster-blow' }, MK, { kind: 'target.hurtAtMost', hurt: 'bloodied' }] },
+          do: [{ kind: 'note', text: 'MONSTER BLOW: on hit, Fort DC = damage + classLevel(monster-hunter) + wisMod or die.' }],
+        },
+        { id: 'use', trigger: 'onUse', do: [{ kind: 'consume', resourceId: 'monster-blow' }] },
+      ],
+    },
+    {
+      id: 'trophy-crafting', name: 'Trophy Crafting', source: 'class',
+      text: 'Harvest ≤2 parts (more with Knowledge (Monsters) DC 10+MH) within 1 minute from Large+ monsters you damaged, Monster Killer types only. Max trophies = MH×2 + Wis mod; active slots 4 (MH1), 6 (MH4), 8 (MH7). Trophy bonuses ×2 at MH5, ×3 at MH10.',
+      effects: [],
+    },
+    {
+      id: 'monster-lore', name: 'Monster Lore', source: 'class', enabledByDefault: false,
+      text: 'MH2: Locate monster type DC 20, specific monster DC 30, assess below 50% HP DC 25 (+3 per size above Large).', effects: [],
+    },
+    // ---- Vaelor's Monsters' Manual ----
+    {
+      id: 'monster-knowledge', name: 'Monster Knowledge (Vaelor\'s Manual)', source: 'item', activation: { action: 'standard' },
+      text: 'Standard action: Knowledge check DC 16 to recall everything in the book about this monster (except HP). Enter the same check as Knowledge Devotion.',
+      effects: [{ id: 'reveal', trigger: 'onUse', when: { kind: 'prompt', id: 'knowledge', perTagCategory: 'creatureType', atLeast: 16 }, do: [{ kind: 'revealTarget' }] }],
+    },
+    {
+      id: 'hunters-analysis', name: 'Hunter\'s Analysis (Vaelor\'s Manual)', source: 'item', activation: { action: 'full' },
+      text: 'Spend a full round observing a monster. From your next turn, vs that monster for the rest of the battle: threat range ×2 (20 → 19-20). If immune to crits, instead reduce its DR/SR by half your MH level (min 1) for 1 round, or suppress one unique ability for 1 round with Knowledge DC 20.',
+      effects: [
+        { id: 'mark', trigger: 'onUse', do: [{ kind: 'applyTag', to: 'target', tag: 'analyzed', duration: 'encounter' }] },
+        { id: 'crit', label: 'Analyzed target', when: { kind: 'target.hasCondition', condition: 'analyzed' }, do: [{ kind: 'bonus', to: 'critRange', value: 1 }, { kind: 'note', text: 'Hunter\'s Analysis: threat range doubled vs this target (if base is 19-20 use 17-20). If crit-immune: DR/SR -1 for 1 round, or suppress one ability (Knowledge DC 20).' }] },
+      ],
+    },
+    { id: 'hunters-instinct', name: 'Hunter\'s Instinct (Vaelor\'s Manual)', source: 'item', text: '+1 on Knowledge checks to identify monsters.', effects: [{ id: 'k', do: [{ kind: 'bonus', to: 'skill.knowledge-monsters', value: 1 }] }] },
+    // ---- items ----
+    {
+      id: 'boots-of-speed', name: 'Boots of Speed', source: 'item', activation: { action: 'free' },
+      text: 'Free action: haste for up to 10 rounds per day, in any increments.',
+      resources: [{ id: 'boots-rounds', label: 'Haste rounds', max: 10, per: 'day' }],
+      effects: [{ id: 'go', trigger: 'onUse', do: [{ kind: 'consume', resourceId: 'boots-rounds', amount: 1 }] }],
+      todo: 'Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on.',
+    },
+    { id: 'ring-of-protection-1', name: 'Ring of Protection +1', source: 'item', effects: [{ id: 'r', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'deflection' }] }] },
+    { id: 'bracers-of-armor-1', name: 'Bracers of Armor +1', source: 'item', effects: [{ id: 'b', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'armor' }] }] },
+    { id: 'ring-of-swimming', name: 'Ring of Swimming (cursed)', source: 'item', text: 'Cursed: cannot remove; must explore any new body of water (Will save).', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'skill.swim', value: 5, bonusType: 'competence' }] }] },
+    { id: 'bracers-of-archery-lesser', name: 'Bracers of Archery, Lesser', source: 'item', effects: [{ id: 'b', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'competence' }] }] },
+    { id: 'belt-of-strength', name: 'Belt of Strength +2', source: 'item', text: '+2 enhancement to Strength. Ability scores on the sheet already include it.', effects: [] },
+    {
+      id: 'hand-of-glory', name: 'Hand of Glory', source: 'item', activation: { action: 'standard' },
+      text: 'Daylight 1/day, See Invisibility 1/day; extra ring slot.',
+      resources: [{ id: 'hog-daylight', label: 'Daylight', max: 1, per: 'day' }, { id: 'hog-see-invis', label: 'See Invisibility', max: 1, per: 'day' }],
+      effects: [],
+    },
+    { id: 'pearl-of-sirines', name: 'Pearl of the Sirines', source: 'item', text: 'Water breathing / freedom of movement underwater while held.', effects: [] },
+    {
+      id: 'whistle-of-agony', name: 'Monsters\' Agony Whisper Whistle', source: 'item', activation: { action: 'standard' },
+      text: '1/day: every Monstrous Humanoid, Magical Beast, Aberration and oversized (above Large) monster within 2 km cries out, revealing itself. Listen DC 15 for direction. They also learn your direction. Outsiders unaffected.',
+      resources: [{ id: 'whistle', label: 'Whistle', max: 1, per: 'day' }],
+      effects: [],
+    },
+    // ---- trophies (Monster Hunter) ----
+    {
+      id: 'chuul-gloves', name: 'Chuul Gloves (trophy)', source: 'item', text: 'Trophy: +4 initiative (improved initiative); paralysis touch DC 11+, Fort negates.',
+      effects: [{ id: 'i', do: [{ kind: 'bonus', to: 'init', value: '4 * trophyMultiplier', bonusType: 'enhancement' }] }],
+    },
+    { id: 'gargoyle-bracers', name: 'Gargoyle Bracers (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: DR 10/magic, freeze (appear as statue DC 15), +2 Con.', todo: 'Enable if worn.', effects: [] },
+    { id: 'rider-ring', name: 'Rider Ring (drider trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: SR 14, darkness at will.', todo: 'Enable if worn.', effects: [] },
+    { id: 'medusa-mask', name: 'Medusa Mask (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: petrifying gaze 1/day DC 12 Fort; 3 snake attacks 5 ft +3, 1d4 + poison 1d6 Str DC 12.', todo: 'Enable if worn.', resources: [{ id: 'medusa-gaze', label: 'Petrifying gaze', max: 1, per: 'day' }], effects: [] },
+    { id: 'shield-amulet', name: 'Shield Amulet (shield guardian trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: +4 natural armor; stores one spell of each level 4/5/6.', todo: 'Enable if worn.', effects: [{ id: 'n', do: [{ kind: 'bonus', to: 'ac', value: '4 * trophyMultiplier', bonusType: 'natural' }] }] },
+  ],
+  characters: [{
+    id: 'memento', name: 'Memento',
+    abilityScores: { str: 12, dex: 16, con: 12, int: 16, wis: 16, cha: 11 },
+    xp: 16088,
+    classLevels: [{ classId: 'ranger', level: 5 }, { classId: 'monster-hunter', level: 1 }],
+    hp: { max: 44, current: 44, temp: 0, nonlethal: 0 },
+    baseArmor: 0, baseShield: 0, baseNaturalArmor: 0, speed: 30,
+    skills: {
+      spot: { ranks: 8 }, hide: { ranks: 7 }, 'move-silently': { ranks: 7 }, survival: { ranks: 7 }, listen: { ranks: 6 }, climb: { ranks: 2 },
+      'knowledge-monsters': { ranks: 8 }, 'craft-taxidermy': { ranks: 6 },
+    },
+    attackProfiles: [
+      { id: 'bow', name: 'Composite Longbow +1', kind: 'ranged', baseDice: '1d8', enhancement: 1, critRange: 20, critMult: 3, rangeIncrement: 110, attackAbility: 'dex', damageAbility: 'str', maxDamageAbilityBonus: 1 },
+      { id: 'melee', name: 'Longsword', kind: 'melee', baseDice: '1d8', enhancement: 0, critRange: 19, critMult: 2, attackAbility: 'str', damageAbility: 'str' },
+    ],
+    abilities: [
+      { abilityId: 'favored-enemy-1', paramValues: { types: ['monstrous-humanoid'] } },
+      { abilityId: 'favored-enemy-2', paramValues: { types: ['aberration'] } },
+      { abilityId: 'track' }, { abilityId: 'endurance' }, { abilityId: 'wild-empathy', enabled: false },
+      { abilityId: 'point-blank-shot' }, { abilityId: 'rapid-shot' }, { abilityId: 'precise-shot' }, { abilityId: 'weapon-focus-ranged' },
+      { abilityId: 'woodland-archer' }, { abilityId: 'knowledge-devotion' }, { abilityId: 'distracting-attack' },
+      { abilityId: 'memento-aqua' }, { abilityId: 'memento-formido', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
+      { abilityId: 'the-shit-ive-seen' },
+      { abilityId: 'monster-killer', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
+      { abilityId: 'monster-blow', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
+      { abilityId: 'trophy-crafting' }, { abilityId: 'monster-lore', enabled: false },
+      { abilityId: 'monster-knowledge' }, { abilityId: 'hunters-analysis' }, { abilityId: 'hunters-instinct' },
+      { abilityId: 'boots-of-speed' }, { abilityId: 'ring-of-protection-1' }, { abilityId: 'bracers-of-armor-1' }, { abilityId: 'ring-of-swimming' },
+      { abilityId: 'bracers-of-archery-lesser' }, { abilityId: 'belt-of-strength' }, { abilityId: 'hand-of-glory' }, { abilityId: 'pearl-of-sirines' }, { abilityId: 'whistle-of-agony' },
+      { abilityId: 'chuul-gloves' }, { abilityId: 'gargoyle-bracers', enabled: false }, { abilityId: 'rider-ring', enabled: false }, { abilityId: 'medusa-mask', enabled: false }, { abilityId: 'shield-amulet', enabled: false },
+    ],
+    resourceState: { 'boots-rounds': { used: 2 } },
+    vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1 },
+    notes: [
+      'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.',
+      'TODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.',
+      'TODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).',
+      'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.',
+      'TODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).',
+      'Skill ranks assumed = export value / 2 (export stores half-ranks).',
+      'Ability scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.',
+      'Trophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn.',
+    ].join('\n'),
+  }],
+});
+
+writeFileSync(new URL('../packs/memento.json', import.meta.url), JSON.stringify(pack, null, 2) + '\n');
+console.log(`memento pack: ${pack.abilities.length} abilities, character with ${pack.characters[0]!.abilities.length} ability instances`);
