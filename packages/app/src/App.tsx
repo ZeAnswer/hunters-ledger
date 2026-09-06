@@ -1,10 +1,43 @@
-import { ENGINE_VERSION } from '@hl/engine';
+import { useStore } from './store/store';
+import { BattleScreen } from './screens/BattleScreen';
+import { CharacterScreen } from './screens/CharacterScreen';
+import { LibraryScreen } from './screens/LibraryScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { cx } from './components/ui';
+
+const TABS = [
+  { id: 'battle', label: 'Battle', icon: '⚔️' },
+  { id: 'character', label: 'Memento', icon: '🏹' },
+  { id: 'library', label: 'Library', icon: '📚' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
+] as const;
 
 export default function App() {
+  const hydrated = useStore((s) => s.hydrated);
+  const screen = useStore((s) => s.screen);
+  const setScreen = useStore((s) => s.setScreen);
+  const toast = useStore((s) => s.toast);
+  const name = useStore((s) => s.character?.name);
+
+  if (!hydrated) return <div className="flex h-full items-center justify-center text-zinc-500">Loading…</div>;
+
   return (
-    <main className="flex h-full flex-col items-center justify-center gap-2 p-6">
-      <h1 className="text-2xl font-semibold">Hunter's Ledger</h1>
-      <p className="text-sm text-zinc-400">engine {ENGINE_VERSION}</p>
-    </main>
+    <div className="flex h-full flex-col">
+      <main className="flex-1 overflow-y-auto pb-24">
+        {screen === 'battle' && <BattleScreen />}
+        {screen === 'character' && <CharacterScreen />}
+        {screen === 'library' && <LibraryScreen />}
+        {screen === 'settings' && <SettingsScreen />}
+      </main>
+      {toast && <div className="fixed left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-zinc-100 px-4 py-2 text-sm text-zinc-900 shadow-lg">{toast}</div>}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-zinc-800 bg-zinc-950/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {TABS.map((t) => (
+          <button key={t.id} type="button" onClick={() => setScreen(t.id)} className={cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-xs select-none touch-manipulation', screen === t.id ? 'text-amber-400' : 'text-zinc-500')}>
+            <span className="text-xl leading-none">{t.icon}</span>
+            <span>{t.id === 'character' ? name ?? t.label : t.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
   );
 }

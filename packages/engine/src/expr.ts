@@ -22,7 +22,12 @@ export function evalExpr(expr: Expr, vars: ExprVars): number {
 
 class Parser {
   private i = 0;
-  constructor(private src: string, private vars: ExprVars) {}
+  private src: string;
+  private vars: ExprVars;
+  constructor(src: string, vars: ExprVars) {
+    this.src = src;
+    this.vars = vars;
+  }
 
   parseExpr(): number {
     let v = this.parseTerm();
