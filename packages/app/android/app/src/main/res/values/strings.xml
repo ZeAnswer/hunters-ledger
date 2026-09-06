@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hunter\'s Ledger</string>
+    <string name="title_activity_main">Hunter\'s Ledger</string>
+    <string name="package_name">com.memento.huntersledger</string>
+    <string name="custom_url_scheme">com.memento.huntersledger</string>
+</resources>
