@@ -1,0 +1,18 @@
+{
+  "name": "hunters-ledger",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "npm run test -w packages/engine",
+    "test:watch": "npm run test:watch -w packages/engine",
+    "dev": "npm run dev -w packages/app",
+    "build": "npm run build -w packages/engine && npm run build -w packages/app",
+    "typecheck": "npm run typecheck -ws",
+    "validate-packs": "tsx tools/pack-validate.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
