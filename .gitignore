@@ -6,3 +6,5 @@ packages/app/android/
 !packages/app/android/app/src/main/res/
 .env
 coverage/
+test-results/
+playwright-report/

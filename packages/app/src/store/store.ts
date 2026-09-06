@@ -152,9 +152,27 @@ export const useStore = create<Store>((set, get) => ({
   },
 }));
 
-// ---- persistence: save changed slices, debounced ----
+// ---- persistence: save changed slices, debounced (300ms trailing, 1s max wait), flushed on page hide ----
 let timer: ReturnType<typeof setTimeout> | undefined;
+let firstChangeAt = 0;
+let pending: Partial<State> = {};
 let last: Partial<State> = {};
+
+function flush() {
+  clearTimeout(timer);
+  timer = undefined;
+  const changed = pending;
+  pending = {};
+  firstChangeAt = 0;
+  if (Object.keys(changed).length === 0) return;
+  const st = storage();
+  if ('library' in changed) void st.set(KEYS.library, changed.library);
+  if ('character' in changed) void (changed.character ? st.set(KEYS.character, changed.character) : st.remove(KEYS.character));
+  if ('battle' in changed) void (changed.battle ? st.set(KEYS.battle, changed.battle) : st.remove(KEYS.battle));
+  if ('pastBattles' in changed) void st.set(KEYS.past, changed.pastBattles);
+  if ('screen' in changed) void st.set(KEYS.screen, changed.screen);
+}
+
 useStore.subscribe((s) => {
   if (!s.hydrated) return;
   const changed: Partial<State> = {};
@@ -165,16 +183,20 @@ useStore.subscribe((s) => {
   if (s.screen !== last.screen) changed.screen = s.screen;
   last = { library: s.library, character: s.character, battle: s.battle, pastBattles: s.pastBattles, screen: s.screen };
   if (Object.keys(changed).length === 0) return;
+  pending = { ...pending, ...changed };
+  const now = Date.now();
+  if (!firstChangeAt) firstChangeAt = now;
   clearTimeout(timer);
-  timer = setTimeout(() => {
-    const st = storage();
-    if ('library' in changed) void st.set(KEYS.library, changed.library);
-    if ('character' in changed) void (changed.character ? st.set(KEYS.character, changed.character) : st.remove(KEYS.character));
-    if ('battle' in changed) void (changed.battle ? st.set(KEYS.battle, changed.battle) : st.remove(KEYS.battle));
-    if ('pastBattles' in changed) void st.set(KEYS.past, changed.pastBattles);
-    if ('screen' in changed) void st.set(KEYS.screen, changed.screen);
-  }, 300);
+  timer = setTimeout(flush, Math.max(0, Math.min(300, firstChangeAt + 1000 - now)));
 });
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+}
+
+/** Force pending saves to disk now (e.g. before export). */
+export const flushStorage = flush;
 
 /** Evaluation context for the engine from current store state. */
 export function selectCtx(s: Store): EvalContext | undefined {
