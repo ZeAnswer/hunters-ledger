@@ -272,6 +272,8 @@ export const CharacterSchema = z.object({
   abilities: z.array(z.object({ abilityId: z.string(), enabled: z.boolean().default(true), paramValues: z.record(z.array(z.string())).default({}) })).default([]),
   resourceState: z.record(z.object({ used: z.number().int().nonnegative() })).default({}),
   levelHistory: z.array(LevelRecordSchema).default([]),
+  /** Racial/other bonus skill points per level (human = 1). */
+  extraSkillPointsPerLevel: z.number().int().default(0),
   /** Free numeric variables usable in pack expressions, e.g. favoredEnemyBonus1, trophyMultiplier. */
   vars: z.record(z.number()).default({}),
   notes: z.string().optional(),

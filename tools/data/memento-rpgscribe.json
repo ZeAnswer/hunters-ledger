@@ -1,0 +1,241 @@
+{
+  "name": "Memento",
+  "abilityScores": {
+    "str": 12,
+    "dex": 16,
+    "con": 12,
+    "int": 16,
+    "wis": 16,
+    "cha": 11
+  },
+  "xp": 16088,
+  "level": 6,
+  "hp": {
+    "max": 44,
+    "current": 44
+  },
+  "classLevels": [
+    {
+      "classId": "ranger",
+      "level": 5
+    },
+    {
+      "classId": "monster-hunter",
+      "level": 1
+    }
+  ],
+  "skills": {
+    "craft-taxidermy": {
+      "ranks": 6
+    },
+    "unknown-d11c1603": {
+      "ranks": 8
+    },
+    "unknown-700ac2f3": {
+      "ranks": 8
+    },
+    "unknown-d80de6a9": {
+      "ranks": 8
+    },
+    "unknown-ecb3ca28": {
+      "ranks": 7
+    },
+    "hide": {
+      "ranks": 7
+    },
+    "unknown-40ad06c4": {
+      "ranks": 6,
+      "classSkillOverride": true
+    },
+    "spot": {
+      "ranks": 8
+    },
+    "listen": {
+      "ranks": 6
+    },
+    "survival": {
+      "ranks": 7
+    },
+    "move-silently": {
+      "ranks": 7
+    },
+    "climb": {
+      "ranks": 2
+    },
+    "knowledge-monsters": {
+      "ranks": 8
+    }
+  },
+  "levelHistory": [
+    {
+      "level": 1,
+      "classId": "ranger",
+      "hpRolled": 8,
+      "skillPointsSpent": {
+        "unknown-d11c1603": 4,
+        "unknown-700ac2f3": 4,
+        "unknown-d80de6a9": 4,
+        "unknown-ecb3ca28": 4,
+        "hide": 4,
+        "spot": 4,
+        "listen": 4,
+        "survival": 4,
+        "move-silently": 4,
+        "knowledge-monsters": 4
+      },
+      "featsTaken": [
+        "track?",
+        "favored-enemy",
+        "weapon-focus?"
+      ]
+    },
+    {
+      "level": 2,
+      "classId": "ranger",
+      "hpRolled": 8,
+      "skillPointsSpent": {
+        "unknown-d11c1603": 1,
+        "unknown-d80de6a9": 1,
+        "unknown-ecb3ca28": 1,
+        "spot": 1,
+        "move-silently": 1,
+        "climb": 2,
+        "knowledge-monsters": 1
+      },
+      "featsTaken": [
+        "rapid-shot?"
+      ],
+      "notes": "1 unspent skill points"
+    },
+    {
+      "level": 3,
+      "classId": "ranger",
+      "hpRolled": 8,
+      "skillPointsSpent": {
+        "knowledge-monsters": 1
+      },
+      "featsTaken": [],
+      "notes": "4.5 unspent skill points"
+    },
+    {
+      "level": 4,
+      "classId": "ranger",
+      "hpRolled": 8,
+      "skillPointsSpent": {
+        "unknown-d11c1603": 1,
+        "unknown-700ac2f3": 2,
+        "unknown-d80de6a9": 1,
+        "unknown-ecb3ca28": 1,
+        "unknown-40ad06c4": 1,
+        "spot": 1,
+        "listen": 1,
+        "survival": 1,
+        "knowledge-monsters": 1
+      },
+      "featsTaken": []
+    },
+    {
+      "level": 5,
+      "classId": "ranger",
+      "hpRolled": 1,
+      "skillPointsSpent": {
+        "unknown-d11c1603": 1,
+        "unknown-700ac2f3": 2,
+        "unknown-d80de6a9": 2,
+        "unknown-ecb3ca28": 1,
+        "hide": 2,
+        "spot": 2,
+        "listen": 1,
+        "survival": 1,
+        "move-silently": 1,
+        "knowledge-monsters": 1
+      },
+      "featsTaken": [
+        "favored-enemy"
+      ],
+      "notes": "-2 unspent skill points"
+    },
+    {
+      "level": 6,
+      "classId": "monster-hunter",
+      "hpRolled": 1,
+      "skillPointsSpent": {
+        "craft-taxidermy": 6,
+        "hide": 1,
+        "move-silently": 1
+      },
+      "featsTaken": [
+        "woodland-archer"
+      ]
+    }
+  ],
+  "feats": [
+    "point-blank-shot?",
+    "rapid-shot?",
+    "Memento Formido",
+    "track?",
+    "favored-enemy (321140E5-9A1A-4329-9E9D-124103BDA18F)",
+    "favored-enemy (E6E711CC-3355-4B3E-80C3-66E052724819)",
+    "Memento Aqua",
+    "Distracting Attack",
+    "weapon-focus? (93D96EF9-4E00-40DF-BB02-18B8C0715F7B)",
+    "The shit I've seen",
+    "woodland-archer",
+    "2nd-favored-enemy",
+    "knowledge-devotion"
+  ],
+  "dailyActions": [
+    {
+      "name": "Boots of Speed: Haste",
+      "max": 10,
+      "used": 2
+    },
+    {
+      "name": "Hand of Glory: Daylight",
+      "max": 1,
+      "used": 0
+    },
+    {
+      "name": "Hand of Glory: See Invisibility",
+      "max": 1,
+      "used": 0
+    },
+    {
+      "name": "Pearl of the Sirines: Water Breathing",
+      "max": -1,
+      "used": 1
+    },
+    {
+      "name": "Monster Blow",
+      "max": 1,
+      "used": 0
+    }
+  ],
+  "items": [
+    "library item B1029F6A (type 1, +1)",
+    "Ring of Protection (+1)",
+    "Boots of Speed",
+    "Bracers of Armor (+1)",
+    "library item 2B2C0E73 (type 3)",
+    "Ring of Swimming",
+    "library item undefined (type 11)",
+    "Hand of Glory",
+    "Pearl of the Sirines",
+    "Bracers of Archery, Lesser",
+    "Chuul Gloves - Abberration",
+    "belt of strength"
+  ],
+  "notes": [
+    "Memory - Memento Aqua: לפתע שברי זכרונות שלא שלך רצים בראשך, מרגיש לך שהיו לך חיים נוספים: תמונות של מפלצות שונות שלא פגשת מעולם רצות מול עיניך (יצור קוצני, ענקים, דרקונים ותפלצות ענק לא מזוהות), לרגע אתה מנסה להאחז בהם אך ללא הצלחה. משהו כן בוקע לראשך, אתה נזכר בלכלוך על הפנים, אתה מנקה את עצמך וחושב שזה בוץ, אבל מגלה שזה בעצם דם. זו לא פעם ראשונה שלקחת חיים מיצור מסוג זה. אתה ממנטו, צייד קשת, אתה מגיע מעיירת דיג, ולא פעם היו מתקפות כאלו של היצורים דמויי לובסטר הללו על דייגים בודדים, רוב הזמן ידעתם להתמודד איתם ולהבריח אותם בהגנה על העיירה, לעיתים הם היו מצליחים לחטוף מישהו ולגרור אותו אל תוך המים או אל הביצה. הייתם נוהגים לעקוב אחריהם בתוך המים ולחפש את תנועותיהם, הרגשת מאוד בנוח במים ובביצות. לא סתם נמשכת לדבר עם הדיג הגמדי במכרה. עוד מגיל צעיר התעניינת בחקר אנטומיה של יצורים מוזרים ומפלצות, הסתקרנת מטבעם השונה. אביך סיפר לך מעשיות על ציידי מפלצות שהיו מסתובבים בפאירון העתיקה והורגים מפלצות שונות. זכורה לך מעשיה על צייד שהרג כריש יבשה בידיו החשופות כדי להציל כפר שלם - לא ברור לך מה מהמעשיות אמיתי ומה לא.\n\nאתה מקבל פרגמנט זיכרון : MEMENTO AQUA:\nעקב הנינוחות שלך בסביבות אגמים וביצות, יש לך בונוס קבוע לשחייה +2 ועקב ההכרה של האנטומיה ליצורים החיים בגופי מים, יש לך בונוס +2 להתקפה ולנזק ליצורים שסביבת המחיה שלהם היא ימית בעיקרה.",
+    "Memory - Memento Formido: משהו בדמות האנושית המפלצתית הזו מוכר לך - כפר הדייג שממנו הגעת היה נתון למארב מתמשך על ידי מפלצת שאתה התעמקת להכיר אותה: את הריח שלה, את העקבות שלה, את דפוסי התנועה שלה, בניסיון לעקוב אחריה יחד עם חבורת סיירים ולחסל אותה.\nבשנתיים האחרונות לזמנך בכפר זה קרה, המפלצת הייתה מגיעה כל ירח מלא וחוטפת ילד או אישה מהכפר. היו שמועות שמדובר במכשפת ביצות. אתה זוכר את המאבק, עקבתם אחריה לביצות, אחד אחד היא קטפה אותכם, היפנטה חלק והטביעה את האחרים, הצלחת בינתיים לעמוד בפחד מלברוח. \nלבסוף הגעתם לבקתה באמצע הביצה, בזמן שהמכשפה הירוקה הופיעה ונלחמה בחלקכם, מישהו נכנס לבקתה ויצא משם עם הלב הפועם שלה, ברגע שהוא ניסה לשרוף את הלב, התנפל עליו יצור מעופף הנראה עשוי מאבן שתלש את ראשו (יצור דומה לזה שמולך כעת). אתה לא עמדת יותר בלחץ וברחת משם. מאז לא חזרת לעיירה מבושה על הכישלון, היא הייתה חזקה מדי עבורכם. החלטת שאתה צריך לכפר על הכישלון בצייד יצורים מפלצתיים בשממה, עד שתוכיח את עצמך ראוי לחזור לעיירה שלך (או לפחות ככה אתה מספר לעצמך).\n\nאתה מקבל פרגמנט זיכרון : MEMENTO FORMIDO:  \nאתה עמיד יותר ללחצים מצד מפלצות - אתה מקבל +2 לWILL מול כל מפלצת מהסוג FAVORED ENEMY שלך או מקטגוריה שתבחר כצייד מפלצות, בנוסף לבונוסים הרגילים.",
+    "Memory - Vaelor Aura: זיכרון לממנטו רק אם מנסה להרגיע את הBEHIR:\n\nלא תמיד צדת חיות פרא, לעיתים תקשרת איתם ולמדת מהם הרבה על העולם שמסביבך. הצעדים שלהם העידו על אויבים קרובים, והריחות שלהם העידו על התחושות שלהם ומצבי הרוח. נעזרת בהם למצוא לפעמים מים או אוכל בסיורים ארוכים. \nכל מיני זוחלים ודרקונים היו פעם נפוצים במעברים בין הכפרים, גדלת בעידן עתיק יותר שבו אפילו רכבת על יצורים מעופפים בשלב מסויים בחייך. אתה זוכר יצור מעופף דמוי דרקון שהפך להיות שותף קרוב שלך לצייד בטבע, הוא היה בעצמו דמוי דרקון והייתם מבצעים פעולות הגנה ביחד על הכפר של ציידי המפלצות שהקמת, זה היה בעידן שבו עדיין היו ערים מעופפות בעולם, משהו שנראה לך כמו לקוח ממימד אחר היום. ידעת גם שפה מוזרה אותה אתה לא מזהה כבר.\n\nאתה מקבל פרגמנט זיכרון :VAELOR AURA:  \nכל מפלצת מעופפת (שנמצאת בקטגוריות שלך) שאתה פוגש אתה יכול לשכנע אותה לתת לך לרכב עליה למשך שעה ליעד במרחק תעופה (לך ולכל החבורה במקרה שהיא גדולה). אם אינך משכנע אותה או שהיא מראש תוקפת אתה מקבל תוספת לRANGE של הנשק שלך פי 2 (MELLE או RANGED).",
+    "Memoey: Astra Vindicta: תוך כדי זעקת קרב של המינוטאור לאחר הסתערותו: \"אני הצאצא של Grogan Dal אשתה את דמכם הלילה\", משהו בך מתעורר, השם הזה, הקרניים האלו והגוף חצי השור - אתה או את בעצם חקרת את המופע המפלצתי הזה. אתה חש תחושה של משהו מחיים אחרים, היית פעם ציידת מפלצות, ביצעת בירור לשאלה של מישהו על מהו מינוטאור? זה יצור דמוי פר חצי אנושי, בעל עוצמות כוח אך חולשות לקסם אשליות. חלקם היו גלדיאטורים בממלכת ת'איי של הקוסמים האדומים, שם מפורסם של אחד מהם היה גרוגאן דאל.\nלפני שהחיים הקודמים שלך הסתיימו זה היה הדבר האחרון שהתעמקת בו. משהו בקרניים האלו לא עוזב אותך. המבט הזועם הזה, עולה בך הרצון לנקמה לנקום את החיים שנעזבו, את מה שהשגת לפני שהנשמה שלך עזבה את הגוף הקודם הזה. אפילו חלק מהחבורה הנוכחית פתאום מקבלים נוכחות בזיכרון הזה, היית אסטרה ציידת מפלצות מהביצות של THAR לא הרחק מכאן. את נלכדת במסע ליערות של צ'ולט כדי לחקור כל מיני מפלצות ונגררת למצודת היואן-טי שם שיחררו אותך חלק מהאנשים שאיתם הגוף שאת שוכנת בו כעת. את זוכרת שקוסם אדום שתה את נשמתך לתוך בקבוק סגול אותו הגוף שאת שוכנת בו כעת נושא עימו.\n\nאתה מקבל פרגמנט זיכרון :ASTRA VINDICTA:  \nמול כל מפלצת שפגעה בך אי פעם בחיים האלו או הקודמים שהיא חלק ב FAVORED ENEMY שלך או קטגוריית מפלצות שתבחר כצייד מפלצות ואתה נתקל בה שוב, יש לך +2 לנזק ו+2 לFOR הצלה.\n\nבנוסף הבקבוק הסגול לפתע רותח וקול בעבוע נובע ממנו, נראה שיש בו יכולות קסם ואתה חש כיצד להפעיל אותן (פעם בשבוע אתה יכול לזמן מפלצת שהבסת עד לרמה שוות ערך לשלך +1, המפלצת מזומנת למשך שעה אחת ונעלמת אחרי קרב).\nנראה שבהמשך יהיו יכולות נוספות לבקבוק.",
+    "Party loot: 10 Emeralds = 4.4k/g\n100 Gemstones = 4k/g\n2 serious healing\n1 remove disease\n2 lesser restoration.",
+    "Circumstance/Passive Mods: Trophy DC add - MH level + Wis = 4\n\nAquatic creature: +2 ATK/DMG\n<30 ft: +1 ATK/DMG\n< Full HP: +4 Survival\n\nPrecise shot: no -4 penalty on shooting enemy next to ally (does DM consider this?)\n\nDistracting attack: if hit enemy, enemy flanked until ally attack / my next turn\n\nWoodland Archery: \n- Adjust for Range: Miss with a ranged attack -> +4 ATK for the same enemy for the rest of the round \n- Pierce the Foliage: Hit despite concealment -> ignore concealment miss chance on next round.\n- Moving Sniper: Successful sniping attack (attacking while hiding), you may snipe on the move — take a single move after the attack and before re-hiding, continuing each round as long as you keep hitting and avoid detection.",
+    "Active Mods: Rapid shot: full round, shoot twice, -2 ATK for both shots\n\nKnowledge Devotion: knowledge check against creature type. Bonus ATK/DMG:\n15 or below.     +1\n16—25.             +2\n26—30.             +3\n31—35.             +4\n36 or higher.    +5",
+    "Favored Enemy mods: Monstrous Humanoid\nAbberration \n\n+2 on Bluff, Listen, Sense Motive, Spot, and Survival checks\n+2 DMG\nMemento Formido- +2 will save\nVaelor Aura * - can convince flying creature to carry me/group to destination for 1 hour\nVaelor Aura ** - refusal/immediate attack provides x2 weapon range\nAstra Vindicta- If damaged in this or past life: +2 DMG/Fortitude save",
+    "battle: Knowledge devotion\nWolves +2/+2\nGryffin +2+2\nGiants +2+2\nOgres +4+4",
+    "light sensitivity: Drow\nOrcs\nKobolds\nDuergar (grey dwarf)\nDerro\nTroglodyte",
+    "update character: Add cure serious woumds\nExp?"
+  ]
+}

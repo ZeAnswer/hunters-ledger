@@ -4,6 +4,8 @@ import { useStore } from '../store/store';
 import { useCtx } from '../store/hooks';
 import { Button, Field, Section, Sheet, cx, inputCls, signed } from '../components/ui';
 import { Breakdown } from '../components/battle/AttackPanel';
+import { AbilitySheet } from '../components/character/AbilitySheet';
+import { LevelLedger } from '../components/character/LevelLedger';
 
 export function CharacterScreen() {
   const ctx = useCtx();
@@ -14,6 +16,7 @@ export function CharacterScreen() {
   const [hpOp, setHpOp] = useState<'damage' | 'heal' | 'temp' | 'nonlethal' | undefined>();
   const [amount, setAmount] = useState('');
   const [stat, setStat] = useState<StatId | undefined>();
+  const [abilityId, setAbilityId] = useState<string | undefined>();
   const derived = useMemo(() => (ctx ? derivedFromLevels(ctx.character, ctx.library) : undefined), [ctx]);
   const actions = useMemo(() => (ctx ? availableActions(ctx) : []), [ctx]);
   if (!ctx || !derived) return <div className="p-4 text-zinc-500">No character.</div>;
@@ -76,17 +79,21 @@ export function CharacterScreen() {
         <div className="space-y-1">
           {c.abilities.map((inst) => { const a = ctx.library.abilities[inst.abilityId]; if (!a) return null; const act = actions.find((x) => x.abilityId === a.id); return (
             <div key={inst.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl px-3 py-2', inst.enabled ? 'bg-zinc-900' : 'bg-zinc-950 text-zinc-500')}>
-              <div className="min-w-0">
+              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setAbilityId(a.id)}>
                 <div className="truncate">{a.name}{a.todo ? <span className="ml-1 text-amber-400" title={a.todo}>⚑</span> : null}</div>
-                <div className="text-xs text-zinc-500">{a.source}{act?.resources.map((r) => ` · ${r.label} ${r.remaining}/${r.max}`)}{Object.entries(inst.paramValues).map(([k, v]) => ` · ${k}: ${v.map((t) => ctx.library.tags[t]?.label ?? t).join(', ')}`)}</div>
-              </div>
+                <div className="text-xs text-zinc-500">{a.source}{act?.resources.map((r) => ` · ${r.label} ${r.remaining}/${r.max}`)}{Object.entries(inst.paramValues).map(([k, v]) => ` · ${k}: ${v.map((t) => ctx.library.tags[t]?.label ?? t).join(', ')}`)}{a.params && Object.keys(a.params).some((k) => !inst.paramValues[k]?.length) ? ' · ⚠ choose types' : ''}</div>
+              </button>
               <input type="checkbox" className="h-5 w-5" checked={inst.enabled} onChange={(e) => setCharacter({ ...c, abilities: c.abilities.map((x) => (x.abilityId === inst.abilityId ? { ...x, enabled: e.target.checked } : x)) })} />
             </div>
           ); })}
         </div>
       </Section>
 
+      <LevelLedger ctx={ctx} />
+
       {c.notes && <Section title="Notes"><pre className="whitespace-pre-wrap rounded-xl bg-zinc-900 p-3 text-xs text-zinc-300">{c.notes}</pre></Section>}
+
+      {abilityId && ctx.library.abilities[abilityId] && <AbilitySheet ctx={ctx} ability={ctx.library.abilities[abilityId]!} onClose={() => setAbilityId(undefined)} />}
 
       <Sheet open={!!hpOp} onClose={() => setHpOp(undefined)} title={hpOp ? hpOp[0]!.toUpperCase() + hpOp.slice(1) : ''}>
         <Field label="Amount" htmlFor="hp-amount"><input id="hp-amount" autoFocus className={inputCls + ' text-3xl'} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doHp()} /></Field>

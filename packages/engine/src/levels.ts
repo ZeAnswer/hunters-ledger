@@ -58,7 +58,7 @@ export function derivedFromLevels(character: Character, library: Library): Deriv
     if (!table) {
       warnings.push(`Level ${rec.level}: unknown class "${rec.classId}"; skill points not counted.`);
     } else {
-      const perLevel = Math.max(1, table.skillPointsPerLevel + intMod);
+      const perLevel = Math.max(1, table.skillPointsPerLevel + intMod) + character.extraSkillPointsPerLevel;
       total += rec.level === 1 ? perLevel * 4 : perLevel;
     }
     for (const n of Object.values(rec.skillPointsSpent)) spent += n;

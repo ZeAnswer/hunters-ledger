@@ -2,8 +2,13 @@
  * Generates packs/memento.json from what the RPG Scribe export + DM handouts say.
  * Fields marked `todo` need the player's confirmation. Run: npx tsx tools/gen-memento-pack.ts
  */
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { PackSchema, type Pack } from '../packages/engine/src/schema';
+
+const rpgscribePath = new URL('./data/memento-rpgscribe.json', import.meta.url);
+const rpgscribe = existsSync(rpgscribePath) ? JSON.parse(readFileSync(rpgscribePath, 'utf8')) : undefined;
+const FEAT_ALIAS: Record<string, string> = { 'track?': 'track', 'weapon-focus?': 'weapon-focus-ranged', 'rapid-shot?': 'rapid-shot', 'point-blank-shot?': 'point-blank-shot', 'favored-enemy': 'favored-enemy-1', '2nd-favored-enemy': 'favored-enemy-2', 'knowledge-devotion': 'knowledge-devotion', 'woodland-archer': 'woodland-archer' };
+const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { featsTaken: string[] }, i: number) => ({ ...r, featsTaken: r.featsTaken.map((f) => (f === 'favored-enemy' && i > 0 ? 'favored-enemy-2' : FEAT_ALIAS[f] ?? f)) }));
 
 const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
 const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
@@ -194,6 +199,8 @@ const pack: Pack = PackSchema.parse({
       { abilityId: 'chuul-gloves' }, { abilityId: 'gargoyle-bracers', enabled: false }, { abilityId: 'rider-ring', enabled: false }, { abilityId: 'medusa-mask', enabled: false }, { abilityId: 'shield-amulet', enabled: false },
     ],
     resourceState: { 'boots-rounds': { used: 2 } },
+    levelHistory,
+    extraSkillPointsPerLevel: 1,
     vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1 },
     notes: [
       'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.',
@@ -201,7 +208,8 @@ const pack: Pack = PackSchema.parse({
       'TODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).',
       'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.',
       'TODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).',
-      'Skill ranks assumed = export value / 2 (export stores half-ranks).',
+      'Skill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).',
+      'Level ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.',
       'Ability scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.',
       'Trophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn.',
     ].join('\n'),

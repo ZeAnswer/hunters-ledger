@@ -1167,13 +1167,116 @@
           "used": 2
         }
       },
-      "levelHistory": [],
+      "levelHistory": [
+        {
+          "level": 1,
+          "classId": "ranger",
+          "hpRolled": 8,
+          "skillPointsSpent": {
+            "unknown-d11c1603": 4,
+            "unknown-700ac2f3": 4,
+            "unknown-d80de6a9": 4,
+            "unknown-ecb3ca28": 4,
+            "hide": 4,
+            "spot": 4,
+            "listen": 4,
+            "survival": 4,
+            "move-silently": 4,
+            "knowledge-monsters": 4
+          },
+          "featsTaken": [
+            "track",
+            "favored-enemy-1",
+            "weapon-focus-ranged"
+          ]
+        },
+        {
+          "level": 2,
+          "classId": "ranger",
+          "hpRolled": 8,
+          "skillPointsSpent": {
+            "unknown-d11c1603": 1,
+            "unknown-d80de6a9": 1,
+            "unknown-ecb3ca28": 1,
+            "spot": 1,
+            "move-silently": 1,
+            "climb": 2,
+            "knowledge-monsters": 1
+          },
+          "featsTaken": [
+            "rapid-shot"
+          ],
+          "notes": "1 unspent skill points"
+        },
+        {
+          "level": 3,
+          "classId": "ranger",
+          "hpRolled": 8,
+          "skillPointsSpent": {
+            "knowledge-monsters": 1
+          },
+          "featsTaken": [],
+          "notes": "4.5 unspent skill points"
+        },
+        {
+          "level": 4,
+          "classId": "ranger",
+          "hpRolled": 8,
+          "skillPointsSpent": {
+            "unknown-d11c1603": 1,
+            "unknown-700ac2f3": 2,
+            "unknown-d80de6a9": 1,
+            "unknown-ecb3ca28": 1,
+            "unknown-40ad06c4": 1,
+            "spot": 1,
+            "listen": 1,
+            "survival": 1,
+            "knowledge-monsters": 1
+          },
+          "featsTaken": []
+        },
+        {
+          "level": 5,
+          "classId": "ranger",
+          "hpRolled": 1,
+          "skillPointsSpent": {
+            "unknown-d11c1603": 1,
+            "unknown-700ac2f3": 2,
+            "unknown-d80de6a9": 2,
+            "unknown-ecb3ca28": 1,
+            "hide": 2,
+            "spot": 2,
+            "listen": 1,
+            "survival": 1,
+            "move-silently": 1,
+            "knowledge-monsters": 1
+          },
+          "featsTaken": [
+            "favored-enemy-2"
+          ],
+          "notes": "-2 unspent skill points"
+        },
+        {
+          "level": 6,
+          "classId": "monster-hunter",
+          "hpRolled": 1,
+          "skillPointsSpent": {
+            "craft-taxidermy": 6,
+            "hide": 1,
+            "move-silently": 1
+          },
+          "featsTaken": [
+            "woodland-archer"
+          ]
+        }
+      ],
+      "extraSkillPointsPerLevel": 1,
       "vars": {
         "favoredEnemyBonus1": 4,
         "favoredEnemyBonus2": 2,
         "trophyMultiplier": 1
       },
-      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks assumed = export value / 2 (export stores half-ranks).\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
+      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
     }
   ]
 }

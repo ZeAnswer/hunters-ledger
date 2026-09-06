@@ -55,3 +55,14 @@ test('unknown class table is reported, not thrown', () => {
   expect(d.bab).toBe(0);
   expect(d.warnings[0]).toMatch(/bard/);
 });
+
+test('extra skill points per level (human) count in totals, x4 at level 1', () => {
+  const c = makeCharacter({
+    extraSkillPointsPerLevel: 1,
+    levelHistory: [
+      { level: 1, classId: 'ranger', hpRolled: 8, skillPointsSpent: { spot: 4 }, featsTaken: [] },
+      { level: 2, classId: 'ranger', hpRolled: 5, skillPointsSpent: {}, featsTaken: [] },
+    ],
+  });
+  expect(derivedFromLevels(c, lib).skillPoints.total).toBe(40 + 10);
+});
