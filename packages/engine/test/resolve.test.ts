@@ -176,6 +176,7 @@ test('suppressed or disabled abilities contribute nothing', () => {
 test('situational modifier in battle applies like any ability', () => {
   const c = ctxWith([]);
   c.battle!.situational.push(makeAbility({ id: 'sit-1', name: 'DM: darkness', source: 'situational', effects: [{ id: 'x', do: [{ kind: 'bonus', to: 'attack', value: -2 }] }] }));
+  c.battle!.activeBuffs.push({ instanceId: 'b1', abilityId: 'sit-1', owner: 'self', suppressed: false });
   const r = resolveAttack(c, { profileId: 'bow', modeId: 'single' }).attacks[0]!;
   expect(r.attackBonus).toBe(8);
   expect(r.attackBreakdown.find((e) => e.source === 'sit-1')).toMatchObject({ sourceName: 'DM: darkness', value: -2 });

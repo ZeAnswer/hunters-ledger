@@ -77,11 +77,6 @@ export function activeSources(ctx: EvalContext, warnings: string[] = []): Source
     const instance = ctx.character.abilities.find((a) => a.abilityId === buff.abilityId);
     out.push({ ability, instance, kind: 'buff' });
   }
-  for (const ability of ctx.battle?.situational ?? []) {
-    if (suppressed.has(ability.id)) continue;
-    if (ctx.battle?.activeBuffs.some((b) => b.abilityId === ability.id)) continue; // already counted as buff
-    out.push({ ability, instance: undefined, kind: 'situational' });
-  }
   return out;
 }
 
