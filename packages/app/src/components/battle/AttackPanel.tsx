@@ -62,23 +62,32 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
 
       {!target && <p className="mb-3 rounded-xl border border-dashed border-zinc-700 p-3 text-center text-sm text-zinc-400">Tap a combatant above to target it. Numbers below assume no target.</p>}
 
-      {result && result.warnings.length > 0 && (
+      {result && result.promptsNeeded.length > 0 && (
         <div className="mb-3 space-y-1">
-          {result.warnings.map((w) => (
-            <button key={w} type="button" onClick={() => { const m = /enter "([^"]+)" result( for this (\w+))?/.exec(w); if (m) setPromptOpen({ id: m[1]!, category: m[3] }); }} className="block w-full rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-left text-sm text-amber-200">
-              ⚠️ {w} <span className="underline">Enter</span>
+          {result.promptsNeeded.map((p) => (
+            <button key={p.source + p.promptId} type="button" disabled={!!p.perTagCategory && !p.tag} onClick={() => setPromptOpen({ id: p.promptId, category: p.perTagCategory })} className="block w-full rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-left text-sm text-amber-200 disabled:opacity-60">
+              🎲 {p.sourceName}: roll {humanize(p.promptId)}{p.tag ? ` vs ${ctx.library.tags[p.tag]?.label ?? p.tag}` : ''} <span className="underline">enter result</span>
             </button>
           ))}
         </div>
       )}
+      {result && result.warnings.filter((w) => !result.promptsNeeded.some((p) => w.startsWith(p.sourceName))).map((w) => <div key={w} className="mb-2 rounded-xl border border-amber-900 px-3 py-2 text-sm text-amber-200">⚠️ {w}</div>)}
 
       {/* attacks */}
       {result && (
         <div className="space-y-2">
           {result.attacks.map((a) => {
             const logged = battle.log.find((e) => e.kind === 'attack' && e.round === battle.round && e.targetId === target?.id && e.modeId === mode?.modeId && e.attackIndex === a.index && e.profileId === profileId);
+            if (logged && expanded !== a.index) {
+              return (
+                <button key={a.index} data-attack={a.index} type="button" onClick={() => setExpanded(a.index)} className={cx('flex w-full items-center justify-between rounded-2xl border bg-zinc-900 px-3 py-2 text-left', logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800')}>
+                  <span><span className="text-xs text-zinc-500">#{a.index}</span> <span className={cx('ml-2 font-bold', logged.result === 'miss' ? 'text-red-300' : 'text-emerald-300')}>{logged.result!.toUpperCase()}</span></span>
+                  <span className="text-xs text-zinc-500">tap to change</span>
+                </button>
+              );
+            }
             return (
-              <div key={a.index} className={cx('rounded-2xl border bg-zinc-900 p-3', logged ? (logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800') : 'border-zinc-700')}>
+              <div key={a.index} data-attack={a.index} className={cx('rounded-2xl border bg-zinc-900 p-3', logged ? (logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800') : 'border-zinc-700')}>
                 <button type="button" className="flex w-full items-center justify-between text-left" onClick={() => setExpanded(expanded === a.index ? undefined : a.index)}>
                   <div>
                     <span className="text-xs text-zinc-500">#{a.index}</span>
@@ -171,7 +180,7 @@ export function PromptSheet({ ctx, id, category, onClose }: { ctx: EvalContext; 
   return (
     <Sheet open onClose={onClose} title={`${humanize(id)} check`}>
       <p className="mb-3 text-sm text-zinc-400">{category ? (catTag ? `Applies to every ${ctx.library.tags[catTag]?.label ?? catTag} this battle.` : `Target needs a ${category} tag first.`) : 'Applies for this battle.'}</p>
-      <Field label="Roll result (d20 + skill)"><input className={inputCls + ' text-2xl'} inputMode="numeric" autoFocus value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+      <Field label="Roll result (d20 + skill)" htmlFor="prompt-value"><input id="prompt-value" className={inputCls + ' text-2xl'} inputMode="numeric" autoFocus value={value} onChange={(e) => setValue(e.target.value)} /></Field>
       <Button variant="primary" size="lg" className="w-full" disabled={!value || (!!category && !catTag)} onClick={() => { setBattle(setPrompt(ctx, { id, ...(category ? { perTagCategory: category } : {}), value: Number(value) })); onClose(); }}>Save</Button>
     </Sheet>
   );

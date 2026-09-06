@@ -145,7 +145,7 @@ test('Knowledge Devotion reads per-creature-type prompt; missing prompt yields a
   const c = ctxWith([knowledgeDevotion]);
   const none = resolveAttack(c, { profileId: 'bow', modeId: 'single' });
   expect(none.attacks[0]!.attackBonus).toBe(10);
-  expect(none.warnings.join(' ')).toMatch(/Knowledge Devotion.*knowledge/);
+  expect(none.warnings.join(' ')).toMatch(/Knowledge Devotion.*Knowledge check/);
   c.battle!.prompts['knowledge:aberration'] = 22;
   const withCheck = resolveAttack(c, { profileId: 'bow', modeId: 'single' });
   expect(withCheck.attacks[0]!.attackBonus).toBe(12);
@@ -232,4 +232,10 @@ test('availableActions reports charges and eligibility reasons', () => {
   expect(a.usable).toBe(true);
   expect(a.eligible).toBe(false);
   expect(a.reasons.join(' ')).toMatch(/types/);
+});
+
+test('missing prompt is reported structurally with the target tag label', () => {
+  const r = resolveAttack(ctxWith([knowledgeDevotion]), { profileId: 'bow', modeId: 'single' });
+  expect(r.promptsNeeded).toEqual([{ promptId: 'knowledge', perTagCategory: 'creatureType', tag: 'aberration', source: 'knowledge-devotion', sourceName: 'Knowledge Devotion' }]);
+  expect(r.warnings[0]).toBe('Knowledge Devotion: needs a Knowledge check vs Aberration');
 });

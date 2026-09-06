@@ -1,4 +1,4 @@
-import { SIZE_MOD, abilityMod, promptKey, resourceUsed, type AbilityInstance, type AttackCtx, type EvalContext } from './context';
+import { SIZE_MOD, abilityMod, promptKey, resourceUsed, targetTagsInCategory, type AbilityInstance, type AttackCtx, type EvalContext } from './context';
 import { evalCondition } from './conditions';
 import { firstFailure, summarizeEffects } from './describe';
 import { evalExpr } from './expr';
@@ -12,6 +12,8 @@ export type BreakdownEntry = StackedEntry & { sourceName: string };
 export type NearMiss = { source: string; sourceName: string; label: string; summary: string; failed: string };
 export type DiceEntry = { dice: string; label: string; damageType?: string };
 
+export type PromptRequest = { promptId: string; perTagCategory?: string; tag?: string; source: string; sourceName: string };
+
 export type StatResult = {
   stat: StatId;
   total: number;
@@ -21,6 +23,7 @@ export type StatResult = {
   notes: string[];
   warnings: string[];
   nearMiss: NearMiss[];
+  promptsNeeded: PromptRequest[];
 };
 
 export type AttackResult = {
@@ -41,6 +44,7 @@ export type AttackSequenceResult = {
   attacks: AttackResult[];
   notes: string[];
   warnings: string[];
+  promptsNeeded: PromptRequest[];
 };
 
 export type AttackMode = { modeId: string; label: string; base: 'single' | 'full'; extraAttacksAtTop: number; penalty: number; note?: string; source: string };
@@ -213,6 +217,7 @@ export function resolveStat(ctx: EvalContext, stat: StatId): StatResult {
   const names: Record<string, string> = { base: 'Base' };
   const notes: string[] = [];
   const flags = { ignoreConcealment: false };
+  const promptsNeeded: PromptRequest[] = [];
   const vars = exprVars(ctx);
 
   const col = collectEffects(ctx, stat);
@@ -232,7 +237,12 @@ export function resolveStat(ctx: EvalContext, stat: StatId): StatResult {
         const key = promptKey(ctx, effect.promptId, effect.perTagCategory);
         const v = key ? ctx.battle?.prompts[key] : undefined;
         if (v === undefined) {
-          warnings.push(`${source.ability.name}: enter "${effect.promptId}" result${effect.perTagCategory ? ` for this ${effect.perTagCategory}` : ''} to apply.`);
+          const tag = effect.perTagCategory && ctx.target ? targetTagsInCategory(ctx, ctx.target, effect.perTagCategory)[0] : undefined;
+          const req: PromptRequest = { promptId: effect.promptId, ...(effect.perTagCategory ? { perTagCategory: effect.perTagCategory } : {}), ...(tag ? { tag } : {}), source: source.ability.id, sourceName: source.ability.name };
+          if (!promptsNeeded.some((p) => p.promptId === req.promptId && p.source === req.source)) promptsNeeded.push(req);
+          const vs = tag ? ` vs ${ctx.library.tags[tag]?.label ?? tag}` : effect.perTagCategory && !ctx.target ? ' (pick a target)' : '';
+          const w = `${source.ability.name}: needs a ${effect.promptId[0]!.toUpperCase()}${effect.promptId.slice(1)} check${vs}`;
+          if (!warnings.includes(w)) warnings.push(w);
           break;
         }
         bonuses.push({ source: source.ability.id, label: `${label} (${v})`, value: tableValue(effect.table, v), bonusType: effect.bonusType });
@@ -253,7 +263,7 @@ export function resolveStat(ctx: EvalContext, stat: StatId): StatResult {
     stat,
     total: stacked.total,
     entries: stacked.entries.map((e) => ({ ...e, sourceName: names[e.source] ?? e.source })),
-    dice, flags, notes, warnings, nearMiss: col.nearMiss,
+    dice, flags, notes, warnings, nearMiss: col.nearMiss, promptsNeeded,
   };
   if (stat === 'critRange') result.total = 21 - Math.max(1, Math.min(20, stacked.total));
   return result;
@@ -298,6 +308,7 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
 
   const notes: string[] = [];
   const warnings: string[] = [];
+  const promptsNeeded: PromptRequest[] = [];
   if (mode.note) notes.push(mode.note);
   const attacks: AttackResult[] = babs.map((bab, i) => {
     const actx: EvalContext = { ...ctx, attack: mk(i + 1) };
@@ -314,6 +325,7 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
     const mult = resolveStat(actx, 'critMult');
     for (const n of [...atk.notes, ...dmg.notes]) if (!notes.includes(n)) notes.push(n);
     for (const w of [...atk.warnings, ...dmg.warnings]) if (!warnings.includes(w)) warnings.push(w);
+    for (const p of [...atk.promptsNeeded, ...dmg.promptsNeeded]) if (!promptsNeeded.some((x) => x.promptId === p.promptId && x.source === p.source)) promptsNeeded.push(p);
     const nearMiss = [...atk.nearMiss];
     for (const nm of dmg.nearMiss) if (!nearMiss.some((x) => x.source === nm.source && x.label === nm.label)) nearMiss.push(nm);
     return {
@@ -328,7 +340,7 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
     };
   });
 
-  return { profileId: profile.id, modeId: mode.modeId, modeLabel: mode.label, attacks, notes, warnings };
+  return { profileId: profile.id, modeId: mode.modeId, modeLabel: mode.label, attacks, notes, warnings, promptsNeeded };
 }
 
 // ---------- actions ----------

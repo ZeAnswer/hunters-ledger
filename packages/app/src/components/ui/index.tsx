@@ -52,8 +52,14 @@ export function Sheet({ open, onClose, title, children, tall }: { open: boolean;
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="block mb-3"><div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">{label}</div>{children}</label>;
+export function Field({ label, children, htmlFor }: { label: string; children: ReactNode; htmlFor?: string }) {
+  const cap = 'mb-1 block text-xs uppercase tracking-wide text-zinc-400';
+  return (
+    <div className="mb-3">
+      {htmlFor ? <label htmlFor={htmlFor} className={cap}>{label}</label> : <div className={cap}>{label}</div>}
+      {children}
+    </div>
+  );
 }
 
 export const inputCls = 'w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-base text-zinc-100 outline-none focus:border-amber-500';

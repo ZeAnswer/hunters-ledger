@@ -89,7 +89,7 @@ export function CharacterScreen() {
       {c.notes && <Section title="Notes"><pre className="whitespace-pre-wrap rounded-xl bg-zinc-900 p-3 text-xs text-zinc-300">{c.notes}</pre></Section>}
 
       <Sheet open={!!hpOp} onClose={() => setHpOp(undefined)} title={hpOp ? hpOp[0]!.toUpperCase() + hpOp.slice(1) : ''}>
-        <Field label="Amount"><input autoFocus className={inputCls + ' text-3xl'} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doHp()} /></Field>
+        <Field label="Amount" htmlFor="hp-amount"><input id="hp-amount" autoFocus className={inputCls + ' text-3xl'} inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doHp()} /></Field>
         <Button variant="primary" size="lg" className="w-full" onClick={doHp}>Apply</Button>
       </Sheet>
 

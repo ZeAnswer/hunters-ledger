@@ -13,14 +13,14 @@ test('gargoyle fight: knowledge check, woodland archer +4 after a miss, monster 
   await page.getByRole('button', { name: /^Add Gargoyle$/ }).click();
 
   // full attack rows: +12 / +7 with favored enemy damage +4 → 1d8+6
-  const rows = page.locator('div.rounded-2xl.border.bg-zinc-900');
+  const rows = page.locator('[data-attack]');
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText('+12');
   await expect(rows.nth(0)).toContainText('1d8 +6');
   await expect(rows.nth(1)).toContainText('+7');
 
   // knowledge devotion warning → enter check 22 → +2 insight
-  await page.getByRole('button', { name: /Knowledge Devotion: enter/ }).click();
+  await page.getByRole('button', { name: /Knowledge Devotion: roll Knowledge/ }).click();
   await page.getByLabel(/Roll result/).fill('22');
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(rows.nth(0)).toContainText('+14');
@@ -28,6 +28,7 @@ test('gargoyle fight: knowledge check, woodland archer +4 after a miss, monster 
 
   // miss attack 1 → attack 2 gets Woodland Archer +4 (7+2+4 = 13)
   await rows.nth(0).getByRole('button', { name: 'Miss' }).click();
+  await expect(rows.nth(0)).toContainText('MISS');
   await expect(rows.nth(1)).toContainText('+13');
   await rows.nth(1).locator("button").first().click();
   await expect(rows.nth(1)).toContainText('Adjust for Range');
