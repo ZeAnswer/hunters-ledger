@@ -117,6 +117,7 @@ export const EffectSchema = z.discriminatedUnion('kind', [
     to: StatIdSchema, bonusType: BonusTypeSchema.default('untyped'), attackKind: AttackKindSchema.optional(),
   }),
   z.object({ kind: z.literal('suppress'), abilityId: z.string() }),
+  z.object({ kind: z.literal('extraAttack'), appliesToBase: z.enum(['single', 'full', 'any']).default('full'), count: z.number().int().positive().default(1), attackKind: AttackKindSchema.optional() }),
   z.object({ kind: z.literal('revealTarget') }),
   z.object({
     kind: z.literal('attackMode'), modeId: z.string(), label: z.string(),
@@ -178,6 +179,7 @@ export const AbilitySchema = z.object({
   todo: z.string().optional(),
 });
 export type Ability = z.infer<typeof AbilitySchema>;
+export type AbilityInput = z.input<typeof AbilitySchema>;
 
 // ---------- library docs ----------
 export const TagSchema = z.object({
