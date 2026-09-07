@@ -25,11 +25,13 @@ export function CharacterScreen() {
     { id: 'ac', label: 'AC' }, { id: 'ac.touch', label: 'Touch' }, { id: 'ac.flatFooted', label: 'Flat-footed' },
     { id: 'save.fort', label: 'Fort' }, { id: 'save.ref', label: 'Ref' }, { id: 'save.will', label: 'Will' }, { id: 'init', label: 'Init' }, { id: 'speed', label: 'Speed' },
   ];
+  const hpMax = resolveStat(ctx, 'hp.max').total;
   const doHp = () => {
     const n = Number(amount); if (!n || !hpOp) return;
-    const next = applyHp(c, { [hpOp]: n });
+    const applied = applyHp(c, { [hpOp]: n }, hpMax);
+    const next = { ...applied, journal: [...applied.journal, { at: new Date().toISOString(), kind: 'hp' as const, text: `${hpOp} ${n} → HP ${applied.hp.current}/${hpMax}${battle ? ` (${battle.name}, round ${battle.round})` : ''}` }] };
     setCharacter(next);
-    if (battle) setBattle({ ...battle, log: [...battle.log, { id: `hp-${Date.now()}`, round: battle.round, seq: (battle.log.at(-1)?.seq ?? 0) + 1, kind: 'hp', actor: 'self', text: `${hpOp} ${n} → HP ${next.hp.current}/${next.hp.max}` }] });
+    if (battle) setBattle({ ...battle, log: [...battle.log, { id: `hp-${Date.now()}`, round: battle.round, seq: (battle.log.at(-1)?.seq ?? 0) + 1, kind: 'hp', actor: 'self', text: `${hpOp} ${n} → HP ${next.hp.current}/${hpMax}` }] });
     setHpOp(undefined); setAmount('');
   };
   const mod = (v: number) => Math.floor((v - 10) / 2);
@@ -42,8 +44,9 @@ export function CharacterScreen() {
       <Section title="Hit points">
         <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-3">
           <div className="flex items-end gap-3">
-            <span className={cx('text-4xl font-bold tabular-nums', c.hp.current <= 0 ? 'text-red-400' : c.hp.current * 2 <= c.hp.max ? 'text-amber-300' : 'text-emerald-300')}>{c.hp.current}</span>
-            <span className="text-zinc-400 mb-1">/ {c.hp.max}</span>
+            <span className={cx('text-4xl font-bold tabular-nums', c.hp.current <= 0 ? 'text-red-400' : c.hp.current * 2 <= hpMax ? 'text-amber-300' : 'text-emerald-300')}>{c.hp.current}</span>
+            <button type="button" className="text-zinc-400 mb-1" onClick={() => setStat('hp.max')}>/ {hpMax}</button>
+            {c.hp.current <= 0 && <span className="mb-1 rounded bg-red-900 px-2 text-red-200">{c.hp.current === 0 ? 'disabled' : c.hp.current <= -10 ? 'dead' : 'dying'}</span>}
             {c.hp.temp > 0 && <span className="mb-1 rounded bg-sky-900 px-2 text-sky-200">+{c.hp.temp} temp</span>}
             {c.hp.nonlethal > 0 && <span className="mb-1 rounded bg-zinc-800 px-2 text-zinc-300">{c.hp.nonlethal} nonlethal</span>}
           </div>
@@ -90,6 +93,14 @@ export function CharacterScreen() {
       </Section>
 
       <LevelLedger ctx={ctx} />
+
+      {c.journal.length > 0 && (
+        <Section title="History">
+          <div className="space-y-1 text-sm">
+            {[...c.journal].reverse().slice(0, 30).map((j, i) => <div key={i} className="rounded-xl bg-zinc-900 px-3 py-1.5"><span className="mr-2 text-xs text-zinc-500">{j.at.slice(0, 10)} · {j.kind}</span>{j.text}</div>)}
+          </div>
+        </Section>
+      )}
 
       {c.notes && <Section title="Notes"><pre className="whitespace-pre-wrap rounded-xl bg-zinc-900 p-3 text-xs text-zinc-300">{c.notes}</pre></Section>}
 

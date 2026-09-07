@@ -5,6 +5,11 @@ import type { Character, ClassTable } from './schema';
 export type Derived = {
   level: number;
   bab: number;
+  /** Max HP implied by the ledger: Σ rolls + Con mod per level (min 1/level). undefined without a ledger. */
+  hpFromLevels: number | undefined;
+  hpRolledTotal: number;
+  abilityIncreases: Partial<Record<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', number>>;
+  featSlots: { expected: number; recorded: number };
   iterativeAttacks: number[];
   baseSaves: { fort: number; ref: number; will: number };
   skillPoints: { total: number; spent: number; leftover: number };
@@ -21,6 +26,18 @@ function babFor(progression: ClassTable['babProgression'], level: number): numbe
 
 function saveFor(kind: 'good' | 'poor', level: number): number {
   return kind === 'good' ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
+}
+
+/** PHB level-dependent benefits: general feat at 1 and every 3rd level; +1 ability score every 4th level. */
+export function levelSlots(level: number, opts: { humanBonusFeat: boolean }): { feats: number; abilityIncrease: boolean } {
+  let feats = level === 1 || level % 3 === 0 ? 1 : 0;
+  if (level === 1 && opts.humanBonusFeat) feats += 1;
+  return { feats, abilityIncrease: level % 4 === 0 };
+}
+
+/** Max skill ranks: level + 3 for class skills, half that for cross-class. */
+export function maxRanks(level: number, classSkill: boolean): number {
+  return classSkill ? level + 3 : (level + 3) / 2;
 }
 
 export function iterativeAttacks(bab: number): number[] {
@@ -51,9 +68,22 @@ export function derivedFromLevels(character: Character, library: Library): Deriv
   }
 
   const intMod = abilityMod(character.abilityScores.int);
+  const conMod = abilityMod(character.abilityScores.con);
   let total = 0;
   let spent = 0;
+  let hpRolledTotal = 0;
+  let hpFromLevels = 0;
+  const abilityIncreases: Derived['abilityIncreases'] = {};
+  const featSlots = { expected: 0, recorded: 0 };
   for (const rec of character.levelHistory) {
+    hpRolledTotal += rec.hpRolled;
+    hpFromLevels += Math.max(1, rec.hpRolled + conMod);
+    if (rec.abilityIncrease) abilityIncreases[rec.abilityIncrease] = (abilityIncreases[rec.abilityIncrease] ?? 0) + 1;
+    const slots = levelSlots(rec.level, { humanBonusFeat: character.extraFeatAtFirstLevel });
+    featSlots.expected += slots.feats;
+    featSlots.recorded += rec.featsTaken.length;
+    if (slots.feats > rec.featsTaken.length) warnings.push(`Level ${rec.level}: a general feat slot has no feat recorded.`);
+    if (slots.abilityIncrease && !rec.abilityIncrease) warnings.push(`Level ${rec.level}: ability score increase not recorded.`);
     const table = library.classTables[rec.classId];
     if (!table) {
       warnings.push(`Level ${rec.level}: unknown class "${rec.classId}"; skill points not counted.`);
@@ -68,6 +98,10 @@ export function derivedFromLevels(character: Character, library: Library): Deriv
   return {
     level,
     bab,
+    hpFromLevels: character.levelHistory.length ? hpFromLevels : undefined,
+    hpRolledTotal,
+    abilityIncreases,
+    featSlots,
     iterativeAttacks: iterativeAttacks(bab),
     baseSaves,
     skillPoints: { total, spent, leftover: total - spent },

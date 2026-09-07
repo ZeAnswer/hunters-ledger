@@ -121,6 +121,7 @@
       "level": 4,
       "classId": "ranger",
       "hpRolled": 8,
+      "abilityIncrease": "dex",
       "skillPointsSpent": {
         "unknown-d11c1603": 1,
         "unknown-700ac2f3": 2,

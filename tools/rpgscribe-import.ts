@@ -38,8 +38,9 @@ const out = {
   classLevels: arr(ch.class_levels?.class_level).map((c: { class: string; level: string }) => ({ classId: map(CLASSES, c.class), level: +c.level })),
   // RPG Scribe stores half-ranks: 16 = 8 ranks
   skills: Object.fromEntries(arr(ch.skills?.skill).map((s: { '@uuid': string; ranks: string; override_class_skill_flag?: string }) => [map(SKILLS, s['@uuid']), { ranks: +s.ranks / 2, ...(s.override_class_skill_flag === 'TRUE' ? { classSkillOverride: true } : {}) }])),
-  levelHistory: arr(ch.lv_up_history?.lh_entry).map((e: { '@level': string; class: string; hit_roll?: string; skill_ranks?: { skill?: unknown }; unusedSkillPoints?: string; feats?: { feat?: unknown } }) => ({
+  levelHistory: arr(ch.lv_up_history?.lh_entry).map((e: { '@level': string; class: string; hit_roll?: string; ability?: string; skill_ranks?: { skill?: unknown }; unusedSkillPoints?: string; feats?: { feat?: unknown } }) => ({
     level: +e['@level'], classId: map(CLASSES, e.class), hpRolled: +(e.hit_roll ?? 0),
+    ...(e.ability !== undefined ? { abilityIncrease: (['str', 'dex', 'con', 'int', 'wis', 'cha'] as const)[+e.ability] } : {}),
     skillPointsSpent: Object.fromEntries(arr(e.skill_ranks?.skill as { '@uuid': string; '#': string }[]).map((s) => [map(SKILLS, s['@uuid']), +txt(s) / 2])),
     featsTaken: arr(e.feats?.feat as { id?: string; name?: string }[]).map((f) => f.name ?? map(FEATS, f.id ?? '')),
     ...(e.unusedSkillPoints ? { notes: `${+e.unusedSkillPoints / 2} unspent skill points` } : {}),

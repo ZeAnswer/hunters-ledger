@@ -248,10 +248,18 @@ export type AttackProfile = z.infer<typeof AttackProfileSchema>;
 export const LevelRecordSchema = z.object({
   level: z.number().int().positive(),
   classId: z.string(),
+  /** Hit die result before Con (max die at level 1 per PHB). */
   hpRolled: z.number().int().nonnegative().default(0),
-  skillPointsSpent: z.record(z.number().int().nonnegative()).default({}),
+  skillPointsSpent: z.record(z.number().nonnegative()).default({}),
+  /** General feat slots spent this level (level 1, 3, 6, 9… plus human bonus). */
   featsTaken: z.array(z.string()).default([]),
+  /** Class bonus feats / features granted this level (Track, Rapid Shot, Monster Blow…). */
+  featuresGained: z.array(z.string()).default([]),
+  /** +1 ability score at levels 4, 8, 12… */
+  abilityIncrease: AbilityKeySchema.optional(),
+  spellsLearned: z.array(z.string()).default([]),
   notes: z.string().optional(),
+  at: z.string().optional(),
 });
 export type LevelRecord = z.infer<typeof LevelRecordSchema>;
 
@@ -274,11 +282,18 @@ export const CharacterSchema = z.object({
   levelHistory: z.array(LevelRecordSchema).default([]),
   /** Racial/other bonus skill points per level (human = 1). */
   extraSkillPointsPerLevel: z.number().int().default(0),
+  /** Human bonus feat at level 1. */
+  extraFeatAtFirstLevel: z.boolean().default(false),
+  /** Flat adjustment to max HP not covered by abilities (e.g. DM ruling). */
+  hpAdjust: z.number().int().default(0),
+  /** Free-text history: level-ups, HP changes, edits. Newest last. */
+  journal: z.array(z.object({ at: z.string(), kind: z.enum(['levelUp', 'hp', 'xp', 'edit', 'rest', 'note']), text: z.string() })).default([]),
   /** Free numeric variables usable in pack expressions, e.g. favoredEnemyBonus1, trophyMultiplier. */
   vars: z.record(z.number()).default({}),
   notes: z.string().optional(),
 });
 export type Character = z.infer<typeof CharacterSchema>;
+export type CharacterInput = z.input<typeof CharacterSchema>;
 
 export const XpTableSchema = z.array(z.object({ level: z.number().int().positive(), xp: z.number().int().nonnegative() }));
 

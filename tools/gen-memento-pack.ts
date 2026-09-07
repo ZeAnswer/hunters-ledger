@@ -8,7 +8,24 @@ import { PackSchema, type Pack } from '../packages/engine/src/schema';
 const rpgscribePath = new URL('./data/memento-rpgscribe.json', import.meta.url);
 const rpgscribe = existsSync(rpgscribePath) ? JSON.parse(readFileSync(rpgscribePath, 'utf8')) : undefined;
 const FEAT_ALIAS: Record<string, string> = { 'track?': 'track', 'weapon-focus?': 'weapon-focus-ranged', 'rapid-shot?': 'rapid-shot', 'point-blank-shot?': 'point-blank-shot', 'favored-enemy': 'favored-enemy-1', '2nd-favored-enemy': 'favored-enemy-2', 'knowledge-devotion': 'knowledge-devotion', 'woodland-archer': 'woodland-archer' };
-const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { featsTaken: string[] }, i: number) => ({ ...r, featsTaken: r.featsTaken.map((f) => (f === 'favored-enemy' && i > 0 ? 'favored-enemy-2' : FEAT_ALIAS[f] ?? f)) }));
+// Class features vs general feats. RPG Scribe lists both under "feats"; general feat slots are level 1 (x2, human), 3, 6.
+const CLASS_FEATURES = new Set(['track', 'favored-enemy-1', 'favored-enemy-2', 'rapid-shot', 'endurance', 'wild-empathy', 'ranger-spells', 'distracting-attack', 'monster-killer', 'monster-blow', 'trophy-crafting']);
+const RANGER_FEATURES: Record<number, string[]> = { 1: ['favored-enemy-1', 'track', 'wild-empathy'], 2: ['rapid-shot'], 3: ['endurance'], 4: ['distracting-attack', 'ranger-spells'], 5: ['favored-enemy-2'] };
+const MH_FEATURES: Record<number, string[]> = { 1: ['monster-killer', 'monster-blow', 'trophy-crafting'] };
+const HP_ROLLS: Record<number, number> = { 5: 6, 6: 6 }; // export stores "1" for levels 5-6; player states rolled total 44 → 32 + 12
+const EXTRA_FEATS: Record<number, string[]> = { 1: ['point-blank-shot'], 3: ['knowledge-devotion'] }; // not in export history; guessed slots
+const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { level: number; classId: string; hpRolled: number; featsTaken: string[]; notes?: string }) => {
+  const all = r.featsTaken.map((f) => (f === 'favored-enemy' && r.level > 1 ? 'favored-enemy-2' : FEAT_ALIAS[f] ?? f));
+  const classLevel = r.classId === 'ranger' ? r.level : r.level - 5;
+  const features = new Set([...(r.classId === 'ranger' ? RANGER_FEATURES[classLevel] ?? [] : MH_FEATURES[classLevel] ?? []), ...all.filter((f) => CLASS_FEATURES.has(f))]);
+  return {
+    ...r,
+    hpRolled: HP_ROLLS[r.level] ?? r.hpRolled,
+    featsTaken: [...all.filter((f) => !CLASS_FEATURES.has(f)), ...(EXTRA_FEATS[r.level] ?? [])],
+    featuresGained: [...features],
+    notes: [r.notes, HP_ROLLS[r.level] ? 'HP roll guessed (export unclear); total of levels 5+6 is 12' : '', EXTRA_FEATS[r.level] ? `${EXTRA_FEATS[r.level]!.join(', ')}: slot guessed, not in RPG Scribe history` : ''].filter(Boolean).join(' · ') || undefined,
+  };
+});
 
 const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
 const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
@@ -23,15 +40,15 @@ const pack: Pack = PackSchema.parse({
     { id: 'oversized', label: 'Oversized (above Large)', category: 'custom' },
   ],
   skills: [
-    { id: 'knowledge-monsters', name: 'Knowledge (Monsters)', ability: 'int', trainedOnly: true },
+    { id: 'knowledge-monsters', name: 'Knowledge (Monsters)', ability: 'wis', trainedOnly: true },
     { id: 'craft-taxidermy', name: 'Craft (Taxidermy/Trophy)', ability: 'int' },
   ],
   classTables: [
     {
       id: 'monster-hunter', name: 'Monster Hunter', hitDie: 10, skillPointsPerLevel: 4, babProgression: 'full',
-      saves: { fort: 'good', ref: 'poor', will: 'poor' },
-      classSkills: ['knowledge-monsters', 'craft-taxidermy', 'survival', 'spot', 'listen', 'hide', 'move-silently', 'knowledge-nature', 'knowledge-dungeoneering'],
-      levelFeatures: { '1': ['monster-killer', 'monster-blow', 'trophy-crafting'], '2': ['monster-lore'], '3': ['imbue-trophy-arms'], '4': ['modify-trophy'], '6': ['imbue-trophy-wondrous'], '10': ['monster-horror'] },
+      saves: { fort: 'good', ref: 'good', will: 'poor' },
+      classSkills: ['climb', 'concentration', 'craft', 'handle-animal', 'heal', 'hide', 'jump', 'knowledge-dungeoneering', 'knowledge-geography', 'knowledge-nature', 'listen', 'move-silently', 'profession', 'ride', 'search', 'spot', 'survival', 'swim', 'use-rope', 'craft-taxidermy', 'knowledge-monsters'],
+      levelFeatures: { '1': ['monster-killer', 'monster-blow', 'trophy-crafting'], '2': ['monster-lore'], '3': ['craft-magic-arms-and-armor', 'imbue-trophy-arms'], '4': ['modify-trophy'], '6': ['craft-wondrous-item', 'imbue-trophy-wondrous'], '10': ['monster-horror'] },
     },
   ],
   abilities: [
@@ -112,6 +129,10 @@ const pack: Pack = PackSchema.parse({
       text: 'Harvest ≤2 parts (more with Knowledge (Monsters) DC 10+MH) within 1 minute from Large+ monsters you damaged, Monster Killer types only. Max trophies = MH×2 + Wis mod; active slots 4 (MH1), 6 (MH4), 8 (MH7). Trophy bonuses ×2 at MH5, ×3 at MH10.',
       effects: [],
     },
+    { id: 'imbue-trophy-arms', name: 'Imbue Trophy (Arms & Armor)', source: 'class', enabledByDefault: false, text: 'MH3: imbue trophies into magic weapons/armor/shields. 1 week, 1,000 gp per +1 equivalent, 50% failure destroys both.', effects: [] },
+    { id: 'modify-trophy', name: 'Modify Trophy', source: 'class', enabledByDefault: false, text: 'MH4: change a trophy\'s slot once. Knowledge (Monsters) DC 15+MH, Craft (Taxidermy) DC 20, 500 gp and 500 XP × MH level.', effects: [] },
+    { id: 'imbue-trophy-wondrous', name: 'Imbue Trophy (Wondrous Item)', source: 'class', enabledByDefault: false, text: 'MH6: imbue trophies into wondrous items. 25% failure; salvage trophy with Craft DC 30.', effects: [] },
+    { id: 'monster-horror', name: 'Monster Horror', source: 'class', enabledByDefault: false, text: 'MH10: immune to mind-affecting abilities of chosen types; +2 attack/damage/saves per matching trophy worn (min +2), enemies -2.', effects: [] },
     {
       id: 'monster-lore', name: 'Monster Lore', source: 'class', enabledByDefault: false,
       text: 'MH2: Locate monster type DC 20, specific monster DC 30, assess below 50% HP DC 25 (+3 per size above Large).', effects: [],
@@ -172,7 +193,7 @@ const pack: Pack = PackSchema.parse({
     abilityScores: { str: 12, dex: 16, con: 12, int: 16, wis: 16, cha: 11 },
     xp: 16088,
     classLevels: [{ classId: 'ranger', level: 5 }, { classId: 'monster-hunter', level: 1 }],
-    hp: { max: 44, current: 44, temp: 0, nonlethal: 0 },
+    hp: { max: 50, current: 50, temp: 0, nonlethal: 0 },
     baseArmor: 0, baseShield: 0, baseNaturalArmor: 0, speed: 30,
     skills: {
       spot: { ranks: 8 }, hide: { ranks: 7 }, 'move-silently': { ranks: 7 }, survival: { ranks: 7 }, listen: { ranks: 6 }, climb: { ranks: 2 },
@@ -186,7 +207,7 @@ const pack: Pack = PackSchema.parse({
       { abilityId: 'favored-enemy-1', paramValues: { types: ['monstrous-humanoid'] } },
       { abilityId: 'favored-enemy-2', paramValues: { types: ['aberration'] } },
       { abilityId: 'track' }, { abilityId: 'endurance' }, { abilityId: 'wild-empathy', enabled: false },
-      { abilityId: 'point-blank-shot' }, { abilityId: 'rapid-shot' }, { abilityId: 'precise-shot' }, { abilityId: 'weapon-focus-ranged' },
+      { abilityId: 'point-blank-shot' }, { abilityId: 'rapid-shot' }, { abilityId: 'weapon-focus-ranged' }, { abilityId: 'ranger-spells' },
       { abilityId: 'woodland-archer' }, { abilityId: 'knowledge-devotion' }, { abilityId: 'distracting-attack' },
       { abilityId: 'memento-aqua' }, { abilityId: 'memento-formido', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
       { abilityId: 'the-shit-ive-seen' },
@@ -201,12 +222,16 @@ const pack: Pack = PackSchema.parse({
     resourceState: { 'boots-rounds': { used: 2 } },
     levelHistory,
     extraSkillPointsPerLevel: 1,
-    vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1 },
+    extraFeatAtFirstLevel: true,
+    journal: [{ at: '2026-09-07T00:00:00Z', kind: 'note', text: 'Imported from RPG Scribe export (2026-09-06). Max HP = 44 rolled + 6 Con = 50.' }],
+    vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1, rangerSpells1: 1 },
     notes: [
       'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.',
       'TODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.',
       'TODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).',
-      'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.',
+      'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).',
+      'Ranger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.',
+      'Knowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.',
       'TODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).',
       'Skill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).',
       'Level ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.',

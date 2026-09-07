@@ -188,7 +188,15 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     case 'save.ref': entries.push(base('Base save', d.baseSaves.ref), base('DEX mod', abilityMod(s.dex))); break;
     case 'save.will': entries.push(base('Base save', d.baseSaves.will), base('WIS mod', abilityMod(s.wis))); break;
     case 'init': entries.push(base('DEX mod', abilityMod(s.dex))); break;
-    case 'hp.max': entries.push(base('Max HP', c.hp.max)); break;
+    case 'hp.max':
+      if (d.hpFromLevels !== undefined) {
+        const con = abilityMod(s.con);
+        const levels = c.levelHistory.length;
+        entries.push(base('Hit dice rolled', d.hpRolledTotal), base(`CON mod × ${levels} levels`, d.hpFromLevels - d.hpRolledTotal));
+        if (con < 0) entries[entries.length - 1]!.label = `CON mod × ${levels} levels (min 1 hp/level)`;
+      } else entries.push(base('Max HP', c.hp.max));
+      if (c.hpAdjust) entries.push(base('Adjustment', c.hpAdjust));
+      break;
     case 'speed': entries.push(base('Base speed', c.speed)); break;
     case 'critRange': entries.push(base('Threat range', a ? 21 - a.profile.critRange : 1)); break;
     case 'critMult': entries.push(base('Multiplier', a ? a.profile.critMult : 2)); break;

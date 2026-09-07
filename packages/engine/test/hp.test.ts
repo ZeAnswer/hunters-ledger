@@ -28,6 +28,7 @@ test('setting max adjusts current by the same delta', () => {
   expect(applyHp(c, { setMax: 50 }).hp).toMatchObject({ max: 50, current: 36 });
 });
 
-test('current can go negative (dying) but not below -10 - con', () => {
+test('current can go negative (dying) and is clamped at -10 (dead)', () => {
   expect(applyHp(c, { damage: 40 }).hp.current).toBe(-5);
+  expect(applyHp(c, { damage: 99 }).hp.current).toBe(-10);
 });

@@ -1,6 +1,6 @@
 import {
   AbilitySchema, BattleSchema, CharacterSchema, ClassTableSchema, CombatantSchema, SkillSchema, TagSchema,
-  type Ability, type AbilityInput, type Battle, type Character, type ClassTable, type Combatant, type LogEvent, type Skill, type Tag,
+  type Ability, type AbilityInput, type Battle, type Character, type CharacterInput, type ClassTable, type Combatant, type LogEvent, type Skill, type Tag,
 } from '../src/schema';
 import type { EvalContext, Library } from '../src/context';
 
@@ -37,7 +37,7 @@ export function makeAbility(a: Partial<AbilityInput> & { id: string }): Ability 
   return AbilitySchema.parse({ name: a.id, source: 'feat', ...a });
 }
 
-export function makeCharacter(over: Partial<Character> = {}): Character {
+export function makeCharacter(over: Partial<CharacterInput> = {}): Character {
   return CharacterSchema.parse({
     id: 'memento', name: 'Memento',
     abilityScores: { str: 12, dex: 16, con: 12, int: 16, wis: 16, cha: 11 },

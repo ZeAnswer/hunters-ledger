@@ -549,6 +549,43 @@
       "enabledByDefault": true
     },
     {
+      "id": "craft-magic-arms-and-armor",
+      "name": "Craft Magic Arms and Armor",
+      "source": "feat",
+      "text": "Create magic weapons, armor and shields (caster level 5 normally).",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "craft-wondrous-item",
+      "name": "Craft Wondrous Item",
+      "source": "feat",
+      "text": "Create wondrous items (caster level 3 normally).",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "ranger-spells",
+      "name": "Ranger Spells",
+      "source": "class",
+      "text": "From ranger level 4: divine spells from the ranger list, prepared daily, Wis-based (DC 10 + spell level + Wis mod). Caster level = half ranger level. Base 1st-level slots: 0 at ranger 4-5, 1 at 6-13, 2 at 14+; plus 1 bonus 1st-level slot for Wis 12-19 (2 for Wis 20+). Set the per-day totals in character vars rangerSpells1..rangerSpells4.",
+      "activation": {
+        "action": "standard"
+      },
+      "resources": [
+        {
+          "id": "ranger-spell-1",
+          "label": "1st-level spells",
+          "max": "rangerSpells1",
+          "per": "day"
+        }
+      ],
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
       "id": "wild-empathy",
       "name": "Wild Empathy",
       "source": "class",
@@ -1460,7 +1497,8 @@
           "endurance"
         ],
         "4": [
-          "animal-companion"
+          "animal-companion",
+          "ranger-spells"
         ],
         "5": [
           "favored-enemy-2"

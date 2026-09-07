@@ -409,6 +409,42 @@
       "enabledByDefault": true
     },
     {
+      "id": "imbue-trophy-arms",
+      "name": "Imbue Trophy (Arms & Armor)",
+      "source": "class",
+      "text": "MH3: imbue trophies into magic weapons/armor/shields. 1 week, 1,000 gp per +1 equivalent, 50% failure destroys both.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": false
+    },
+    {
+      "id": "modify-trophy",
+      "name": "Modify Trophy",
+      "source": "class",
+      "text": "MH4: change a trophy's slot once. Knowledge (Monsters) DC 15+MH, Craft (Taxidermy) DC 20, 500 gp and 500 XP × MH level.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": false
+    },
+    {
+      "id": "imbue-trophy-wondrous",
+      "name": "Imbue Trophy (Wondrous Item)",
+      "source": "class",
+      "text": "MH6: imbue trophies into wondrous items. 25% failure; salvage trophy with Craft DC 30.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": false
+    },
+    {
+      "id": "monster-horror",
+      "name": "Monster Horror",
+      "source": "class",
+      "text": "MH10: immune to mind-affecting abilities of chosen types; +2 attack/damage/saves per matching trophy worn (min +2), enemies -2.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": false
+    },
+    {
       "id": "monster-lore",
       "name": "Monster Lore",
       "source": "class",
@@ -807,7 +843,7 @@
     {
       "id": "knowledge-monsters",
       "name": "Knowledge (Monsters)",
-      "ability": "int",
+      "ability": "wis",
       "trainedOnly": true,
       "armorCheck": false
     },
@@ -826,20 +862,32 @@
       "hitDie": 10,
       "skillPointsPerLevel": 4,
       "classSkills": [
-        "knowledge-monsters",
-        "craft-taxidermy",
-        "survival",
-        "spot",
-        "listen",
+        "climb",
+        "concentration",
+        "craft",
+        "handle-animal",
+        "heal",
         "hide",
-        "move-silently",
+        "jump",
+        "knowledge-dungeoneering",
+        "knowledge-geography",
         "knowledge-nature",
-        "knowledge-dungeoneering"
+        "listen",
+        "move-silently",
+        "profession",
+        "ride",
+        "search",
+        "spot",
+        "survival",
+        "swim",
+        "use-rope",
+        "craft-taxidermy",
+        "knowledge-monsters"
       ],
       "babProgression": "full",
       "saves": {
         "fort": "good",
-        "ref": "poor",
+        "ref": "good",
         "will": "poor"
       },
       "levelFeatures": {
@@ -852,12 +900,14 @@
           "monster-lore"
         ],
         "3": [
+          "craft-magic-arms-and-armor",
           "imbue-trophy-arms"
         ],
         "4": [
           "modify-trophy"
         ],
         "6": [
+          "craft-wondrous-item",
           "imbue-trophy-wondrous"
         ],
         "10": [
@@ -891,8 +941,8 @@
         }
       ],
       "hp": {
-        "max": 44,
-        "current": 44,
+        "max": 50,
+        "current": 50,
         "temp": 0,
         "nonlethal": 0
       },
@@ -999,12 +1049,12 @@
           "paramValues": {}
         },
         {
-          "abilityId": "precise-shot",
+          "abilityId": "weapon-focus-ranged",
           "enabled": true,
           "paramValues": {}
         },
         {
-          "abilityId": "weapon-focus-ranged",
+          "abilityId": "ranger-spells",
           "enabled": true,
           "paramValues": {}
         },
@@ -1185,10 +1235,16 @@
             "knowledge-monsters": 4
           },
           "featsTaken": [
-            "track",
+            "weapon-focus-ranged",
+            "point-blank-shot"
+          ],
+          "featuresGained": [
             "favored-enemy-1",
-            "weapon-focus-ranged"
-          ]
+            "track",
+            "wild-empathy"
+          ],
+          "spellsLearned": [],
+          "notes": "point-blank-shot: slot guessed, not in RPG Scribe history"
         },
         {
           "level": 2,
@@ -1203,9 +1259,11 @@
             "climb": 2,
             "knowledge-monsters": 1
           },
-          "featsTaken": [
+          "featsTaken": [],
+          "featuresGained": [
             "rapid-shot"
           ],
+          "spellsLearned": [],
           "notes": "1 unspent skill points"
         },
         {
@@ -1215,8 +1273,14 @@
           "skillPointsSpent": {
             "knowledge-monsters": 1
           },
-          "featsTaken": [],
-          "notes": "4.5 unspent skill points"
+          "featsTaken": [
+            "knowledge-devotion"
+          ],
+          "featuresGained": [
+            "endurance"
+          ],
+          "spellsLearned": [],
+          "notes": "4.5 unspent skill points · knowledge-devotion: slot guessed, not in RPG Scribe history"
         },
         {
           "level": 4,
@@ -1233,12 +1297,18 @@
             "survival": 1,
             "knowledge-monsters": 1
           },
-          "featsTaken": []
+          "featsTaken": [],
+          "featuresGained": [
+            "distracting-attack",
+            "ranger-spells"
+          ],
+          "abilityIncrease": "dex",
+          "spellsLearned": []
         },
         {
           "level": 5,
           "classId": "ranger",
-          "hpRolled": 1,
+          "hpRolled": 6,
           "skillPointsSpent": {
             "unknown-d11c1603": 1,
             "unknown-700ac2f3": 2,
@@ -1251,15 +1321,17 @@
             "move-silently": 1,
             "knowledge-monsters": 1
           },
-          "featsTaken": [
+          "featsTaken": [],
+          "featuresGained": [
             "favored-enemy-2"
           ],
-          "notes": "-2 unspent skill points"
+          "spellsLearned": [],
+          "notes": "-2 unspent skill points · HP roll guessed (export unclear); total of levels 5+6 is 12"
         },
         {
           "level": 6,
           "classId": "monster-hunter",
-          "hpRolled": 1,
+          "hpRolled": 6,
           "skillPointsSpent": {
             "craft-taxidermy": 6,
             "hide": 1,
@@ -1267,16 +1339,33 @@
           },
           "featsTaken": [
             "woodland-archer"
-          ]
+          ],
+          "featuresGained": [
+            "monster-killer",
+            "monster-blow",
+            "trophy-crafting"
+          ],
+          "spellsLearned": [],
+          "notes": "HP roll guessed (export unclear); total of levels 5+6 is 12"
         }
       ],
       "extraSkillPointsPerLevel": 1,
+      "extraFeatAtFirstLevel": true,
+      "hpAdjust": 0,
+      "journal": [
+        {
+          "at": "2026-09-07T00:00:00Z",
+          "kind": "note",
+          "text": "Imported from RPG Scribe export (2026-09-06). Max HP = 44 rolled + 6 Con = 50."
+        }
+      ],
       "vars": {
         "favoredEnemyBonus1": 4,
         "favoredEnemyBonus2": 2,
-        "trophyMultiplier": 1
+        "trophyMultiplier": 1,
+        "rangerSpells1": 1
       },
-      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot, Precise Shot, Rapid Shot, Weapon Focus.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
+      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
     }
   ]
 }

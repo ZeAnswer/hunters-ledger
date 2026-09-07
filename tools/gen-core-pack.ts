@@ -50,7 +50,7 @@ const pack: Pack = PackSchema.parse({
       id: 'ranger', name: 'Ranger', hitDie: 8, skillPointsPerLevel: 6, babProgression: 'full',
       saves: { fort: 'good', ref: 'good', will: 'poor' },
       classSkills: ['climb', 'concentration', 'craft', 'handle-animal', 'heal', 'hide', 'jump', 'knowledge-dungeoneering', 'knowledge-geography', 'knowledge-nature', 'listen', 'move-silently', 'profession', 'ride', 'search', 'spot', 'survival', 'swim', 'use-rope'],
-      levelFeatures: { '1': ['favored-enemy-1', 'track', 'wild-empathy'], '2': ['rapid-shot'], '3': ['endurance'], '4': ['animal-companion'], '5': ['favored-enemy-2'], '6': ['manyshot'], '7': ['woodland-stride'], '8': ['swift-tracker'], '9': ['evasion'], '10': ['favored-enemy-3'], '11': ['improved-precise-shot'], '13': ['camouflage'], '15': ['favored-enemy-4'], '17': ['hide-in-plain-sight'], '20': ['favored-enemy-5'] },
+      levelFeatures: { '1': ['favored-enemy-1', 'track', 'wild-empathy'], '2': ['rapid-shot'], '3': ['endurance'], '4': ['animal-companion', 'ranger-spells'], '5': ['favored-enemy-2'], '6': ['manyshot'], '7': ['woodland-stride'], '8': ['swift-tracker'], '9': ['evasion'], '10': ['favored-enemy-3'], '11': ['improved-precise-shot'], '13': ['camouflage'], '15': ['favored-enemy-4'], '17': ['hide-in-plain-sight'], '20': ['favored-enemy-5'] },
     },
   ],
   abilities: [
@@ -85,6 +85,14 @@ const pack: Pack = PackSchema.parse({
     },
     { id: 'track', name: 'Track', source: 'feat', text: 'Use Survival to follow tracks.', effects: [] },
     { id: 'endurance', name: 'Endurance', source: 'feat', text: '+4 on checks and saves to resist nonlethal damage from exertion, environment, starvation, etc. Sleep in light or medium armor without fatigue.', effects: [] },
+    { id: 'craft-magic-arms-and-armor', name: 'Craft Magic Arms and Armor', source: 'feat', text: 'Create magic weapons, armor and shields (caster level 5 normally).', effects: [] },
+    { id: 'craft-wondrous-item', name: 'Craft Wondrous Item', source: 'feat', text: 'Create wondrous items (caster level 3 normally).', effects: [] },
+    {
+      id: 'ranger-spells', name: 'Ranger Spells', source: 'class', activation: { action: 'standard' },
+      text: 'From ranger level 4: divine spells from the ranger list, prepared daily, Wis-based (DC 10 + spell level + Wis mod). Caster level = half ranger level. Base 1st-level slots: 0 at ranger 4-5, 1 at 6-13, 2 at 14+; plus 1 bonus 1st-level slot for Wis 12-19 (2 for Wis 20+). Set the per-day totals in character vars rangerSpells1..rangerSpells4.',
+      resources: [{ id: 'ranger-spell-1', label: '1st-level spells', max: 'rangerSpells1', per: 'day' }],
+      effects: [],
+    },
     { id: 'wild-empathy', name: 'Wild Empathy', source: 'class', text: 'Improve the attitude of an animal like a Diplomacy check: 1d20 + ranger level + Cha mod.', effects: [] },
     // ---- archery feats ----
     {
