@@ -1,4 +1,26 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+/**
+ * Back-button support without juggling history entries: a single sentinel entry sits on top of the app's
+ * history; a back press pops it, we close the top open sheet (if any) and re-arm the sentinel.
+ * Android (Capacitor) calls closeTopSheet() from its backButton listener instead.
+ */
+const sheetStack: { close: () => void }[] = [];
+export function closeTopSheet(): boolean {
+  const top = sheetStack.pop();
+  if (!top) return false;
+  top.close();
+  return true;
+}
+export function openSheetCount() { return sheetStack.length; }
+if (typeof window !== 'undefined') {
+  history.replaceState({ hl: 'base' }, '');
+  history.pushState({ hl: 'trap' }, '');
+  window.addEventListener('popstate', () => {
+    closeTopSheet();
+    history.pushState({ hl: 'trap' }, '');
+  });
+}
 
 export function cx(...parts: (string | false | undefined | null)[]) { return parts.filter(Boolean).join(' '); }
 
@@ -32,21 +54,32 @@ export function Chip({ children, active, onClick, tone = 'neutral', className }:
 }
 
 export function Sheet({ open, onClose, title, children, tall }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; tall?: boolean }) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCloseRef.current();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    const entry = { close: () => onCloseRef.current() };
+    sheetStack.push(entry);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      const i = sheetStack.indexOf(entry);
+      if (i >= 0) sheetStack.splice(i, 1);
+    };
+  }, [open]);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
       <div className={cx('w-full max-w-lg rounded-t-3xl bg-zinc-900 border-t border-zinc-700 shadow-xl flex flex-col', tall ? 'h-[92vh]' : 'max-h-[85vh]')} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 pt-3 pb-2">
-          <div className="text-lg font-semibold">{title}</div>
-          <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-zinc-400 active:bg-zinc-800">✕</button>
+        <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2 border-b border-zinc-800">
+          <div className="text-lg font-semibold truncate">{title}</div>
+          <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 rounded-full bg-zinc-800 px-4 py-1.5 text-sm text-zinc-100 active:bg-zinc-700">✕ Close</button>
         </div>
-        <div className="overflow-y-auto px-4 pb-6 flex-1">{children}</div>
+        <div className="overflow-y-auto px-4 pb-4 flex-1">{children}</div>
+        <div className="border-t border-zinc-800 p-3" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+          <button type="button" onClick={onClose} className="w-full rounded-xl bg-zinc-800 py-2.5 text-zinc-100 active:bg-zinc-700">Close</button>
+        </div>
       </div>
     </div>
   );
@@ -64,11 +97,24 @@ export function Field({ label, children, htmlFor }: { label: string; children: R
 
 export const inputCls = 'w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-base text-zinc-100 outline-none focus:border-amber-500';
 
-export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
+export function Section({ title, children, right, id, defaultOpen = false, count }: { title: string; children: ReactNode; right?: ReactNode; id?: string; defaultOpen?: boolean; count?: number | string }) {
+  const key = id ? `hl.section.${id}` : undefined;
+  const [open, setOpen] = useState<boolean>(() => {
+    if (!key) return defaultOpen;
+    try { const v = localStorage.getItem(key); return v === null ? defaultOpen : v === '1'; } catch { return defaultOpen; }
+  });
+  const toggle = () => { const v = !open; setOpen(v); if (key) { try { localStorage.setItem(key, v ? '1' : '0'); } catch { /* ignore */ } } };
   return (
-    <section className="mb-4">
-      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">{title}</h2>{right}</div>
-      {children}
+    <section className="mb-2 rounded-2xl border border-zinc-800 bg-zinc-900/60">
+      <div className="flex items-center justify-between px-3 py-2">
+        <button type="button" onClick={toggle} className="flex flex-1 items-center gap-2 text-left">
+          <span className="text-zinc-500">{open ? '▾' : '▸'}</span>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-300">{title}</h2>
+          {count !== undefined && <span className="rounded-full bg-zinc-800 px-2 text-xs text-zinc-400">{count}</span>}
+        </button>
+        {right}
+      </div>
+      {open && <div className="px-3 pb-3">{children}</div>}
     </section>
   );
 }

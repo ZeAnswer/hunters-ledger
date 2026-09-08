@@ -213,18 +213,127 @@
     }
   ],
   "items": [
-    "library item B1029F6A (type 1, +1)",
-    "Ring of Protection (+1)",
-    "Boots of Speed",
-    "Bracers of Armor (+1)",
-    "library item 2B2C0E73 (type 3)",
-    "Ring of Swimming",
-    "library item undefined (type 11)",
-    "Hand of Glory",
-    "Pearl of the Sirines",
-    "Bracers of Archery, Lesser",
-    "Chuul Gloves - Abberration",
-    "belt of strength"
+    {
+      "id": "rs-5c52a6ea",
+      "name": "library item B1029F6A (type 1, +1)",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "weapon"
+    },
+    {
+      "id": "rs-2fb8d074",
+      "name": "Ring of Protection (+1)",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous"
+    },
+    {
+      "id": "rs-467f6348",
+      "name": "Boots of Speed",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous",
+      "weight": 1
+    },
+    {
+      "id": "rs-470d0c5a",
+      "name": "Bracers of Armor (+1)",
+      "quantity": 1,
+      "equipped": false,
+      "stored": false,
+      "category": "wondrous",
+      "weight": 1
+    },
+    {
+      "id": "rs-2dfb869f",
+      "name": "library item 2B2C0E73 (type 3)",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "armor"
+    },
+    {
+      "id": "rs-060ee3cb",
+      "name": "Ring of Swimming",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous",
+      "notes": "Cursed-\nCan't take off\nMust explore new bodies of water, will save"
+    },
+    {
+      "id": "rs-1d33a943",
+      "name": "library item undefined (type 11)",
+      "quantity": 1,
+      "equipped": false,
+      "stored": false,
+      "category": "consumable"
+    },
+    {
+      "id": "rs-536efbc8",
+      "name": "Hand of Glory",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous",
+      "weight": 2
+    },
+    {
+      "id": "rs-9d26fd82",
+      "name": "Pearl of the Sirines",
+      "quantity": 1,
+      "equipped": false,
+      "stored": false,
+      "category": "gear",
+      "notes": "Water breathing"
+    },
+    {
+      "id": "rs-850ffa9a",
+      "name": "Bracers of Archery, Lesser",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous",
+      "notes": "These wristbands look like normal protective wear.\n\nThe bracers empower the wearer to use any bow (not including crossbows) as if she were proficient in its use. If she already has proficiency with any type of bow, she gains a +1 competence bonus on attack rolls whenever using that type of bow. Both bracers must be worn for the magic to be effective."
+    },
+    {
+      "id": "rs-60e9aa3f",
+      "name": "Chuul Gloves - Abberration",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous",
+      "notes": "Chuul gloves (Aberration trophy).\nParalysis DC +11 For negates, improved initiative."
+    },
+    {
+      "id": "rs-27343ed6",
+      "name": "belt of strength",
+      "quantity": 1,
+      "equipped": true,
+      "stored": false,
+      "category": "wondrous"
+    },
+    {
+      "id": "rs-3686b6e3",
+      "name": "Gargoyle's hands",
+      "quantity": 1,
+      "equipped": false,
+      "stored": true,
+      "category": "gear",
+      "notes": "Trophy crafting material\nMonster: Gargoyle\nType: Monstrous humanoid\nTrophy: Gargoyle bracers\nEffect: DR 10/magic, freeze appear as statue DC +15, +2 Con"
+    },
+    {
+      "id": "rs-f9f4cbb3",
+      "name": "Gorgon's Scale",
+      "quantity": 1,
+      "equipped": false,
+      "stored": true,
+      "category": "gear",
+      "notes": "Trophy crafting material\nMonster: Gorgon\nType: Magical beast\nTrophy: Gorgon belt\nEffect: +2d6 DMG when charging, petrifying cone 60ft 1/day DC +14 For negates"
+    }
   ],
   "notes": [
     "Memory - Memento Aqua: לפתע שברי זכרונות שלא שלך רצים בראשך, מרגיש לך שהיו לך חיים נוספים: תמונות של מפלצות שונות שלא פגשת מעולם רצות מול עיניך (יצור קוצני, ענקים, דרקונים ותפלצות ענק לא מזוהות), לרגע אתה מנסה להאחז בהם אך ללא הצלחה. משהו כן בוקע לראשך, אתה נזכר בלכלוך על הפנים, אתה מנקה את עצמך וחושב שזה בוץ, אבל מגלה שזה בעצם דם. זו לא פעם ראשונה שלקחת חיים מיצור מסוג זה. אתה ממנטו, צייד קשת, אתה מגיע מעיירת דיג, ולא פעם היו מתקפות כאלו של היצורים דמויי לובסטר הללו על דייגים בודדים, רוב הזמן ידעתם להתמודד איתם ולהבריח אותם בהגנה על העיירה, לעיתים הם היו מצליחים לחטוף מישהו ולגרור אותו אל תוך המים או אל הביצה. הייתם נוהגים לעקוב אחריהם בתוך המים ולחפש את תנועותיהם, הרגשת מאוד בנוח במים ובביצות. לא סתם נמשכת לדבר עם הדיג הגמדי במכרה. עוד מגיל צעיר התעניינת בחקר אנטומיה של יצורים מוזרים ומפלצות, הסתקרנת מטבעם השונה. אביך סיפר לך מעשיות על ציידי מפלצות שהיו מסתובבים בפאירון העתיקה והורגים מפלצות שונות. זכורה לך מעשיה על צייד שהרג כריש יבשה בידיו החשופות כדי להציל כפר שלם - לא ברור לך מה מהמעשיות אמיתי ומה לא.\n\nאתה מקבל פרגמנט זיכרון : MEMENTO AQUA:\nעקב הנינוחות שלך בסביבות אגמים וביצות, יש לך בונוס קבוע לשחייה +2 ועקב ההכרה של האנטומיה ליצורים החיים בגופי מים, יש לך בונוס +2 להתקפה ולנזק ליצורים שסביבת המחיה שלהם היא ימית בעיקרה.",

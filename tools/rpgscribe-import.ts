@@ -47,7 +47,18 @@ const out = {
   })),
   feats: arr(ch.feats?.std_feats?.feat_info).map((fi: { feat: { '@adhoc'?: string; name?: string; id?: string; parameter?: unknown }[] }) => { const f = arr(fi.feat)[0]!; return f['@adhoc'] === 'TRUE' ? f.name : `${map(FEATS, f.id ?? '')}${f.parameter ? ` (${txt(f.parameter)})` : ''}`; }),
   dailyActions: arr(ch.daily_actions?.daily_action).map((d: { action: { name: string; base_uses: string }; consumed_uses?: string }) => ({ name: d.action.name, max: +d.action.base_uses, used: +(d.consumed_uses ?? 0) })),
-  items: arr(ch.inventory?.inventory_items?.inventory_entry).map((ie: { item?: { name?: string; uuid?: string; item_type?: string; enhancement?: string } }) => ie.item?.name ?? `library item ${ie.item?.uuid?.slice(0, 8)} (type ${ie.item?.item_type}${ie.item?.enhancement ? `, +${ie.item.enhancement}` : ''})`),
+  items: (() => {
+    const equipped = new Set(arr(ch.equiped_items?.slot).map((s: { '#': string }) => txt(s)));
+    const TYPE: Record<string, string> = { '0': 'gear', '1': 'weapon', '3': 'armor', '4': 'wondrous', '11': 'consumable' };
+    const read = (stored: boolean) => arr((stored ? ch.storage?.inventory : ch.inventory)?.inventory_items?.inventory_entry).map((ie: { '@id': string; quantity?: string; item?: { name?: string; uuid?: string; item_type?: string; enhancement?: string; notes?: string; description?: string; slot?: string; weight?: string } }) => ({
+      id: `rs-${ie['@id'].slice(0, 8).toLowerCase()}`,
+      name: (ie.item?.name ?? `library item ${ie.item?.uuid?.slice(0, 8)} (type ${ie.item?.item_type}${ie.item?.enhancement ? `, +${ie.item.enhancement}` : ''})`).trim(),
+      quantity: +(ie.quantity ?? 1), equipped: !stored && equipped.has(ie['@id']), stored,
+      category: TYPE[ie.item?.item_type ?? '0'] ?? 'gear',
+      ...(ie.item?.notes || (typeof ie.item?.description === 'string' && ie.item.description) ? { notes: [ie.item?.notes, typeof ie.item?.description === 'string' ? ie.item.description : ''].filter(Boolean).map((x) => String(x).trim()).join('\n') } : {}), ...(ie.item?.weight ? { weight: +ie.item.weight } : {}),
+    }));
+    return [...read(false), ...read(true)];
+  })(),
   notes: arr(ch.snippets?.snippet).map((s: { note?: { title?: string; content?: string } }) => `${s.note?.title}: ${s.note?.content}`),
 };
 const target = new URL(`./data/${name.toLowerCase()}-rpgscribe.json`, import.meta.url);

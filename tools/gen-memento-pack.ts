@@ -27,6 +27,29 @@ const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { level: number; cl
   };
 });
 
+// Inventory from the export; items that grant mechanics link to an ability id by name.
+const ITEM_ABILITY: Record<string, string> = {
+  'ring of protection (+1)': 'ring-of-protection-1', 'boots of speed': 'boots-of-speed', 'bracers of armor (+1)': 'bracers-of-armor-1', 'ring of swimming': 'ring-of-swimming',
+  'hand of glory': 'hand-of-glory', 'pearl of the sirines': 'pearl-of-sirines', 'bracers of archery, lesser': 'bracers-of-archery-lesser', 'chuul gloves - abberration': 'chuul-gloves', 'belt of strength': 'belt-of-strength',
+};
+const ITEM_NAME: Record<string, string> = { 'library item B1029F6A (type 1, +1)': 'Composite Longbow +1 (?)', 'library item 2B2C0E73 (type 3)': 'Armor (unknown type, from RPG Scribe library)', 'library item undefined (type 11)': 'Potion or scroll (unknown spell)' };
+const inventory = (rpgscribe?.items ?? []).map((it: { id: string; name: string; quantity: number; equipped: boolean; stored: boolean; category: string; notes?: string; weight?: number }) => {
+  const abilityId = ITEM_ABILITY[it.name.toLowerCase()];
+  const trophyMaterial = it.stored;
+  return {
+    id: it.id, name: ITEM_NAME[it.name] ?? it.name, quantity: it.quantity, equipped: it.equipped,
+    category: trophyMaterial ? 'material' : it.category, ...(abilityId ? { abilityId } : {}), ...(it.notes ? { notes: it.notes } : {}), ...(it.weight !== undefined ? { weight: it.weight } : {}),
+  };
+});
+const equippedAbilities = new Set(inventory.filter((i: { equipped: boolean; abilityId?: string }) => i.equipped && i.abilityId).map((i: { abilityId?: string }) => i.abilityId));
+const linkedAbilities = new Set(inventory.filter((i: { abilityId?: string }) => i.abilityId).map((i: { abilityId?: string }) => i.abilityId));
+// Whistle and Vaelor's manual are DM handouts not in the export; add as equipped items.
+inventory.push(
+  { id: 'item-whistle', name: "Monsters' Agony Whisper Whistle", quantity: 1, equipped: true, category: 'wondrous', abilityId: 'whistle-of-agony', notes: 'Unique artifact, requires attunement. 1/day.' },
+  { id: 'item-vaelors-manual', name: "Vaelor's Monsters' Manual", quantity: 1, equipped: true, category: 'wondrous', notes: 'Unique artifact, no slot. Grants Monster Knowledge, Hunter\'s Analysis, Hunter\'s Instinct, Bestiary Collection.' },
+);
+equippedAbilities.add('whistle-of-agony');
+
 const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
 const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 
@@ -215,10 +238,11 @@ const pack: Pack = PackSchema.parse({
       { abilityId: 'monster-blow', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
       { abilityId: 'trophy-crafting' }, { abilityId: 'monster-lore', enabled: false },
       { abilityId: 'monster-knowledge' }, { abilityId: 'hunters-analysis' }, { abilityId: 'hunters-instinct' },
-      { abilityId: 'boots-of-speed' }, { abilityId: 'ring-of-protection-1' }, { abilityId: 'bracers-of-armor-1' }, { abilityId: 'ring-of-swimming' },
-      { abilityId: 'bracers-of-archery-lesser' }, { abilityId: 'belt-of-strength' }, { abilityId: 'hand-of-glory' }, { abilityId: 'pearl-of-sirines' }, { abilityId: 'whistle-of-agony' },
-      { abilityId: 'chuul-gloves' }, { abilityId: 'gargoyle-bracers', enabled: false }, { abilityId: 'rider-ring', enabled: false }, { abilityId: 'medusa-mask', enabled: false }, { abilityId: 'shield-amulet', enabled: false },
+      ...['boots-of-speed', 'ring-of-protection-1', 'bracers-of-armor-1', 'ring-of-swimming', 'bracers-of-archery-lesser', 'belt-of-strength', 'hand-of-glory', 'pearl-of-sirines', 'whistle-of-agony', 'chuul-gloves']
+        .map((abilityId) => ({ abilityId, enabled: equippedAbilities.has(abilityId) || !linkedAbilities.has(abilityId) })),
+      { abilityId: 'gargoyle-bracers', enabled: false }, { abilityId: 'rider-ring', enabled: false }, { abilityId: 'medusa-mask', enabled: false }, { abilityId: 'shield-amulet', enabled: false },
     ],
+    inventory,
     resourceState: { 'boots-rounds': { used: 2 } },
     levelHistory,
     extraSkillPointsPerLevel: 1,
@@ -226,7 +250,7 @@ const pack: Pack = PackSchema.parse({
     journal: [{ at: '2026-09-07T00:00:00Z', kind: 'note', text: 'Imported from RPG Scribe export (2026-09-06). Max HP = 44 rolled + 6 Con = 50.' }],
     vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1, rangerSpells1: 1 },
     notes: [
-      'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.',
+      'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.',
       'TODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.',
       'TODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).',
       'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).',

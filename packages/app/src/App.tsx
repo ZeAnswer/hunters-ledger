@@ -2,12 +2,14 @@ import { useStore } from './store/store';
 import { BattleScreen } from './screens/BattleScreen';
 import { CharacterScreen } from './screens/CharacterScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
+import { InventoryScreen } from './screens/InventoryScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { cx } from './components/ui';
 
 const TABS = [
   { id: 'battle', label: 'Battle', icon: '⚔️' },
   { id: 'character', label: 'Memento', icon: '🏹' },
+  { id: 'inventory', label: 'Inventory', icon: '🎒' },
   { id: 'library', label: 'Library', icon: '📚' },
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ] as const;
@@ -26,6 +28,7 @@ export default function App() {
       <main className="flex-1 overflow-y-auto pb-24">
         {screen === 'battle' && <BattleScreen />}
         {screen === 'character' && <CharacterScreen />}
+        {screen === 'inventory' && <InventoryScreen />}
         {screen === 'library' && <LibraryScreen />}
         {screen === 'settings' && <SettingsScreen />}
       </main>

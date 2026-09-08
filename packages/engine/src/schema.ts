@@ -286,6 +286,11 @@ export const CharacterSchema = z.object({
   extraFeatAtFirstLevel: z.boolean().default(false),
   /** Flat adjustment to max HP not covered by abilities (e.g. DM ruling). */
   hpAdjust: z.number().int().default(0),
+  /** Carried and stored gear. Items with an abilityId drive that ability's enabled flag when equipped. */
+  inventory: z.array(z.object({
+    id: z.string().min(1), name: z.string().min(1), quantity: z.number().int().nonnegative().default(1), equipped: z.boolean().default(false),
+    abilityId: z.string().optional(), slot: z.string().optional(), weight: z.number().optional(), notes: z.string().optional(), category: z.enum(['weapon', 'armor', 'wondrous', 'consumable', 'trophy', 'material', 'gear']).default('gear'),
+  })).default([]),
   /** Free-text history: level-ups, HP changes, edits. Newest last. */
   journal: z.array(z.object({ at: z.string(), kind: z.enum(['levelUp', 'hp', 'xp', 'edit', 'rest', 'note']), text: z.string() })).default([]),
   /** Free numeric variables usable in pack expressions, e.g. favoredEnemyBonus1, trophyMultiplier. */

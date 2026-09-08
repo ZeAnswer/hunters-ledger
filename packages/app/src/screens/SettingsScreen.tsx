@@ -20,7 +20,7 @@ export function SettingsScreen() {
     <div className="p-4">
       <h1 className="mb-4 text-2xl font-bold">Settings</h1>
 
-      <Section title="Import content pack">
+      <Section title="Import content pack" defaultOpen>
         <p className="mb-2 text-sm text-zinc-400">A pack is a JSON file with abilities, tags, monsters, skills or a character. Items with the same id from a newer version of the same pack replace the old ones.</p>
         <label className="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} /> Overwrite conflicting items</label>
         <div className="flex gap-2">
@@ -31,7 +31,7 @@ export function SettingsScreen() {
         {result && <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-zinc-900 p-3 text-xs text-zinc-300">{result}</pre>}
       </Section>
 
-      <Section title="Export">
+      <Section title="Export" defaultOpen>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => storage().exportFile(`hunters-ledger-library-${stamp()}.json`, s.exportLibraryText())}>Export library pack</Button>
           <Button onClick={() => storage().exportFile(`hunters-ledger-backup-${stamp()}.json`, s.exportBackupText())}>Full backup</Button>
@@ -39,7 +39,7 @@ export function SettingsScreen() {
         <p className="mt-2 text-xs text-zinc-500">Library pack = every ability/tag/monster/skill + your character, importable anywhere. Full backup also includes the current battle and history.</p>
       </Section>
 
-      <Section title="Restore">
+      <Section title="Restore" defaultOpen>
         <Button variant="danger" onClick={async () => {
           const f = await storage().importFile(); if (!f) return;
           if (!confirm('Replace everything with this backup?')) return;
@@ -48,7 +48,7 @@ export function SettingsScreen() {
         <Button variant="ghost" className="ml-2" onClick={async () => { if (confirm('Delete all data and reload the built-in packs?')) { await s.resetToDefaults(); s.showToast('Reset done'); } }}>Reset to built-in packs</Button>
       </Section>
 
-      <Section title="About">
+      <Section title="About" defaultOpen>
         <p className="text-sm text-zinc-400">Storage: {storage().kind === 'android' ? 'Android app storage' : 'browser IndexedDB'}. Battles kept: {s.pastBattles.length}.</p>
       </Section>
     </div>

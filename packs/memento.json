@@ -1153,7 +1153,7 @@
         },
         {
           "abilityId": "bracers-of-armor-1",
-          "enabled": true,
+          "enabled": false,
           "paramValues": {}
         },
         {
@@ -1178,7 +1178,7 @@
         },
         {
           "abilityId": "pearl-of-sirines",
-          "enabled": true,
+          "enabled": false,
           "paramValues": {}
         },
         {
@@ -1352,6 +1352,141 @@
       "extraSkillPointsPerLevel": 1,
       "extraFeatAtFirstLevel": true,
       "hpAdjust": 0,
+      "inventory": [
+        {
+          "id": "rs-5c52a6ea",
+          "name": "Composite Longbow +1 (?)",
+          "quantity": 1,
+          "equipped": true,
+          "category": "weapon"
+        },
+        {
+          "id": "rs-2fb8d074",
+          "name": "Ring of Protection (+1)",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "ring-of-protection-1",
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-467f6348",
+          "name": "Boots of Speed",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "boots-of-speed",
+          "weight": 1,
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-470d0c5a",
+          "name": "Bracers of Armor (+1)",
+          "quantity": 1,
+          "equipped": false,
+          "abilityId": "bracers-of-armor-1",
+          "weight": 1,
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-2dfb869f",
+          "name": "Armor (unknown type, from RPG Scribe library)",
+          "quantity": 1,
+          "equipped": true,
+          "category": "armor"
+        },
+        {
+          "id": "rs-060ee3cb",
+          "name": "Ring of Swimming",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "ring-of-swimming",
+          "notes": "Cursed-\nCan't take off\nMust explore new bodies of water, will save",
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-1d33a943",
+          "name": "Potion or scroll (unknown spell)",
+          "quantity": 1,
+          "equipped": false,
+          "category": "consumable"
+        },
+        {
+          "id": "rs-536efbc8",
+          "name": "Hand of Glory",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "hand-of-glory",
+          "weight": 2,
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-9d26fd82",
+          "name": "Pearl of the Sirines",
+          "quantity": 1,
+          "equipped": false,
+          "abilityId": "pearl-of-sirines",
+          "notes": "Water breathing",
+          "category": "gear"
+        },
+        {
+          "id": "rs-850ffa9a",
+          "name": "Bracers of Archery, Lesser",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "bracers-of-archery-lesser",
+          "notes": "These wristbands look like normal protective wear.\n\nThe bracers empower the wearer to use any bow (not including crossbows) as if she were proficient in its use. If she already has proficiency with any type of bow, she gains a +1 competence bonus on attack rolls whenever using that type of bow. Both bracers must be worn for the magic to be effective.",
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-60e9aa3f",
+          "name": "Chuul Gloves - Abberration",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "chuul-gloves",
+          "notes": "Chuul gloves (Aberration trophy).\nParalysis DC +11 For negates, improved initiative.",
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-27343ed6",
+          "name": "belt of strength",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "belt-of-strength",
+          "category": "wondrous"
+        },
+        {
+          "id": "rs-3686b6e3",
+          "name": "Gargoyle's hands",
+          "quantity": 1,
+          "equipped": false,
+          "notes": "Trophy crafting material\nMonster: Gargoyle\nType: Monstrous humanoid\nTrophy: Gargoyle bracers\nEffect: DR 10/magic, freeze appear as statue DC +15, +2 Con",
+          "category": "material"
+        },
+        {
+          "id": "rs-f9f4cbb3",
+          "name": "Gorgon's Scale",
+          "quantity": 1,
+          "equipped": false,
+          "notes": "Trophy crafting material\nMonster: Gorgon\nType: Magical beast\nTrophy: Gorgon belt\nEffect: +2d6 DMG when charging, petrifying cone 60ft 1/day DC +14 For negates",
+          "category": "material"
+        },
+        {
+          "id": "item-whistle",
+          "name": "Monsters' Agony Whisper Whistle",
+          "quantity": 1,
+          "equipped": true,
+          "abilityId": "whistle-of-agony",
+          "notes": "Unique artifact, requires attunement. 1/day.",
+          "category": "wondrous"
+        },
+        {
+          "id": "item-vaelors-manual",
+          "name": "Vaelor's Monsters' Manual",
+          "quantity": 1,
+          "equipped": true,
+          "notes": "Unique artifact, no slot. Grants Monster Knowledge, Hunter's Analysis, Hunter's Instinct, Bestiary Collection.",
+          "category": "wondrous"
+        }
+      ],
       "journal": [
         {
           "at": "2026-09-07T00:00:00Z",
@@ -1365,7 +1500,7 @@
         "trophyMultiplier": 1,
         "rangerSpells1": 1
       },
-      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73), longsword.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
+      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
     }
   ]
 }

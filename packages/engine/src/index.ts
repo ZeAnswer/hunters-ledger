@@ -13,3 +13,4 @@ export * from './hp';
 export * from './pack';
 export * from './vars';
 export { newId } from './ids';
+export * from './inventory';

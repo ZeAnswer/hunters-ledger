@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { derivedFromLevels, levelSlots, maxRanks, type AbilityKey, type EvalContext, type LevelRecord } from '@hl/engine';
 import { useStore } from '../../store/store';
-import { Button, Chip, Field, Section, Sheet, cx, inputCls } from '../ui';
+import { Button, Chip, Field, Sheet, cx, inputCls } from '../ui';
 
 export function LevelLedger({ ctx }: { ctx: EvalContext }) {
   const setCharacter = useStore((s) => s.setCharacter);
@@ -50,7 +50,8 @@ export function LevelLedger({ ctx }: { ctx: EvalContext }) {
   };
 
   return (
-    <Section title="Level ledger" right={<Button size="sm" onClick={() => setAdding(true)}>+ Level up</Button>}>
+    <div>
+      <div className="mb-2 flex justify-end"><Button size="sm" onClick={() => setAdding(true)}>+ Level up</Button></div>
       <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
         <div className="flex items-center justify-between text-sm"><span>Level {d.level}</span><span className="tabular-nums">XP <input className="w-24 rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-right" inputMode="numeric" value={c.xp} onChange={(e) => setCharacter({ ...c, xp: Number(e.target.value) || 0 })} />{d.nextLevelXp ? ` / ${d.nextLevelXp}` : ''}</span></div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800"><div className="h-full bg-amber-500" style={{ width: `${pct}%` }} /></div>
@@ -78,7 +79,7 @@ export function LevelLedger({ ctx }: { ctx: EvalContext }) {
           onSave={(rec) => { saveRecord(rec, editing); setAdding(false); setEditing(undefined); }}
           onDelete={editing !== undefined ? () => { setCharacter({ ...c, levelHistory: c.levelHistory.filter((_, i) => i !== editing) }); setEditing(undefined); } : undefined} />
       )}
-    </Section>
+    </div>
   );
 }
 

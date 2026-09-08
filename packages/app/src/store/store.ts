@@ -8,7 +8,7 @@ import { defaultPacks } from '../data/defaultPacks';
 
 export type FullLibrary = LibraryWithMeta & { monsters: Record<string, Monster>; characters: Record<string, Character> };
 
-export type Screen = 'battle' | 'character' | 'library' | 'settings';
+export type Screen = 'battle' | 'character' | 'inventory' | 'library' | 'settings';
 
 type State = {
   hydrated: boolean;
