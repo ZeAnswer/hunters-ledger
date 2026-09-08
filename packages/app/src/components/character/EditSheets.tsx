@@ -14,14 +14,19 @@ function ModeToggle({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void 
 }
 
 /** JSON editor for a slice of the character. `keys` picks which top-level fields are shown; the rest is untouched. */
-function JsonOverride({ character, keys, info, onSave }: { character: Character; keys: (keyof Character)[]; info: string[]; onSave: (patch: Partial<Character>) => void }) {
-  const slice = Object.fromEntries(keys.map((k) => [k, character[k]]));
+function JsonOverride({ character, keys, info, onSave, value, parse }: {
+  character: Character; keys: (keyof Character)[]; info: string[]; onSave: (patch: Partial<Character>) => void;
+  /** Optional custom view of the slice and its inverse (throw on invalid). */
+  value?: unknown; parse?: (raw: unknown) => Partial<Character>;
+}) {
+  const slice = value ?? Object.fromEntries(keys.map((k) => [k, character[k]]));
   const [json, setJson] = useState(() => JSON.stringify(slice, null, 2));
   const [err, setErr] = useState<string | undefined>();
   const save = () => {
     try {
       const raw = JSON.parse(json);
-      const merged = CharacterSchema.parse({ ...character, ...raw });
+      const patch = parse ? parse(raw) : raw;
+      const merged = CharacterSchema.parse({ ...character, ...patch });
       onSave(Object.fromEntries(keys.map((k) => [k, merged[k]])) as Partial<Character>);
     } catch (e) { setErr((e as Error).message); }
   };
@@ -50,10 +55,29 @@ export function SkillsEditSheet({ ctx, onClose }: { ctx: EvalContext; onClose: (
   const [mode, setMode] = useState<Mode>('regular');
   const [skills, setSkills] = useState(ctx.character.skills);
   const [q, setQ] = useState('');
+  const [onlyClass, setOnlyClass] = useState(true);
   const draft = useMemo(() => ({ ...ctx.character, skills }), [ctx.character, skills]);
   const d = useMemo(() => derivedFromLevels(draft, ctx.library), [draft, ctx.library]);
   const hasLedger = ctx.character.levelHistory.length > 0;
-  const rows = Object.values(ctx.library.skills).filter((s) => !q || s.name.toLowerCase().includes(q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  const allSkills = Object.values(ctx.library.skills).sort((a, b) => a.name.localeCompare(b.name));
+  const rows = allSkills.filter((s) => (!q || s.name.toLowerCase().includes(q.toLowerCase())) && (!onlyClass || d.isClassSkill(s.id) || (skills[s.id]?.ranks ?? 0) > 0));
+  const defaultClass = new Set(d.skillBudget.classSkills);
+  /** Override view: every skill, with its effective class-skill status. */
+  const fullView = {
+    skills: Object.fromEntries(allSkills.map((s) => [s.id, { name: s.name, ability: s.ability, ranks: skills[s.id]?.ranks ?? 0, classSkill: d.isClassSkill(s.id) }])),
+    extraSkillPointsPerLevel: draft.extraSkillPointsPerLevel,
+  };
+  const parseFull = (raw: unknown): Partial<Character> => {
+    const r = raw as { skills?: Record<string, { ranks?: number; classSkill?: boolean }>; extraSkillPointsPerLevel?: number };
+    const out: Character['skills'] = {};
+    for (const [id, v] of Object.entries(r.skills ?? {})) {
+      if (!ctx.library.skills[id]) throw new Error(`Unknown skill id "${id}"`);
+      const ranks = Number(v.ranks ?? 0);
+      const override = v.classSkill !== undefined && v.classSkill !== defaultClass.has(id) ? { classSkillOverride: v.classSkill } : {};
+      if (ranks > 0 || 'classSkillOverride' in override) out[id] = { ranks, ...override };
+    }
+    return { skills: out, ...(r.extraSkillPointsPerLevel !== undefined ? { extraSkillPointsPerLevel: r.extraSkillPointsPerLevel } : {}) };
+  };
   const set = (id: string, patch: Partial<{ ranks: number; classSkillOverride?: boolean }>) => setSkills({ ...skills, [id]: { ...(skills[id] ?? { ranks: 0 }), ...patch } });
   const changes = Object.keys({ ...skills, ...ctx.character.skills }).filter((id) => (skills[id]?.ranks ?? 0) !== (ctx.character.skills[id]?.ranks ?? 0) || skills[id]?.classSkillOverride !== ctx.character.skills[id]?.classSkillOverride);
   const accept = () => {
@@ -64,20 +88,23 @@ export function SkillsEditSheet({ ctx, onClose }: { ctx: EvalContext; onClose: (
   const info = [
     `Skill points from levels: ${d.skillPoints.total} (ledger) · spent by current ranks: ${d.skillBudget.spentByRanks} · remaining: ${d.skillBudget.remaining}`,
     `Max ranks at level ${d.level}: ${maxRanks(d.level, true)} class / ${maxRanks(d.level, false)} cross-class. Cross-class ranks cost 2 points each.`,
-    'Fields: ranks (may be .5 for cross-class), classSkillOverride (true/false) to force class/cross-class status.',
+    'Every skill is listed. ranks may be .5 for cross-class. classSkill true/false is the effective status; changing it from the class default becomes an override. name/ability are informational.',
   ];
 
   return (
     <Sheet open onClose={onClose} title="Edit skills" tall>
       <ModeToggle mode={mode} setMode={setMode} />
       {mode === 'override' ? (
-        <JsonOverride character={draft} keys={['skills', 'extraSkillPointsPerLevel']} info={info} onSave={(p) => { save(ctx.character, p, 'Skills: JSON override'); onClose(); }} />
+        <JsonOverride character={draft} keys={['skills', 'extraSkillPointsPerLevel']} info={info} value={fullView} parse={parseFull} onSave={(p) => { save(ctx.character, p, 'Skills: JSON override'); onClose(); }} />
       ) : (
         <div>
           <div className={cx('mb-2 rounded-xl border p-2 text-sm', d.skillBudget.remaining < 0 ? 'border-red-900 text-red-300' : 'border-zinc-800 text-zinc-300')}>
             {hasLedger ? <>Points remaining: <b>{d.skillBudget.remaining}</b> of {d.skillPoints.total} · max ranks {maxRanks(d.level, true)} / {maxRanks(d.level, false)} cross</> : 'No level ledger yet: no budget, edit freely.'}
           </div>
-          <input className={inputCls + ' mb-2'} placeholder="Filter skills…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="mb-2 flex gap-2">
+            <input className={inputCls} placeholder="Filter skills…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <button type="button" onClick={() => setOnlyClass(!onlyClass)} className="shrink-0 rounded-xl border border-zinc-700 px-3 text-sm">{onlyClass ? 'Class skills' : 'All skills'}</button>
+          </div>
           <div className="max-h-[50vh] overflow-y-auto divide-y divide-zinc-800 rounded-xl border border-zinc-800">
             {rows.map((s) => {
               const ranks = skills[s.id]?.ranks ?? 0;
