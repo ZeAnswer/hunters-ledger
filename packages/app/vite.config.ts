@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // GitHub Pages serves the app under /<repo>/; set BASE_PATH in CI. Local dev/preview stay at '/'.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [
     react(),
     tailwindcss(),
