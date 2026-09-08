@@ -63,7 +63,7 @@ const monsters = raw.map((m) => {
 });
 
 const pack: Pack = PackSchema.parse({
-  id: 'bestiary', name: "Hunter's Bestiary", version: 1,
+  id: 'bestiary', name: "Hunter's Bestiary", version: 2, // bump when re-extracting so installed apps pick up the update
   description: "Monsters and lore from Vaelor's bestiary project.",
   tags: [...customTags.entries()].map(([id, label]) => ({ id, label, category: 'custom' })),
   monsters,

@@ -69,14 +69,22 @@ export const useStore = create<Store>((set, get) => ({
       set({ library: lib, character: ch, hydrated: true, screen: 'battle' });
       return;
     }
+    // Built-in packs newer than what this install has seen get merged in (same-pack newer version wins; user edits to other packs untouched).
+    let lib: FullLibrary = { ...fullEmpty(), ...library };
+    const updated: string[] = [];
+    for (const p of defaultPacks) {
+      const seen = Math.max(0, ...Object.values(lib.meta).filter((m) => m.packId === p.id).map((m) => m.version));
+      if (p.version > seen) { lib = mergePack(lib, { ...p, characters: [] }, {}).library as FullLibrary; updated.push(p.name); }
+    }
     set({
-      library: { ...fullEmpty(), ...library },
+      library: lib,
       character: character ? CharacterSchema.parse(character) : Object.values(library.characters ?? {})[0],
       battle: battle ? BattleSchema.parse(battle) : undefined,
       pastBattles: past ?? [],
       screen: screen ?? 'battle',
       hydrated: true,
     });
+    if (updated.length) get().showToast(`Updated built-in packs: ${updated.join(', ')}`);
   },
 
   setScreen: (screen) => set({ screen }),
