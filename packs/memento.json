@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 4,
+  "version": 5,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -820,14 +820,13 @@
       }
     },
     {
-      "id": "composite-longbow-1",
-      "name": "Composite Longbow +1",
+      "id": "strong-arm-composite-longbow-1",
+      "name": "Strong-Arm Composite Longbow +1",
       "source": "item",
-      "text": "Attack profile \"bow\" on the sheet. Confirm bow type and strength rating.",
+      "text": "Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. Attack profile \"bow\" on the sheet: 1d8, ×3, 110 ft.",
       "activation": "passive",
       "effects": [],
       "enabledByDefault": true,
-      "todo": "Confirm weapon (export uuid B1029F6A).",
       "item": {
         "category": "weapon",
         "slot": "mainHand",
@@ -835,30 +834,66 @@
       }
     },
     {
-      "id": "armor-unknown",
-      "name": "Armor (unknown type)",
+      "id": "studded-leather",
+      "name": "Studded Leather Armor",
       "source": "item",
-      "text": "Worn armor from the RPG Scribe library (uuid 2B2C0E73). Set its AC bonus in Stats → Edit → Armor bonus until identified.",
+      "text": "Light armor: +3 AC, max Dex +5, armor check penalty -1, 15% arcane spell failure.",
       "activation": "passive",
-      "effects": [],
+      "effects": [
+        {
+          "id": "ac",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "ac",
+              "value": 3,
+              "bonusType": "armor"
+            }
+          ]
+        }
+      ],
       "enabledByDefault": true,
-      "todo": "Identify armor; then add a bonus ac armor effect here and clear baseArmor.",
       "item": {
         "category": "armor",
-        "slot": "armor"
+        "slot": "armor",
+        "weight": 20,
+        "price": "25 gp"
       }
     },
     {
-      "id": "potion-unknown",
-      "name": "Potion or scroll (unknown spell)",
+      "id": "potion-cure-moderate",
+      "name": "Potion of Cure Moderate Wounds",
       "source": "item",
-      "activation": "passive",
+      "text": "CL 3: heals 2d8+3 hp. Standard action to drink.",
+      "activation": {
+        "action": "standard"
+      },
       "effects": [],
       "enabledByDefault": true,
-      "todo": "Identify (export spell uuid F7CE304D).",
       "item": {
         "category": "potion",
-        "weight": 0
+        "weight": 0,
+        "price": "300 gp"
+      }
+    },
+    {
+      "id": "potion-cure-serious",
+      "name": "Potion of Cure Serious Wounds",
+      "source": "item",
+      "text": "CL 5: heals 3d8+5 hp. Standard action to drink.",
+      "activation": {
+        "action": "standard"
+      },
+      "effects": [],
+      "enabledByDefault": true,
+      "item": {
+        "category": "potion",
+        "weight": 0,
+        "price": "750 gp"
       }
     },
     {
@@ -1170,7 +1205,7 @@
       "attackProfiles": [
         {
           "id": "bow",
-          "name": "Composite Longbow +1",
+          "name": "Strong-Arm Composite Longbow +1",
           "kind": "ranged",
           "baseDice": "1d8",
           "enhancement": 1,
@@ -1179,19 +1214,7 @@
           "rangeIncrement": 110,
           "attackAbility": "dex",
           "damageAbility": "str",
-          "maxDamageAbilityBonus": 1,
-          "damageAbilityMultiplier": 1
-        },
-        {
-          "id": "melee",
-          "name": "Longsword",
-          "kind": "melee",
-          "baseDice": "1d8",
-          "enhancement": 0,
-          "critRange": 19,
-          "critMult": 2,
-          "attackAbility": "str",
-          "damageAbility": "str",
+          "maxDamageAbilityBonus": 4,
           "damageAbilityMultiplier": 1
         }
       ],
@@ -1333,12 +1356,12 @@
           "paramValues": {}
         },
         {
-          "abilityId": "composite-longbow-1",
+          "abilityId": "strong-arm-composite-longbow-1",
           "enabled": true,
           "paramValues": {}
         },
         {
-          "abilityId": "armor-unknown",
+          "abilityId": "studded-leather",
           "enabled": true,
           "paramValues": {}
         },
@@ -1398,7 +1421,12 @@
           "paramValues": {}
         },
         {
-          "abilityId": "potion-unknown",
+          "abilityId": "potion-cure-moderate",
+          "enabled": false,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "potion-cure-serious",
           "enabled": false,
           "paramValues": {}
         },
@@ -1575,15 +1603,15 @@
       "hpAdjust": 0,
       "inventory": [
         {
-          "id": "inv-composite-longbow-1",
-          "abilityId": "composite-longbow-1",
+          "id": "inv-strong-arm-composite-longbow-1",
+          "abilityId": "strong-arm-composite-longbow-1",
           "quantity": 1,
           "equipped": true,
           "slotIndex": 0
         },
         {
-          "id": "inv-armor-unknown",
-          "abilityId": "armor-unknown",
+          "id": "inv-studded-leather",
+          "abilityId": "studded-leather",
           "quantity": 1,
           "equipped": true,
           "slotIndex": 0
@@ -1664,8 +1692,14 @@
           "notes": "Not worn: arms slot holds the Bracers of Archery."
         },
         {
-          "id": "inv-potion-unknown",
-          "abilityId": "potion-unknown",
+          "id": "inv-potion-cure-moderate",
+          "abilityId": "potion-cure-moderate",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "id": "inv-potion-cure-serious",
+          "abilityId": "potion-cure-serious",
           "quantity": 1,
           "equipped": false
         },
@@ -1695,7 +1729,7 @@
         "trophyMultiplier": 1,
         "rangerSpells1": 1
       },
-      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores are base values (RPG Scribe raw); the Belt of Strength adds +2 STR as an enhancement bonus on top.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
+      "notes": "Bow: Strong-Arm Composite Longbow +1 (DM homebrew: Str to damage up to +4). Armor: studded leather +3. No melee weapon. Bracers of Armor +1 carried, not worn (arms slot: Bracers of Archery; would not stack with armor anyway).\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores are base values (RPG Scribe raw); the Belt of Strength adds +2 STR as an enhancement bonus on top.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
     }
   ]
 }

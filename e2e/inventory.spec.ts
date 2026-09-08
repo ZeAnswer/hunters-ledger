@@ -19,10 +19,10 @@ test('inventory: slots, extra ring slot from Hand of Glory, replace in a full sl
   await page.getByRole('button', { name: 'Close' }).first().click();
   await expect(page.getByRole('button', { name: /✓.*Bracers of Armor/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /○.*Bracers of Archery/ })).toBeVisible();
-  // AC now includes armor bonus +1 → 15
+  // Bracers of Armor +1 do not stack with studded leather +3 (both armor bonuses) → AC stays 17
   await page.getByRole('button', { name: /Memento/ }).click();
   await page.getByRole('button', { name: /^▸ Stats/ }).click();
-  await expect(page.getByText('AC15')).toBeVisible();
+  await expect(page.getByText('AC17')).toBeVisible();
 });
 
 test('inventory: create a new item from the inventory and add from library', async ({ page }) => {

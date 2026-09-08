@@ -30,8 +30,8 @@ const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { level: number; cl
 // Inventory: instances of library items. Equipped state from the RPG Scribe equipped-slot map.
 const inv = (abilityId: string, equipped: boolean, extra: Record<string, unknown> = {}) => ({ id: `inv-${abilityId}`, abilityId, quantity: 1, equipped, ...extra });
 const inventory = [
-  inv('composite-longbow-1', true, { slotIndex: 0 }),
-  inv('armor-unknown', true, { slotIndex: 0 }),
+  inv('strong-arm-composite-longbow-1', true, { slotIndex: 0 }),
+  inv('studded-leather', true, { slotIndex: 0 }),
   inv('ring-of-protection-1', true, { slotIndex: 0 }),
   inv('ring-of-swimming', true, { slotIndex: 1, notes: 'Cursed: cannot be removed; must explore new bodies of water (Will save).' }),
   inv('boots-of-speed', true, { slotIndex: 0 }),
@@ -43,7 +43,8 @@ const inventory = [
   inv('vaelors-manual', true),
   inv('pearl-of-sirines', false),
   inv('bracers-of-armor-1', false, { notes: 'Not worn: arms slot holds the Bracers of Archery.' }),
-  inv('potion-unknown', false),
+  inv('potion-cure-moderate', false),
+  inv('potion-cure-serious', false),
   inv('gargoyle-hands', false),
   inv('gorgon-scale', false),
 ];
@@ -56,7 +57,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 4, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 5, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -202,9 +203,10 @@ const pack: Pack = PackSchema.parse({
       effects: [],
     },
     // ---- plain gear (no rules yet) ----
-    { id: 'composite-longbow-1', name: 'Composite Longbow +1', source: 'item', item: { category: 'weapon', slot: 'mainHand', weight: 3 }, text: 'Attack profile "bow" on the sheet. Confirm bow type and strength rating.', todo: 'Confirm weapon (export uuid B1029F6A).', effects: [] },
-    { id: 'armor-unknown', name: 'Armor (unknown type)', source: 'item', item: { category: 'armor', slot: 'armor' }, text: 'Worn armor from the RPG Scribe library (uuid 2B2C0E73). Set its AC bonus in Stats → Edit → Armor bonus until identified.', todo: 'Identify armor; then add a bonus ac armor effect here and clear baseArmor.', effects: [] },
-    { id: 'potion-unknown', name: 'Potion or scroll (unknown spell)', source: 'item', item: { category: 'potion', weight: 0 }, todo: 'Identify (export spell uuid F7CE304D).', effects: [] },
+    { id: 'strong-arm-composite-longbow-1', name: 'Strong-Arm Composite Longbow +1', source: 'item', item: { category: 'weapon', slot: 'mainHand', weight: 3 }, text: 'Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. Attack profile "bow" on the sheet: 1d8, ×3, 110 ft.', effects: [] },
+    { id: 'studded-leather', name: 'Studded Leather Armor', source: 'item', item: { category: 'armor', slot: 'armor', weight: 20, price: '25 gp' }, text: 'Light armor: +3 AC, max Dex +5, armor check penalty -1, 15% arcane spell failure.', effects: [{ id: 'ac', do: [{ kind: 'bonus', to: 'ac', value: 3, bonusType: 'armor' }] }] },
+    { id: 'potion-cure-moderate', name: 'Potion of Cure Moderate Wounds', source: 'item', item: { category: 'potion', weight: 0, price: '300 gp' }, text: 'CL 3: heals 2d8+3 hp. Standard action to drink.', activation: { action: 'standard' }, effects: [] },
+    { id: 'potion-cure-serious', name: 'Potion of Cure Serious Wounds', source: 'item', item: { category: 'potion', weight: 0, price: '750 gp' }, text: 'CL 5: heals 3d8+5 hp. Standard action to drink.', activation: { action: 'standard' }, effects: [] },
     { id: 'vaelors-manual', name: "Vaelor's Monsters' Manual", source: 'item', item: { category: 'wondrous', slot: 'none', weight: 5 }, text: 'Unique artifact, no slot, CL 12. Grants Monster Knowledge, Hunter\'s Analysis, Hunter\'s Instinct and the Bestiary Collection.', effects: [] },
     { id: 'gargoyle-hands', name: "Gargoyle's hands", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Monstrous humanoid). Crafts: Gargoyle bracers — DR 10/magic, freeze DC +15, +2 Con.', effects: [] },
     { id: 'gorgon-scale', name: "Gorgon's scale", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Magical beast). Crafts: Gorgon belt — +2d6 damage when charging, petrifying cone 60 ft 1/day DC +14 Fort negates.', effects: [] },
@@ -230,8 +232,7 @@ const pack: Pack = PackSchema.parse({
       'knowledge-monsters': { ranks: 8 }, 'craft-taxidermy': { ranks: 6 },
     },
     attackProfiles: [
-      { id: 'bow', name: 'Composite Longbow +1', kind: 'ranged', baseDice: '1d8', enhancement: 1, critRange: 20, critMult: 3, rangeIncrement: 110, attackAbility: 'dex', damageAbility: 'str', maxDamageAbilityBonus: 1 },
-      { id: 'melee', name: 'Longsword', kind: 'melee', baseDice: '1d8', enhancement: 0, critRange: 19, critMult: 2, attackAbility: 'str', damageAbility: 'str' },
+      { id: 'bow', name: 'Strong-Arm Composite Longbow +1', kind: 'ranged', baseDice: '1d8', enhancement: 1, critRange: 20, critMult: 3, rangeIncrement: 110, attackAbility: 'dex', damageAbility: 'str', maxDamageAbilityBonus: 4 },
     ],
     abilities: [
       { abilityId: 'favored-enemy-1', paramValues: { types: ['monstrous-humanoid'] } },
@@ -256,7 +257,7 @@ const pack: Pack = PackSchema.parse({
     journal: [{ at: '2026-09-07T00:00:00Z', kind: 'note', text: 'Imported from RPG Scribe export (2026-09-06). Max HP = 44 rolled + 6 Con = 50.' }],
     vars: { favoredEnemyBonus1: 4, favoredEnemyBonus2: 2, trophyMultiplier: 1, rangerSpells1: 1 },
     notes: [
-      'TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.',
+      'Bow: Strong-Arm Composite Longbow +1 (DM homebrew: Str to damage up to +4). Armor: studded leather +3. No melee weapon. Bracers of Armor +1 carried, not worn (arms slot: Bracers of Archery; would not stack with armor anyway).',
       'TODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.',
       'TODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).',
       'TODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).',

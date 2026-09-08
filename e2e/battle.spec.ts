@@ -16,7 +16,7 @@ test('gargoyle fight: knowledge check, woodland archer +4 after a miss, monster 
   const rows = page.locator('[data-attack]');
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText('+12');
-  await expect(rows.nth(0)).toContainText('1d8 +6');
+  await expect(rows.nth(0)).toContainText('1d8 +7');
   await expect(rows.nth(1)).toContainText('+7');
 
   // knowledge devotion warning → enter check 22 → +2 insight
@@ -24,7 +24,7 @@ test('gargoyle fight: knowledge check, woodland archer +4 after a miss, monster 
   await page.getByLabel(/Roll result/).fill('22');
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(rows.nth(0)).toContainText('+14');
-  await expect(rows.nth(0)).toContainText('1d8 +8');
+  await expect(rows.nth(0)).toContainText('1d8 +9');
 
   // miss attack 1 → attack 2 gets Woodland Archer +4 (7+2+4 = 13)
   await rows.nth(0).getByRole('button', { name: 'Miss' }).click();
