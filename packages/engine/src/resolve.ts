@@ -146,7 +146,7 @@ function base(label: string, value: number, bonusType: BonusType = 'untyped'): B
 // ---------- base values ----------
 function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entries: BonusEntry[]; dice: DiceEntry[] } {
   const c = ctx.character;
-  const s = c.abilityScores;
+  const s = stat.startsWith('ability.') ? c.abilityScores : effectiveScores(ctx);
   const d = derivedFromLevels(c, ctx.library);
   warnings.push(...d.warnings);
   const sizeMod = SIZE_MOD[c.size];
@@ -190,10 +190,11 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     case 'init': entries.push(base('DEX mod', abilityMod(s.dex))); break;
     case 'hp.max':
       if (d.hpFromLevels !== undefined) {
+        // Con is retroactive: use the effective score (items and buffs included), min 1 hp per level.
         const con = abilityMod(s.con);
         const levels = c.levelHistory.length;
-        entries.push(base('Hit dice rolled', d.hpRolledTotal), base(`CON mod × ${levels} levels`, d.hpFromLevels - d.hpRolledTotal));
-        if (con < 0) entries[entries.length - 1]!.label = `CON mod × ${levels} levels (min 1 hp/level)`;
+        const fromCon = c.levelHistory.reduce((sum, r) => sum + Math.max(1, r.hpRolled + con) - r.hpRolled, 0);
+        entries.push(base('Hit dice rolled', d.hpRolledTotal), base(`CON mod × ${levels} levels${con < 0 ? ' (min 1 hp/level)' : ''}`, fromCon));
       } else entries.push(base('Max HP', c.hp.max));
       if (c.hpAdjust) entries.push(base('Adjustment', c.hpAdjust));
       break;
@@ -201,6 +202,11 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     case 'critRange': entries.push(base('Threat range', a ? 21 - a.profile.critRange : 1)); break;
     case 'critMult': entries.push(base('Multiplier', a ? a.profile.critMult : 2)); break;
     default: {
+      if (stat.startsWith('ability.')) {
+        const k = stat.slice('ability.'.length) as (typeof ABILITY_KEYS)[number];
+        entries.push(base('Base score', c.abilityScores[k]));
+        break;
+      }
       if (stat.startsWith('skill.')) {
         const id = stat.slice('skill.'.length);
         const skill = ctx.library.skills[id];
@@ -211,6 +217,16 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     }
   }
   return { entries, dice };
+}
+
+const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+type Scores = Record<(typeof ABILITY_KEYS)[number], number>;
+
+/** Ability scores after enhancement/inherent/etc. bonuses from active abilities and buffs. */
+export function effectiveScores(ctx: EvalContext): Scores {
+  const out = { ...ctx.character.abilityScores };
+  for (const k of ABILITY_KEYS) out[k] = resolveStat(ctx, `ability.${k}`).total;
+  return out;
 }
 
 function statIsAttackLike(stat: StatId) {
@@ -226,7 +242,8 @@ export function resolveStat(ctx: EvalContext, stat: StatId): StatResult {
   const notes: string[] = [];
   const flags = { ignoreConcealment: false };
   const promptsNeeded: PromptRequest[] = [];
-  const vars = exprVars(ctx);
+  // Ability-score stats feed the vars themselves; evaluate their expressions on raw scores to avoid recursion.
+  const vars = exprVars(ctx, { rawScores: stat.startsWith('ability.') });
 
   const col = collectEffects(ctx, stat);
   warnings.push(...col.warnings);

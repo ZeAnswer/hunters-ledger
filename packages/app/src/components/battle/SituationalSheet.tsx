@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { addSituational, type BonusType, type Duration, type EvalContext, type StatId } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { Button, Chip, Field, Sheet, humanize, inputCls } from '../ui';
+import { StatSelect, TagSelect } from '../library/StatSelect';
 
-const STATS: StatId[] = ['attack', 'damage', 'ac', 'save.fort', 'save.ref', 'save.will', 'init', 'critRange'];
 const TYPES: BonusType[] = ['untyped', 'circumstance', 'morale', 'competence', 'insight', 'luck', 'enhancement', 'dodge', 'sacred', 'profane'];
 
 export function SituationalSheet({ ctx, open, onClose }: { ctx: EvalContext; open: boolean; onClose: () => void }) {
@@ -20,7 +20,6 @@ export function SituationalSheet({ ctx, open, onClose }: { ctx: EvalContext; ope
   const [dur, setDur] = useState<'encounter' | 'rounds' | 'endOfRound'>('encounter');
   const [rounds, setRounds] = useState('3');
   const lib = ctx.library;
-  const condTags = Object.values(lib.tags).filter((t) => t.category === 'condition');
   const abilities = ctx.character.abilities.map((i) => lib.abilities[i.abilityId]).filter(Boolean);
 
   const save = () => {
@@ -59,12 +58,12 @@ export function SituationalSheet({ ctx, open, onClose }: { ctx: EvalContext; ope
       </Field>
       {kind === 'bonus' && target === 'self' && (
         <>
-          <Field label="Stat"><div className="flex flex-wrap gap-2">{STATS.map((s) => <Chip key={s} active={stat === s} onClick={() => setStat(s)}>{s}</Chip>)}</div></Field>
+          <Field label="Stat"><StatSelect value={stat} onChange={(v) => setStat(v as StatId)} /></Field>
           <Field label="Value"><input className={inputCls + ' text-2xl'} inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
           <Field label="Bonus type"><div className="flex flex-wrap gap-2">{TYPES.map((t) => <Chip key={t} active={bonusType === t} onClick={() => setBonusType(t)}>{t}</Chip>)}</div></Field>
         </>
       )}
-      {kind === 'tag' && <Field label="Condition"><div className="flex flex-wrap gap-2">{condTags.map((t) => <Chip key={t.id} tone="blue" active={tag === t.id} onClick={() => setTag(t.id)}>{t.label}</Chip>)}<input className={inputCls + ' mt-2'} placeholder="…or type a custom tag id (e.g. red)" value={tag} onChange={(e) => setTag(e.target.value)} /></div></Field>}
+      {kind === 'tag' && <Field label="Condition / tag"><TagSelect value={tag} onChange={setTag} /><input className={inputCls + ' mt-2'} placeholder="…or type a new tag id (e.g. red)" value={tag} onChange={(e) => setTag(e.target.value)} /></Field>}
       {kind === 'suppress' && <Field label="Ability"><div className="flex flex-wrap gap-2">{abilities.map((a) => <Chip key={a!.id} tone="red" active={suppress === a!.id} onClick={() => setSuppress(a!.id)}>{a!.name}</Chip>)}</div></Field>}
       <Field label="Duration">
         <div className="flex flex-wrap gap-2">

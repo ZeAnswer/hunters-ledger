@@ -26,7 +26,7 @@ export type Expr = z.infer<typeof ExprSchema>;
 
 /** Stat ids: fixed set plus skill.<id> */
 export const StatIdSchema = z.string().regex(
-  /^(attack|damage|ac|ac\.touch|ac\.flatFooted|save\.fort|save\.ref|save\.will|init|critRange|critMult|hp\.max|speed|skill\.[A-Za-z0-9_-]+)$/,
+  /^(attack|damage|ac|ac\.touch|ac\.flatFooted|save\.fort|save\.ref|save\.will|init|critRange|critMult|hp\.max|speed|ability\.(str|dex|con|int|wis|cha)|skill\.[A-Za-z0-9_-]+)$/,
   'unknown stat id',
 );
 export type StatId = z.infer<typeof StatIdSchema>;

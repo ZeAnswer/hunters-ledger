@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { applyHp, availableActions, derivedFromLevels, resolveStat, type Ability, type StatId } from '@hl/engine';
+import { applyHp, availableActions, derivedFromLevels, effectiveScores, resolveStat, type Ability, type StatId } from '@hl/engine';
 import { useStore } from '../store/store';
 import { useCtx } from '../store/hooks';
 import { Button, Chip, Field, Section, Sheet, cx, inputCls, signed } from '../components/ui';
@@ -31,6 +31,7 @@ export function CharacterScreen() {
   if (!ctx || !derived) return <div className="p-4 text-zinc-500">No character.</div>;
   const c = ctx.character;
   const hpMax = resolveStat(ctx, 'hp.max').total;
+  const scores = effectiveScores(ctx);
   const stats: { id: StatId; label: string }[] = [
     { id: 'ac', label: 'AC' }, { id: 'ac.touch', label: 'Touch' }, { id: 'ac.flatFooted', label: 'Flat-footed' },
     { id: 'save.fort', label: 'Fort' }, { id: 'save.ref', label: 'Ref' }, { id: 'save.will', label: 'Will' }, { id: 'init', label: 'Init' }, { id: 'speed', label: 'Speed' },
@@ -72,7 +73,9 @@ export function CharacterScreen() {
 
       <Section id="stats" title="Stats" right={<Button size="sm" variant="ghost" onClick={() => setEdit('stats')}>Edit</Button>}>
         <div className="grid grid-cols-6 gap-1 mb-2 text-center">
-          {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((k) => <div key={k} className="rounded-xl bg-zinc-900 py-1"><div className="text-[10px] uppercase text-zinc-500">{k}</div><div className="font-bold">{c.abilityScores[k]}</div><div className="text-xs text-zinc-400">{signed(mod(c.abilityScores[k]))}</div></div>)}
+          {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((k) => { const eff = scores[k]; return (
+            <button key={k} type="button" onClick={() => setStat(`ability.${k}`)} className="rounded-xl bg-zinc-900 py-1 active:bg-zinc-800"><div className="text-[10px] uppercase text-zinc-500">{k}</div><div className={cx('font-bold', eff !== c.abilityScores[k] && 'text-amber-300')}>{eff}</div><div className="text-xs text-zinc-400">{signed(mod(eff))}{eff !== c.abilityScores[k] ? <span className="text-zinc-600"> ({c.abilityScores[k]})</span> : null}</div></button>
+          ); })}
         </div>
         <div className="grid grid-cols-4 gap-2">
           {stats.map((s) => { const r = resolveStat(ctx, s.id); return <button key={s.id} type="button" onClick={() => setStat(s.id)} className="rounded-xl border border-zinc-700 bg-zinc-900 py-2 text-center active:bg-zinc-800"><div className="text-[10px] uppercase text-zinc-500">{s.label}</div><div className="text-xl font-bold tabular-nums">{s.id === 'speed' || s.id.startsWith('ac') ? r.total : signed(r.total)}</div></button>; })}

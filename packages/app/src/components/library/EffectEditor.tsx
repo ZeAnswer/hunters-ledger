@@ -1,6 +1,7 @@
-import type { BonusType, Duration, Effect, StatId } from '@hl/engine';
+import type { BonusType, Duration, Effect } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { Chip, inputCls } from '../ui';
+import { StatSelect } from './StatSelect';
 
 type Kind = Effect['kind'];
 const KINDS: { kind: Kind; label: string }[] = [
@@ -9,7 +10,6 @@ const KINDS: { kind: Kind; label: string }[] = [
   { kind: 'attackMode', label: 'New attack mode' }, { kind: 'extraAttack', label: 'Extra attack (haste-like)' }, { kind: 'ignoreConcealment', label: 'Ignore concealment' },
   { kind: 'suppress', label: 'Suppress an ability' }, { kind: 'revealTarget', label: 'Reveal target lore' },
 ];
-const STATS: StatId[] = ['attack', 'damage', 'ac', 'save.fort', 'save.ref', 'save.will', 'init', 'critRange', 'critMult', 'speed', 'hp.max'];
 const TYPES: BonusType[] = ['untyped', 'enhancement', 'insight', 'morale', 'competence', 'circumstance', 'dodge', 'luck', 'sacred', 'profane', 'racial', 'size', 'deflection', 'natural', 'armor', 'shield', 'resistance', 'alchemical', 'inherent'];
 
 function defaultFor(kind: Kind): Effect {
@@ -30,14 +30,8 @@ function defaultFor(kind: Kind): Effect {
 
 export function EffectEditor({ value, onChange, onRemove }: { value: Effect; onChange: (e: Effect) => void; onRemove: () => void }) {
   const tags = useStore((s) => s.library.tags);
-  const skills = useStore((s) => s.library.skills);
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch } as Effect);
-  const statSelect = (current: string) => (
-    <select className={inputCls} value={current} onChange={(e) => set({ to: e.target.value })}>
-      {STATS.map((s) => <option key={s} value={s}>{s}</option>)}
-      <optgroup label="Skills">{Object.values(skills).sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.id} value={`skill.${s.id}`}>{s.name}</option>)}</optgroup>
-    </select>
-  );
+  const statSelect = (current: string) => <StatSelect value={current} onChange={(v) => set({ to: v })} />;
   const typeChips = (current: BonusType) => <div className="flex flex-wrap gap-1">{TYPES.map((t) => <Chip key={t} active={current === t} onClick={() => set({ bonusType: t })}>{t}</Chip>)}</div>;
   const kindChips = (current: 'ranged' | 'melee' | undefined) => (
     <div className="flex gap-1 text-xs"><span className="self-center text-zinc-500">only for</span>{(['any', 'ranged', 'melee'] as const).map((k) => <Chip key={k} active={(current ?? 'any') === k} onClick={() => set({ attackKind: k === 'any' ? undefined : k })}>{k}</Chip>)}</div>

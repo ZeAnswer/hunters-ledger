@@ -1,6 +1,7 @@
 import type { Condition, Hurt, Size } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { Chip, cx, inputCls } from '../ui';
+import { TagSelect } from './StatSelect';
 
 type Kind = Condition['kind'];
 
@@ -51,7 +52,6 @@ function defaultFor(kind: Kind): Condition {
 export function ConditionEditor({ value, onChange, onRemove, depth = 0 }: { value: Condition; onChange: (c: Condition) => void; onRemove?: () => void; depth?: number }) {
   const tags = useStore((s) => s.library.tags);
   const abilities = useStore((s) => s.library.abilities);
-  const tagList = Object.values(tags);
   const abilityList = Object.values(abilities).sort((a, b) => a.name.localeCompare(b.name));
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch } as Condition);
 
@@ -64,12 +64,7 @@ export function ConditionEditor({ value, onChange, onRemove, depth = 0 }: { valu
   const enumChips = <T extends string>(key: string, current: T | undefined, options: readonly T[], label?: (o: T) => string) => (
     <div className="flex flex-wrap gap-1">{options.map((o) => <Chip key={o} active={current === o} onClick={() => set({ [key]: o })}>{label ? label(o) : o}</Chip>)}</div>
   );
-  const tagPick = (key: string, current: string | undefined, filter?: (cat: string) => boolean) => (
-    <select className={inputCls} value={current ?? ''} onChange={(e) => set({ [key]: e.target.value })}>
-      <option value="">— pick tag —</option>
-      {tagList.filter((t) => !filter || filter(t.category)).sort((a, b) => a.category.localeCompare(b.category) || a.label.localeCompare(b.label)).map((t) => <option key={t.id} value={t.id}>{t.label} ({t.category})</option>)}
-    </select>
-  );
+  const tagPick = (key: string, current: string | undefined, categories?: string[]) => <TagSelect value={current ?? ''} onChange={(v) => set({ [key]: v })} categories={categories} />;
 
   let body: React.ReactNode = null;
   switch (value.kind) {
@@ -84,12 +79,15 @@ export function ConditionEditor({ value, onChange, onRemove, depth = 0 }: { valu
     case 'not': body = <ConditionEditor value={value.of} depth={depth + 1} onChange={(n) => set({ of: n })} />; break;
     case 'target.hasTag': body = tagPick('tag', value.tag); break;
     case 'target.tagIn': body = (
-      <div className="flex flex-wrap gap-1">{tagList.filter((t) => t.category !== 'size').map((t) => <Chip key={t.id} active={value.tags.includes(t.id)} onClick={() => set({ tags: value.tags.includes(t.id) ? value.tags.filter((x) => x !== t.id) : [...value.tags, t.id] })}>{t.label}</Chip>)}</div>
+      <div>
+        <div className="mb-1 flex flex-wrap gap-1">{value.tags.map((t) => <Chip key={t} active onClick={() => set({ tags: value.tags.filter((x) => x !== t) })}>{tags[t]?.label ?? t} ✕</Chip>)}</div>
+        <TagSelect value="" placeholder="+ add tag…" onChange={(v) => v && !value.tags.includes(v) && set({ tags: [...value.tags, v] })} />
+      </div>
     ); break;
     case 'target.sizeAtLeast': body = enumChips<Size>('size', value.size, ['tiny', 'small', 'medium', 'large', 'huge', 'gargantuan', 'colossal']); break;
     case 'target.hurtAtMost': body = enumChips<Hurt>('hurt', value.hurt, ['scratched', 'bloodied', 'nearDeath'], (h) => ({ unhurt: 'unhurt', scratched: 'scratched', bloodied: 'bloodied (below ~50%)', nearDeath: 'near death' }[h])); break;
-    case 'target.hasCondition': body = tagPick('condition', value.condition, (c) => c === 'condition' || c === 'custom'); break;
-    case 'self.hasCondition': body = tagPick('condition', value.condition, (c) => c === 'condition' || c === 'custom'); break;
+    case 'target.hasCondition': body = tagPick('condition', value.condition, ['condition', 'custom']); break;
+    case 'self.hasCondition': body = tagPick('condition', value.condition, ['condition', 'custom']); break;
     case 'self.hasBuff': case 'self.abilityEnabled': body = (
       <select className={inputCls} value={value.abilityId} onChange={(e) => set({ abilityId: e.target.value })}><option value="">— pick ability —</option>{abilityList.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
     ); break;

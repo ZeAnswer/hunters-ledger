@@ -182,7 +182,7 @@ export function StatsEditSheet({ ctx, onClose }: { ctx: EvalContext; onClose: ()
   const info = [
     `Level ${d.level}: ability increases earned ${Math.floor(d.level / 4)}, recorded ${Object.values(d.abilityIncreases).reduce((a, b) => a + (b ?? 0), 0)}, unspent ${d.unspentAbilityIncreases}.`,
     `HP: ${d.hpFromLevels !== undefined ? `${d.hpRolledTotal} rolled + Con × ${draft.levelHistory.length} levels = ${d.hpFromLevels}` : `stored max ${draft.hp.max}`}; hpAdjust adds a flat amount (Toughness etc. should be abilities).`,
-    'abilityScores are the current totals (racial, level increases and permanent items included). vars feed pack expressions.',
+    'abilityScores are base scores (racial and level increases included). Items and buffs add on top via ability.* bonuses; the sheet shows the effective value. vars feed pack expressions.',
   ];
 
   return (

@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 2,
+  "version": 3,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -690,9 +690,25 @@
       "id": "belt-of-strength",
       "name": "Belt of Strength +2",
       "source": "item",
-      "text": "+2 enhancement to Strength. Ability scores on the sheet already include it.",
+      "text": "+2 enhancement bonus to Strength while worn.",
       "activation": "passive",
-      "effects": [],
+      "effects": [
+        {
+          "id": "str",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "ability.str",
+              "value": 2,
+              "bonusType": "enhancement"
+            }
+          ]
+        }
+      ],
       "enabledByDefault": true
     },
     {
@@ -777,11 +793,31 @@
       "id": "gargoyle-bracers",
       "name": "Gargoyle Bracers (trophy)",
       "source": "item",
-      "text": "Trophy: DR 10/magic, freeze (appear as statue DC 15), +2 Con.",
+      "text": "Trophy: DR 10/magic, freeze (appear as statue, Spot DC 15 + MH + Wis), +2 Con. Trophy bonuses are enhancement-type.",
       "activation": "passive",
-      "effects": [],
+      "effects": [
+        {
+          "id": "con",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "bonus",
+              "to": "ability.con",
+              "value": "2 * trophyMultiplier",
+              "bonusType": "enhancement"
+            },
+            {
+              "kind": "note",
+              "text": "Gargoyle bracers: DR 10/magic."
+            }
+          ]
+        }
+      ],
       "enabledByDefault": false,
-      "todo": "Enable if worn."
+      "todo": "Equip in Inventory if worn."
     },
     {
       "id": "rider-ring",
@@ -1500,7 +1536,7 @@
         "trophyMultiplier": 1,
         "rangerSpells1": 1
       },
-      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
+      "notes": "TODO confirm: bow type/enhancement (export weapon uuid B1029F6A, +1), armor worn (uuid 2B2C0E73; its AC bonus is not modeled yet, set baseArmor), longsword. Bracers of Armor +1 are carried but NOT equipped per the export.\nTODO confirm: favored enemy types (export params 321140E5, E6E711CC), which one is +4.\nTODO confirm: Monster Killer 3 types. Guessed monstrous humanoid + aberration + magical beast (MH says Monstrous Humanoid costs 2 picks).\nTODO confirm: system feats from export (1109FFDC, 3A4A00BD, 4DEAF3B6, B186BA2D+weapon). Guessed Point Blank Shot (human bonus, lvl 1), Rapid Shot (combat style), Track, Weapon Focus (lvl 1). Knowledge Devotion assumed to be the level-3 feat. General feat slots used: lvl1 ×2, lvl3, lvl6 (Woodland Archer).\nRanger spells: 1 first-level spell/day (0 base + Wis bonus). Spells known are unresolved UUIDs in the export; edit vars.rangerSpells1 if different.\nKnowledge (Monsters) is Wis-based per the class PDF; cap = MH level + 5 (6 now). Export shows 8 ranks: check with DM.\nTODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).\nSkill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).\nLevel ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.\nAbility scores are base values (RPG Scribe raw); the Belt of Strength adds +2 STR as an enhancement bonus on top.\nTrophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn."
     }
   ]
 }

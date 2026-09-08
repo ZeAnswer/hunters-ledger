@@ -1,10 +1,11 @@
 import { abilityMod, type EvalContext } from './context';
 import type { ExprVars } from './expr';
 import { derivedFromLevels } from './levels';
+import { effectiveScores } from './resolve';
 
-/** Variables available to pack expressions. */
-export function exprVars(ctx: EvalContext): ExprVars {
-  const s = ctx.character.abilityScores;
+/** Variables available to pack expressions. Ability mods come from effective scores (items/buffs included) unless rawScores. */
+export function exprVars(ctx: EvalContext, opts: { rawScores?: boolean } = {}): ExprVars {
+  const s = opts.rawScores ? ctx.character.abilityScores : effectiveScores(ctx);
   const d = derivedFromLevels(ctx.character, ctx.library);
   return {
     ...ctx.character.vars,

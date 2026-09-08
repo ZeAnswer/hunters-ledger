@@ -56,7 +56,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 2, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 3, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -187,7 +187,7 @@ const pack: Pack = PackSchema.parse({
     { id: 'bracers-of-armor-1', name: 'Bracers of Armor +1', source: 'item', effects: [{ id: 'b', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'armor' }] }] },
     { id: 'ring-of-swimming', name: 'Ring of Swimming (cursed)', source: 'item', text: 'Cursed: cannot remove; must explore any new body of water (Will save).', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'skill.swim', value: 5, bonusType: 'competence' }] }] },
     { id: 'bracers-of-archery-lesser', name: 'Bracers of Archery, Lesser', source: 'item', effects: [{ id: 'b', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'competence' }] }] },
-    { id: 'belt-of-strength', name: 'Belt of Strength +2', source: 'item', text: '+2 enhancement to Strength. Ability scores on the sheet already include it.', effects: [] },
+    { id: 'belt-of-strength', name: 'Belt of Strength +2', source: 'item', text: '+2 enhancement bonus to Strength while worn.', effects: [{ id: 'str', do: [{ kind: 'bonus', to: 'ability.str', value: 2, bonusType: 'enhancement' }] }] },
     {
       id: 'hand-of-glory', name: 'Hand of Glory', source: 'item', activation: { action: 'standard' },
       text: 'Daylight 1/day, See Invisibility 1/day; extra ring slot.',
@@ -206,7 +206,7 @@ const pack: Pack = PackSchema.parse({
       id: 'chuul-gloves', name: 'Chuul Gloves (trophy)', source: 'item', text: 'Trophy: +4 initiative (improved initiative); paralysis touch DC 11+, Fort negates.',
       effects: [{ id: 'i', do: [{ kind: 'bonus', to: 'init', value: '4 * trophyMultiplier', bonusType: 'enhancement' }] }],
     },
-    { id: 'gargoyle-bracers', name: 'Gargoyle Bracers (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: DR 10/magic, freeze (appear as statue DC 15), +2 Con.', todo: 'Enable if worn.', effects: [] },
+    { id: 'gargoyle-bracers', name: 'Gargoyle Bracers (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: DR 10/magic, freeze (appear as statue, Spot DC 15 + MH + Wis), +2 Con. Trophy bonuses are enhancement-type.', todo: 'Equip in Inventory if worn.', effects: [{ id: 'con', do: [{ kind: 'bonus', to: 'ability.con', value: '2 * trophyMultiplier', bonusType: 'enhancement' }, { kind: 'note', text: 'Gargoyle bracers: DR 10/magic.' }] }] },
     { id: 'rider-ring', name: 'Rider Ring (drider trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: SR 14, darkness at will.', todo: 'Enable if worn.', effects: [] },
     { id: 'medusa-mask', name: 'Medusa Mask (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: petrifying gaze 1/day DC 12 Fort; 3 snake attacks 5 ft +3, 1d4 + poison 1d6 Str DC 12.', todo: 'Enable if worn.', resources: [{ id: 'medusa-gaze', label: 'Petrifying gaze', max: 1, per: 'day' }], effects: [] },
     { id: 'shield-amulet', name: 'Shield Amulet (shield guardian trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: +4 natural armor; stores one spell of each level 4/5/6.', todo: 'Enable if worn.', effects: [{ id: 'n', do: [{ kind: 'bonus', to: 'ac', value: '4 * trophyMultiplier', bonusType: 'natural' }] }] },
@@ -259,7 +259,7 @@ const pack: Pack = PackSchema.parse({
       'TODO confirm: 4 unknown skills with ranks 8/8/8/7 and one class-skill override with 6 (export uuids D11C1603, 700AC2F3, D80DE6A9, ECB3CA28, 40AD06C4).',
       'Skill ranks = export value / 2 (export stores half-ranks). Human: +1 skill point/level (matches 40 points at level 1).',
       'Level ledger imported from RPG Scribe (tools/rpgscribe-import.ts); unknown-* skills are the 5 unresolved ones above.',
-      'Ability scores: STR 12 includes Belt of Strength? Export shows 12 raw; confirm.',
+      'Ability scores are base values (RPG Scribe raw); the Belt of Strength adds +2 STR as an enhancement bonus on top.',
       'Trophies worn: only Chuul Gloves enabled; enable others in Character > Abilities if worn.',
     ].join('\n'),
   }],
