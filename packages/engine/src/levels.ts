@@ -9,7 +9,12 @@ export type Derived = {
   hpFromLevels: number | undefined;
   hpRolledTotal: number;
   abilityIncreases: Partial<Record<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', number>>;
+  /** Level-4/8/12 increases not yet recorded in the ledger. */
+  unspentAbilityIncreases: number;
   featSlots: { expected: number; recorded: number };
+  /** Points implied by the ranks on the sheet (class 1/rank, cross-class 2/rank) and what is left of the ledger total. */
+  skillBudget: { spentByRanks: number; remaining: number; classSkills: string[] };
+  isClassSkill: (skillId: string) => boolean;
   iterativeAttacks: number[];
   baseSaves: { fort: number; ref: number; will: number };
   skillPoints: { total: number; spent: number; leftover: number };
@@ -95,7 +100,18 @@ export function derivedFromLevels(character: Character, library: Library): Deriv
   }
 
   const next = library.xpTable.find((row) => row.level === level + 1);
+  const classSkills = new Set(character.classLevels.flatMap((cl) => library.classTables[cl.classId]?.classSkills ?? []));
+  const isClassSkill = (id: string) => {
+    const o = character.skills[id]?.classSkillOverride;
+    return o !== undefined ? o : classSkills.has(id);
+  };
+  let spentByRanks = 0;
+  for (const [id, sk] of Object.entries(character.skills)) spentByRanks += sk.ranks * (isClassSkill(id) ? 1 : 2);
+  const recordedIncreases = Object.values(abilityIncreases).reduce((a, b) => a + (b ?? 0), 0);
   return {
+    unspentAbilityIncreases: Math.max(0, Math.floor(level / 4) - recordedIncreases),
+    skillBudget: { spentByRanks, remaining: total - spentByRanks, classSkills: [...classSkills] },
+    isClassSkill,
     level,
     bab,
     hpFromLevels: character.levelHistory.length ? hpFromLevels : undefined,

@@ -58,3 +58,24 @@ test('max ranks: level + 3 for class skills, half for cross-class', () => {
   expect(maxRanks(6, true)).toBe(9);
   expect(maxRanks(6, false)).toBe(4.5);
 });
+
+test('skill budget from actual ranks: class skills cost 1 per rank, cross-class 2; remaining = total - spent', () => {
+  const c = makeCharacter({
+    extraSkillPointsPerLevel: 1,
+    levelHistory: history,
+    skills: { spot: { ranks: 8 }, swim: { ranks: 2 }, bluff: { ranks: 1.5 }, hide: { ranks: 3, classSkillOverride: false } },
+  });
+  const d = derivedFromLevels(c, lib);
+  // total: level1 (6+3+1)*4 = 40, then 5 levels × 10 (ranger 6+3+1 ×4, MH 4+3+1) → 40 + 4*10 + 8 = 88
+  expect(d.skillPoints.total).toBe(88);
+  // spot 8 (class) + swim 2×2 (cross in this fixture) + bluff 1.5×2 + hide 3×2 (override says cross) = 21
+  expect(d.skillBudget).toEqual({ spentByRanks: 21, remaining: 88 - 21, classSkills: expect.arrayContaining(['spot', 'survival', 'hide', 'knowledge-monsters']) });
+  expect(d.isClassSkill('bluff')).toBe(false);
+  expect(d.isClassSkill('spot')).toBe(true);
+});
+
+test('unspent ability increases = floor(level/4) - recorded', () => {
+  const c = makeCharacter({ levelHistory: history.map((h) => ({ ...h, abilityIncrease: undefined })) });
+  expect(derivedFromLevels(c, lib).unspentAbilityIncreases).toBe(1);
+  expect(derivedFromLevels(makeCharacter({ levelHistory: history }), lib).unspentAbilityIncreases).toBe(0);
+});

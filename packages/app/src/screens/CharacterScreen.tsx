@@ -6,6 +6,7 @@ import { Button, Chip, Field, Section, Sheet, cx, inputCls, signed } from '../co
 import { Breakdown } from '../components/battle/AttackPanel';
 import { AbilitySheet } from '../components/character/AbilitySheet';
 import { LevelLedger } from '../components/character/LevelLedger';
+import { CharacterOverrideSheet, LedgerOverrideSheet, SkillsEditSheet, StatsEditSheet } from '../components/character/EditSheets';
 
 const GROUPS: { id: string; title: string; sources: Ability['source'][] }[] = [
   { id: 'feats', title: 'Feats', sources: ['feat'] },
@@ -24,6 +25,7 @@ export function CharacterScreen() {
   const [stat, setStat] = useState<StatId | undefined>();
   const [abilityId, setAbilityId] = useState<string | undefined>();
   const [allSkills, setAllSkills] = useState(false);
+  const [edit, setEdit] = useState<'stats' | 'skills' | 'ledger' | 'character' | undefined>();
   const derived = useMemo(() => (ctx ? derivedFromLevels(ctx.character, ctx.library) : undefined), [ctx]);
   const actions = useMemo(() => (ctx ? availableActions(ctx) : []), [ctx]);
   if (!ctx || !derived) return <div className="p-4 text-zinc-500">No character.</div>;
@@ -49,7 +51,7 @@ export function CharacterScreen() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold">{c.name}</h1>
+      <div className="flex items-center justify-between"><h1 className="text-2xl font-bold">{c.name}</h1><Button size="sm" variant="ghost" onClick={() => setEdit('character')}>{'{ }'} JSON</Button></div>
       <div className="mb-3 text-sm text-zinc-400">{c.classLevels.map((l) => `${ctx.library.classTables[l.classId]?.name ?? l.classId} ${l.level}`).join(' / ')} · level {derived.level} · XP {c.xp}{derived.nextLevelXp ? ` / ${derived.nextLevelXp}` : ''}</div>
 
       <div className="mb-3 rounded-2xl border border-zinc-700 bg-zinc-900 p-3">
@@ -68,7 +70,7 @@ export function CharacterScreen() {
         </div>
       </div>
 
-      <Section id="stats" title="Stats">
+      <Section id="stats" title="Stats" right={<Button size="sm" variant="ghost" onClick={() => setEdit('stats')}>Edit</Button>}>
         <div className="grid grid-cols-6 gap-1 mb-2 text-center">
           {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((k) => <div key={k} className="rounded-xl bg-zinc-900 py-1"><div className="text-[10px] uppercase text-zinc-500">{k}</div><div className="font-bold">{c.abilityScores[k]}</div><div className="text-xs text-zinc-400">{signed(mod(c.abilityScores[k]))}</div></div>)}
         </div>
@@ -79,7 +81,7 @@ export function CharacterScreen() {
         {ctx.target && <p className="mt-2 text-xs text-zinc-500">Conditional bonuses shown vs current target: {ctx.target.name}.</p>}
       </Section>
 
-      <Section id="skills" title="Skills" count={skillRows.length} right={<Chip active={allSkills} onClick={() => setAllSkills(!allSkills)}>{allSkills ? 'All skills' : 'Class skills'}</Chip>}>
+      <Section id="skills" title="Skills" count={skillRows.length} right={<span className="flex items-center gap-1"><Chip active={allSkills} onClick={() => setAllSkills(!allSkills)}>{allSkills ? 'All skills' : 'Class skills'}</Chip><Button size="sm" variant="ghost" onClick={() => setEdit('skills')}>Edit</Button></span>}>
         <div className="divide-y divide-zinc-800 rounded-xl border border-zinc-800">
           {skillRows.map((s) => { const r = resolveStat(ctx, `skill.${s.id}`); const ranks = c.skills[s.id]?.ranks ?? 0; const cs = isClassSkill(s.id); const usable = ranks > 0 || !s.trainedOnly; return (
             <button key={s.id} type="button" onClick={() => setStat(`skill.${s.id}`)} className={cx('flex w-full items-center justify-between px-3 py-1.5 text-left text-sm', !usable && 'text-zinc-600', usable && ranks === 0 && 'text-zinc-400')}>
@@ -106,7 +108,7 @@ export function CharacterScreen() {
         </Section>
       ) : null; })}
 
-      <Section id="ledger" title="Level ledger" count={derived.level}><LevelLedger ctx={ctx} /></Section>
+      <Section id="ledger" title="Level ledger" count={derived.level} right={<Button size="sm" variant="ghost" onClick={() => setEdit('ledger')}>Override</Button>}><LevelLedger ctx={ctx} /></Section>
 
       {c.journal.length > 0 && (
         <Section id="history" title="History" count={c.journal.length}>
@@ -118,6 +120,10 @@ export function CharacterScreen() {
 
       {c.notes && <Section id="notes" title="Notes"><pre className="whitespace-pre-wrap rounded-xl bg-zinc-900 p-3 text-xs text-zinc-300">{c.notes}</pre></Section>}
 
+      {edit === 'stats' && <StatsEditSheet ctx={ctx} onClose={() => setEdit(undefined)} />}
+      {edit === 'skills' && <SkillsEditSheet ctx={ctx} onClose={() => setEdit(undefined)} />}
+      {edit === 'ledger' && <LedgerOverrideSheet ctx={ctx} onClose={() => setEdit(undefined)} />}
+      {edit === 'character' && <CharacterOverrideSheet ctx={ctx} onClose={() => setEdit(undefined)} />}
       {abilityId && ctx.library.abilities[abilityId] && <AbilitySheet ctx={ctx} ability={ctx.library.abilities[abilityId]!} onClose={() => setAbilityId(undefined)} />}
 
       <Sheet open={!!hpOp} onClose={() => setHpOp(undefined)} title={hpOp ? hpOp[0]!.toUpperCase() + hpOp.slice(1) : ''}>
