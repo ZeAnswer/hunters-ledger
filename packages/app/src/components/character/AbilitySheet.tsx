@@ -44,7 +44,7 @@ export function AbilitySheet({ ctx, ability, onClose }: { ctx: EvalContext; abil
         ) : null;
       })}
       <div className="mb-3 text-xs text-zinc-500">{ability.effects.length} effect block{ability.effects.length === 1 ? '' : 's'}. Edit the logic in Library.</div>
-      <Button variant="danger" onClick={() => { if (confirm(`Remove ${ability.name} from ${c.name}?`)) { setCharacter({ ...c, abilities: c.abilities.filter((x) => x.abilityId !== ability.id) }); onClose(); } }}>Remove from character</Button>
+      {ability.source !== 'item' && <Button variant="danger" onClick={() => { if (confirm(`Remove ${ability.name} from ${c.name}?`)) { setCharacter({ ...c, abilities: c.abilities.filter((x) => x.abilityId !== ability.id) }); onClose(); } }}>Remove from character</Button>}
     </Sheet>
   );
 }

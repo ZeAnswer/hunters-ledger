@@ -75,6 +75,7 @@ export function summarizeEffects(effects: readonly Effect[]): string {
       case 'revealTarget': parts.push('reveal target'); break;
       case 'attackMode': parts.push(`mode ${e.label}`); break;
       case 'extraAttack': parts.push(`+${e.count} attack`); break;
+      case 'extraSlot': parts.push(`+${e.count} ${e.slot} slot`); break;
     }
   }
   return parts.join(', ');

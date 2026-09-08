@@ -27,28 +27,28 @@ const levelHistory = (rpgscribe?.levelHistory ?? []).map((r: { level: number; cl
   };
 });
 
-// Inventory from the export; items that grant mechanics link to an ability id by name.
-const ITEM_ABILITY: Record<string, string> = {
-  'ring of protection (+1)': 'ring-of-protection-1', 'boots of speed': 'boots-of-speed', 'bracers of armor (+1)': 'bracers-of-armor-1', 'ring of swimming': 'ring-of-swimming',
-  'hand of glory': 'hand-of-glory', 'pearl of the sirines': 'pearl-of-sirines', 'bracers of archery, lesser': 'bracers-of-archery-lesser', 'chuul gloves - abberration': 'chuul-gloves', 'belt of strength': 'belt-of-strength',
-};
-const ITEM_NAME: Record<string, string> = { 'library item B1029F6A (type 1, +1)': 'Composite Longbow +1 (?)', 'library item 2B2C0E73 (type 3)': 'Armor (unknown type, from RPG Scribe library)', 'library item undefined (type 11)': 'Potion or scroll (unknown spell)' };
-const inventory = (rpgscribe?.items ?? []).map((it: { id: string; name: string; quantity: number; equipped: boolean; stored: boolean; category: string; notes?: string; weight?: number }) => {
-  const abilityId = ITEM_ABILITY[it.name.toLowerCase()];
-  const trophyMaterial = it.stored;
-  return {
-    id: it.id, name: ITEM_NAME[it.name] ?? it.name, quantity: it.quantity, equipped: it.equipped,
-    category: trophyMaterial ? 'material' : it.category, ...(abilityId ? { abilityId } : {}), ...(it.notes ? { notes: it.notes } : {}), ...(it.weight !== undefined ? { weight: it.weight } : {}),
-  };
-});
-const equippedAbilities = new Set(inventory.filter((i: { equipped: boolean; abilityId?: string }) => i.equipped && i.abilityId).map((i: { abilityId?: string }) => i.abilityId));
-const linkedAbilities = new Set(inventory.filter((i: { abilityId?: string }) => i.abilityId).map((i: { abilityId?: string }) => i.abilityId));
-// Whistle and Vaelor's manual are DM handouts not in the export; add as equipped items.
-inventory.push(
-  { id: 'item-whistle', name: "Monsters' Agony Whisper Whistle", quantity: 1, equipped: true, category: 'wondrous', abilityId: 'whistle-of-agony', notes: 'Unique artifact, requires attunement. 1/day.' },
-  { id: 'item-vaelors-manual', name: "Vaelor's Monsters' Manual", quantity: 1, equipped: true, category: 'wondrous', notes: 'Unique artifact, no slot. Grants Monster Knowledge, Hunter\'s Analysis, Hunter\'s Instinct, Bestiary Collection.' },
-);
-equippedAbilities.add('whistle-of-agony');
+// Inventory: instances of library items. Equipped state from the RPG Scribe equipped-slot map.
+const inv = (abilityId: string, equipped: boolean, extra: Record<string, unknown> = {}) => ({ id: `inv-${abilityId}`, abilityId, quantity: 1, equipped, ...extra });
+const inventory = [
+  inv('composite-longbow-1', true, { slotIndex: 0 }),
+  inv('armor-unknown', true, { slotIndex: 0 }),
+  inv('ring-of-protection-1', true, { slotIndex: 0 }),
+  inv('ring-of-swimming', true, { slotIndex: 1, notes: 'Cursed: cannot be removed; must explore new bodies of water (Will save).' }),
+  inv('boots-of-speed', true, { slotIndex: 0 }),
+  inv('hand-of-glory', true, { slotIndex: 0 }),
+  inv('bracers-of-archery-lesser', true, { slotIndex: 0 }),
+  inv('chuul-gloves', true, { slotIndex: 0 }),
+  inv('belt-of-strength', true, { slotIndex: 0 }),
+  inv('whistle-of-agony', true),
+  inv('vaelors-manual', true),
+  inv('pearl-of-sirines', false),
+  inv('bracers-of-armor-1', false, { notes: 'Not worn: arms slot holds the Bracers of Archery.' }),
+  inv('potion-unknown', false),
+  inv('gargoyle-hands', false),
+  inv('gorgon-scale', false),
+];
+const equippedAbilities = new Set(inventory.filter((i) => i.equipped).map((i) => i.abilityId));
+const linkedAbilities = new Set(inventory.map((i) => i.abilityId));
 
 const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, value: 3 }, { upTo: 35, value: 4 }, { value: 5 }];
 const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
@@ -56,7 +56,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 3, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 4, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -177,39 +177,46 @@ const pack: Pack = PackSchema.parse({
     { id: 'hunters-instinct', name: 'Hunter\'s Instinct (Vaelor\'s Manual)', source: 'item', text: '+1 on Knowledge checks to identify monsters.', effects: [{ id: 'k', do: [{ kind: 'bonus', to: 'skill.knowledge-monsters', value: 1 }] }] },
     // ---- items ----
     {
-      id: 'boots-of-speed', name: 'Boots of Speed', source: 'item', activation: { action: 'free' },
+      id: 'boots-of-speed', item: { category: 'wondrous', slot: 'feet', weight: 1 }, name: 'Boots of Speed', source: 'item', activation: { action: 'free' },
       text: 'Free action: haste for up to 10 rounds per day, in any increments.',
       resources: [{ id: 'boots-rounds', label: 'Haste rounds', max: 10, per: 'day' }],
       effects: [{ id: 'go', trigger: 'onUse', do: [{ kind: 'consume', resourceId: 'boots-rounds', amount: 1 }] }],
       todo: 'Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on.',
     },
-    { id: 'ring-of-protection-1', name: 'Ring of Protection +1', source: 'item', effects: [{ id: 'r', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'deflection' }] }] },
-    { id: 'bracers-of-armor-1', name: 'Bracers of Armor +1', source: 'item', effects: [{ id: 'b', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'armor' }] }] },
-    { id: 'ring-of-swimming', name: 'Ring of Swimming (cursed)', source: 'item', text: 'Cursed: cannot remove; must explore any new body of water (Will save).', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'skill.swim', value: 5, bonusType: 'competence' }] }] },
-    { id: 'bracers-of-archery-lesser', name: 'Bracers of Archery, Lesser', source: 'item', effects: [{ id: 'b', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'competence' }] }] },
-    { id: 'belt-of-strength', name: 'Belt of Strength +2', source: 'item', text: '+2 enhancement bonus to Strength while worn.', effects: [{ id: 'str', do: [{ kind: 'bonus', to: 'ability.str', value: 2, bonusType: 'enhancement' }] }] },
+    { id: 'ring-of-protection-1', item: { category: 'wondrous', slot: 'ring', price: '2,000 gp' }, name: 'Ring of Protection +1', source: 'item', effects: [{ id: 'r', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'deflection' }] }] },
+    { id: 'bracers-of-armor-1', item: { category: 'wondrous', slot: 'arms', weight: 1 }, name: 'Bracers of Armor +1', source: 'item', effects: [{ id: 'b', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'armor' }] }] },
+    { id: 'ring-of-swimming', item: { category: 'wondrous', slot: 'ring' }, name: 'Ring of Swimming (cursed)', source: 'item', text: 'Cursed: cannot remove; must explore any new body of water (Will save).', effects: [{ id: 's', do: [{ kind: 'bonus', to: 'skill.swim', value: 5, bonusType: 'competence' }] }] },
+    { id: 'bracers-of-archery-lesser', item: { category: 'wondrous', slot: 'arms' }, name: 'Bracers of Archery, Lesser', source: 'item', effects: [{ id: 'b', when: { kind: 'attack.kind', attackKind: 'ranged' }, do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'competence' }] }] },
+    { id: 'belt-of-strength', item: { category: 'wondrous', slot: 'waist' }, name: 'Belt of Strength +2', source: 'item', text: '+2 enhancement bonus to Strength while worn.', effects: [{ id: 'str', do: [{ kind: 'bonus', to: 'ability.str', value: 2, bonusType: 'enhancement' }] }] },
     {
-      id: 'hand-of-glory', name: 'Hand of Glory', source: 'item', activation: { action: 'standard' },
+      id: 'hand-of-glory', item: { category: 'wondrous', slot: 'neck', weight: 2 }, name: 'Hand of Glory', source: 'item', activation: { action: 'standard' },
       text: 'Daylight 1/day, See Invisibility 1/day; extra ring slot.',
       resources: [{ id: 'hog-daylight', label: 'Daylight', max: 1, per: 'day' }, { id: 'hog-see-invis', label: 'See Invisibility', max: 1, per: 'day' }],
-      effects: [],
+      effects: [{ id: 'slot', do: [{ kind: 'extraSlot', slot: 'ring', count: 1 }] }],
     },
-    { id: 'pearl-of-sirines', name: 'Pearl of the Sirines', source: 'item', text: 'Water breathing / freedom of movement underwater while held.', effects: [] },
+    { id: 'pearl-of-sirines', item: { category: 'wondrous', slot: 'none' }, name: 'Pearl of the Sirines', source: 'item', text: 'Water breathing / freedom of movement underwater while held.', effects: [] },
     {
-      id: 'whistle-of-agony', name: 'Monsters\' Agony Whisper Whistle', source: 'item', activation: { action: 'standard' },
+      id: 'whistle-of-agony', item: { category: 'wondrous', slot: 'none' }, name: 'Monsters\' Agony Whisper Whistle', source: 'item', activation: { action: 'standard' },
       text: '1/day: every Monstrous Humanoid, Magical Beast, Aberration and oversized (above Large) monster within 2 km cries out, revealing itself. Listen DC 15 for direction. They also learn your direction. Outsiders unaffected.',
       resources: [{ id: 'whistle', label: 'Whistle', max: 1, per: 'day' }],
       effects: [],
     },
+    // ---- plain gear (no rules yet) ----
+    { id: 'composite-longbow-1', name: 'Composite Longbow +1', source: 'item', item: { category: 'weapon', slot: 'mainHand', weight: 3 }, text: 'Attack profile "bow" on the sheet. Confirm bow type and strength rating.', todo: 'Confirm weapon (export uuid B1029F6A).', effects: [] },
+    { id: 'armor-unknown', name: 'Armor (unknown type)', source: 'item', item: { category: 'armor', slot: 'armor' }, text: 'Worn armor from the RPG Scribe library (uuid 2B2C0E73). Set its AC bonus in Stats → Edit → Armor bonus until identified.', todo: 'Identify armor; then add a bonus ac armor effect here and clear baseArmor.', effects: [] },
+    { id: 'potion-unknown', name: 'Potion or scroll (unknown spell)', source: 'item', item: { category: 'potion', weight: 0 }, todo: 'Identify (export spell uuid F7CE304D).', effects: [] },
+    { id: 'vaelors-manual', name: "Vaelor's Monsters' Manual", source: 'item', item: { category: 'wondrous', slot: 'none', weight: 5 }, text: 'Unique artifact, no slot, CL 12. Grants Monster Knowledge, Hunter\'s Analysis, Hunter\'s Instinct and the Bestiary Collection.', effects: [] },
+    { id: 'gargoyle-hands', name: "Gargoyle's hands", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Monstrous humanoid). Crafts: Gargoyle bracers — DR 10/magic, freeze DC +15, +2 Con.', effects: [] },
+    { id: 'gorgon-scale', name: "Gorgon's scale", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Magical beast). Crafts: Gorgon belt — +2d6 damage when charging, petrifying cone 60 ft 1/day DC +14 Fort negates.', effects: [] },
     // ---- trophies (Monster Hunter) ----
     {
-      id: 'chuul-gloves', name: 'Chuul Gloves (trophy)', source: 'item', text: 'Trophy: +4 initiative (improved initiative); paralysis touch DC 11+, Fort negates.',
+      id: 'chuul-gloves', item: { category: 'trophy', slot: 'hands' }, name: 'Chuul Gloves (trophy)', source: 'item', text: 'Trophy: +4 initiative (improved initiative); paralysis touch DC 11+, Fort negates.',
       effects: [{ id: 'i', do: [{ kind: 'bonus', to: 'init', value: '4 * trophyMultiplier', bonusType: 'enhancement' }] }],
     },
-    { id: 'gargoyle-bracers', name: 'Gargoyle Bracers (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: DR 10/magic, freeze (appear as statue, Spot DC 15 + MH + Wis), +2 Con. Trophy bonuses are enhancement-type.', todo: 'Equip in Inventory if worn.', effects: [{ id: 'con', do: [{ kind: 'bonus', to: 'ability.con', value: '2 * trophyMultiplier', bonusType: 'enhancement' }, { kind: 'note', text: 'Gargoyle bracers: DR 10/magic.' }] }] },
-    { id: 'rider-ring', name: 'Rider Ring (drider trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: SR 14, darkness at will.', todo: 'Enable if worn.', effects: [] },
-    { id: 'medusa-mask', name: 'Medusa Mask (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: petrifying gaze 1/day DC 12 Fort; 3 snake attacks 5 ft +3, 1d4 + poison 1d6 Str DC 12.', todo: 'Enable if worn.', resources: [{ id: 'medusa-gaze', label: 'Petrifying gaze', max: 1, per: 'day' }], effects: [] },
-    { id: 'shield-amulet', name: 'Shield Amulet (shield guardian trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: +4 natural armor; stores one spell of each level 4/5/6.', todo: 'Enable if worn.', effects: [{ id: 'n', do: [{ kind: 'bonus', to: 'ac', value: '4 * trophyMultiplier', bonusType: 'natural' }] }] },
+    { id: 'gargoyle-bracers', item: { category: 'trophy', slot: 'arms' }, name: 'Gargoyle Bracers (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: DR 10/magic, freeze (appear as statue, Spot DC 15 + MH + Wis), +2 Con. Trophy bonuses are enhancement-type.', todo: 'Equip in Inventory if worn.', effects: [{ id: 'con', do: [{ kind: 'bonus', to: 'ability.con', value: '2 * trophyMultiplier', bonusType: 'enhancement' }, { kind: 'note', text: 'Gargoyle bracers: DR 10/magic.' }] }] },
+    { id: 'rider-ring', item: { category: 'trophy', slot: 'ring' }, name: 'Rider Ring (drider trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: SR 14, darkness at will.', todo: 'Enable if worn.', effects: [] },
+    { id: 'medusa-mask', item: { category: 'trophy', slot: 'head' }, name: 'Medusa Mask (trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: petrifying gaze 1/day DC 12 Fort; 3 snake attacks 5 ft +3, 1d4 + poison 1d6 Str DC 12.', todo: 'Enable if worn.', resources: [{ id: 'medusa-gaze', label: 'Petrifying gaze', max: 1, per: 'day' }], effects: [] },
+    { id: 'shield-amulet', item: { category: 'trophy', slot: 'neck' }, name: 'Shield Amulet (shield guardian trophy)', source: 'item', enabledByDefault: false, text: 'Trophy: +4 natural armor; stores one spell of each level 4/5/6.', todo: 'Enable if worn.', effects: [{ id: 'n', do: [{ kind: 'bonus', to: 'ac', value: '4 * trophyMultiplier', bonusType: 'natural' }] }] },
   ],
   characters: [{
     id: 'memento', name: 'Memento',
@@ -238,8 +245,7 @@ const pack: Pack = PackSchema.parse({
       { abilityId: 'monster-blow', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
       { abilityId: 'trophy-crafting' }, { abilityId: 'monster-lore', enabled: false },
       { abilityId: 'monster-knowledge' }, { abilityId: 'hunters-analysis' }, { abilityId: 'hunters-instinct' },
-      ...['boots-of-speed', 'ring-of-protection-1', 'bracers-of-armor-1', 'ring-of-swimming', 'bracers-of-archery-lesser', 'belt-of-strength', 'hand-of-glory', 'pearl-of-sirines', 'whistle-of-agony', 'chuul-gloves']
-        .map((abilityId) => ({ abilityId, enabled: equippedAbilities.has(abilityId) || !linkedAbilities.has(abilityId) })),
+      ...[...linkedAbilities].map((abilityId) => ({ abilityId, enabled: equippedAbilities.has(abilityId) })),
       { abilityId: 'gargoyle-bracers', enabled: false }, { abilityId: 'rider-ring', enabled: false }, { abilityId: 'medusa-mask', enabled: false }, { abilityId: 'shield-amulet', enabled: false },
     ],
     inventory,

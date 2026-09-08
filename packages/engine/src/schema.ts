@@ -20,6 +20,21 @@ export type AttackKind = z.infer<typeof AttackKindSchema>;
 export const AbilityKeySchema = z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']);
 export type AbilityKey = z.infer<typeof AbilityKeySchema>;
 
+export const SLOT_IDS = ['mainHand', 'offHand', 'buckler', 'quiver', 'armor', 'head', 'eyes', 'neck', 'shoulders', 'torso', 'arms', 'hands', 'ring', 'waist', 'feet'] as const;
+export const SlotIdSchema = z.enum(SLOT_IDS);
+export type SlotId = z.infer<typeof SlotIdSchema>;
+export const ItemCategorySchema = z.enum(['weapon', 'armor', 'shield', 'ammunition', 'wondrous', 'potion', 'scroll', 'wand', 'tool', 'trophy', 'material', 'gear']);
+export type ItemCategory = z.infer<typeof ItemCategorySchema>;
+/** Item metadata on an ability with source 'item'. slot 'none' = active while carried (no body slot). */
+export const ItemMetaSchema = z.object({
+  category: ItemCategorySchema,
+  slot: z.union([SlotIdSchema, z.literal('none')]).optional(),
+  weight: z.number().optional(),
+  price: z.string().optional(),
+});
+export type ItemMeta = z.infer<typeof ItemMetaSchema>;
+
+
 /** Numeric literal or expression string, see expr.ts */
 export const ExprSchema = z.union([z.number(), z.string().min(1)]);
 export type Expr = z.infer<typeof ExprSchema>;
@@ -119,6 +134,7 @@ export const EffectSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('suppress'), abilityId: z.string() }),
   z.object({ kind: z.literal('extraAttack'), appliesToBase: z.enum(['single', 'full', 'any']).default('full'), count: z.number().int().positive().default(1), attackKind: AttackKindSchema.optional() }),
   z.object({ kind: z.literal('revealTarget') }),
+  z.object({ kind: z.literal('extraSlot'), slot: SlotIdSchema, count: z.number().int().positive().default(1) }),
   z.object({
     kind: z.literal('attackMode'), modeId: z.string(), label: z.string(),
     base: z.enum(['single', 'full']), extraAttacksAtTop: z.number().int().default(0),
@@ -177,6 +193,7 @@ export const AbilitySchema = z.object({
   effects: z.array(EffectBlockSchema).default([]),
   enabledByDefault: z.boolean().default(true),
   todo: z.string().optional(),
+  item: ItemMetaSchema.optional(),
 });
 export type Ability = z.infer<typeof AbilitySchema>;
 export type AbilityInput = z.input<typeof AbilitySchema>;
@@ -288,8 +305,17 @@ export const CharacterSchema = z.object({
   hpAdjust: z.number().int().default(0),
   /** Carried and stored gear. Items with an abilityId drive that ability's enabled flag when equipped. */
   inventory: z.array(z.object({
-    id: z.string().min(1), name: z.string().min(1), quantity: z.number().int().nonnegative().default(1), equipped: z.boolean().default(false),
-    abilityId: z.string().optional(), slot: z.string().optional(), weight: z.number().optional(), notes: z.string().optional(), category: z.enum(['weapon', 'armor', 'wondrous', 'consumable', 'trophy', 'material', 'gear']).default('gear'),
+    id: z.string().min(1),
+    /** Library item (ability with source 'item'). Older entries may lack it and carry name/category directly. */
+    abilityId: z.string().optional(),
+    name: z.string().optional(),
+    category: z.string().optional(),
+    quantity: z.number().int().nonnegative().default(1),
+    equipped: z.boolean().default(false),
+    /** Which of the slot's positions (ring 0/1). */
+    slotIndex: z.number().int().nonnegative().optional(),
+    weight: z.number().optional(),
+    notes: z.string().optional(),
   })).default([]),
   /** Free-text history: level-ups, HP changes, edits. Newest last. */
   journal: z.array(z.object({ at: z.string(), kind: z.enum(['levelUp', 'hp', 'xp', 'edit', 'rest', 'note']), text: z.string() })).default([]),

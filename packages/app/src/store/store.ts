@@ -36,6 +36,8 @@ type Actions = {
   exportBackupText(): string;
   restoreBackupText(text: string): string | undefined;
   resetToDefaults(): Promise<void>;
+  /** Replace only inventory + item rules on the active character from the bundled pack (skills, HP, ledger untouched). */
+  reimportInventoryFromDefaults(): string | undefined;
   showToast(msg: string): void;
 };
 
@@ -145,6 +147,18 @@ export const useStore = create<Store>((set, get) => ({
     } catch (e) {
       return (e as Error).message;
     }
+  },
+
+  reimportInventoryFromDefaults() {
+    const { character, library } = get();
+    if (!character) return 'No character';
+    const packChar = defaultPacks.flatMap((p) => p.characters).find((c) => c.id === character.id);
+    if (!packChar) return `No built-in character with id ${character.id}`;
+    const itemIds = new Set(packChar.inventory.map((i) => i.abilityId).filter(Boolean));
+    const keep = character.abilities.filter((a) => library.abilities[a.abilityId]?.source !== 'item');
+    const items = packChar.abilities.filter((a) => itemIds.has(a.abilityId) || library.abilities[a.abilityId]?.source === 'item');
+    set({ character: { ...character, inventory: packChar.inventory, abilities: [...keep, ...items], journal: [...character.journal, { at: new Date().toISOString(), kind: 'edit', text: 'Inventory replaced from built-in pack' }] } });
+    return undefined;
   },
 
   async resetToDefaults() {

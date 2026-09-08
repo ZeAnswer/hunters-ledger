@@ -46,6 +46,8 @@ export function SettingsScreen() {
           const err = s.restoreBackupText(f.text); setResult(err ? `Restore failed: ${err}` : 'Backup restored'); if (!err) s.showToast('Backup restored');
         }}>Restore from backup…</Button>
         <Button variant="ghost" className="ml-2" onClick={async () => { if (confirm('Delete all data and reload the built-in packs?')) { await s.resetToDefaults(); s.showToast('Reset done'); } }}>Reset to built-in packs</Button>
+        <p className="mt-3 text-xs text-zinc-500">Partial refresh, keeps skills/HP/ledger/history:</p>
+        <Button variant="ghost" onClick={() => { if (confirm('Replace your inventory and item rules with the built-in Memento pack? Skills, HP and the level ledger are not touched.')) { const err = s.reimportInventoryFromDefaults(); s.showToast(err ?? 'Inventory replaced'); } }}>Replace inventory from built-in pack</Button>
       </Section>
 
       <Section title="About" defaultOpen>

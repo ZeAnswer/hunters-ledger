@@ -1,4 +1,4 @@
-import type { BonusType, Duration, Effect } from '@hl/engine';
+import { SLOTS, type BonusType, type Duration, type Effect } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { Chip, inputCls } from '../ui';
 import { StatSelect } from './StatSelect';
@@ -8,7 +8,7 @@ const KINDS: { kind: Kind; label: string }[] = [
   { kind: 'bonus', label: 'Bonus / penalty' }, { kind: 'extraDice', label: 'Extra damage dice' }, { kind: 'bonusFromTable', label: 'Bonus from a check (table)' },
   { kind: 'note', label: 'Reminder note' }, { kind: 'applyTag', label: 'Apply condition/tag' }, { kind: 'consume', label: 'Spend charges' },
   { kind: 'attackMode', label: 'New attack mode' }, { kind: 'extraAttack', label: 'Extra attack (haste-like)' }, { kind: 'ignoreConcealment', label: 'Ignore concealment' },
-  { kind: 'suppress', label: 'Suppress an ability' }, { kind: 'revealTarget', label: 'Reveal target lore' },
+  { kind: 'suppress', label: 'Suppress an ability' }, { kind: 'revealTarget', label: 'Reveal target lore' }, { kind: 'extraSlot', label: 'Extra equipment slot' },
 ];
 const TYPES: BonusType[] = ['untyped', 'enhancement', 'insight', 'morale', 'competence', 'circumstance', 'dodge', 'luck', 'sacred', 'profane', 'racial', 'size', 'deflection', 'natural', 'armor', 'shield', 'resistance', 'alchemical', 'inherent'];
 
@@ -25,6 +25,7 @@ function defaultFor(kind: Kind): Effect {
     case 'ignoreConcealment': return { kind };
     case 'suppress': return { kind, abilityId: '' };
     case 'revealTarget': return { kind };
+    case 'extraSlot': return { kind, slot: 'ring', count: 1 };
   }
 }
 
@@ -85,6 +86,7 @@ export function EffectEditor({ value, onChange, onRemove }: { value: Effect; onC
     ); break;
     case 'extraAttack': body = <div className="flex items-center gap-2 text-xs text-zinc-400">{(['full', 'single', 'any'] as const).map((b) => <Chip key={b} active={value.appliesToBase === b} onClick={() => set({ appliesToBase: b })}>{b} modes</Chip>)} count <input className={inputCls + ' w-16'} inputMode="numeric" value={value.count} onChange={(e) => set({ count: Number(e.target.value) || 1 })} /></div>; break;
     case 'suppress': body = <input className={inputCls} placeholder="ability id" value={value.abilityId} onChange={(e) => set({ abilityId: e.target.value })} />; break;
+    case 'extraSlot': body = <div className="flex items-center gap-2 text-xs text-zinc-400"><select className={inputCls} value={value.slot} onChange={(e) => set({ slot: e.target.value })}>{SLOTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select> +<input className={inputCls + ' w-16'} inputMode="numeric" value={value.count} onChange={(e) => set({ count: Number(e.target.value) || 1 })} /></div>; break;
     default: body = null;
   }
   return (

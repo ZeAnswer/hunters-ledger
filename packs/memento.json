@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 3,
+  "version": 4,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -586,7 +586,12 @@
         }
       ],
       "enabledByDefault": true,
-      "todo": "Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on."
+      "todo": "Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on.",
+      "item": {
+        "category": "wondrous",
+        "slot": "feet",
+        "weight": 1
+      }
     },
     {
       "id": "ring-of-protection-1",
@@ -610,7 +615,12 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "ring",
+        "price": "2,000 gp"
+      }
     },
     {
       "id": "bracers-of-armor-1",
@@ -634,7 +644,12 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "arms",
+        "weight": 1
+      }
     },
     {
       "id": "ring-of-swimming",
@@ -659,7 +674,11 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "ring"
+      }
     },
     {
       "id": "bracers-of-archery-lesser",
@@ -684,7 +703,11 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "arms"
+      }
     },
     {
       "id": "belt-of-strength",
@@ -709,7 +732,11 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "waist"
+      }
     },
     {
       "id": "hand-of-glory",
@@ -733,8 +760,28 @@
           "per": "day"
         }
       ],
-      "effects": [],
-      "enabledByDefault": true
+      "effects": [
+        {
+          "id": "slot",
+          "trigger": "always",
+          "when": {
+            "kind": "always"
+          },
+          "do": [
+            {
+              "kind": "extraSlot",
+              "slot": "ring",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "neck",
+        "weight": 2
+      }
     },
     {
       "id": "pearl-of-sirines",
@@ -743,7 +790,11 @@
       "text": "Water breathing / freedom of movement underwater while held.",
       "activation": "passive",
       "effects": [],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "none"
+      }
     },
     {
       "id": "whistle-of-agony",
@@ -762,7 +813,91 @@
         }
       ],
       "effects": [],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "none"
+      }
+    },
+    {
+      "id": "composite-longbow-1",
+      "name": "Composite Longbow +1",
+      "source": "item",
+      "text": "Attack profile \"bow\" on the sheet. Confirm bow type and strength rating.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "todo": "Confirm weapon (export uuid B1029F6A).",
+      "item": {
+        "category": "weapon",
+        "slot": "mainHand",
+        "weight": 3
+      }
+    },
+    {
+      "id": "armor-unknown",
+      "name": "Armor (unknown type)",
+      "source": "item",
+      "text": "Worn armor from the RPG Scribe library (uuid 2B2C0E73). Set its AC bonus in Stats → Edit → Armor bonus until identified.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "todo": "Identify armor; then add a bonus ac armor effect here and clear baseArmor.",
+      "item": {
+        "category": "armor",
+        "slot": "armor"
+      }
+    },
+    {
+      "id": "potion-unknown",
+      "name": "Potion or scroll (unknown spell)",
+      "source": "item",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "todo": "Identify (export spell uuid F7CE304D).",
+      "item": {
+        "category": "potion",
+        "weight": 0
+      }
+    },
+    {
+      "id": "vaelors-manual",
+      "name": "Vaelor's Monsters' Manual",
+      "source": "item",
+      "text": "Unique artifact, no slot, CL 12. Grants Monster Knowledge, Hunter's Analysis, Hunter's Instinct and the Bestiary Collection.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "item": {
+        "category": "wondrous",
+        "slot": "none",
+        "weight": 5
+      }
+    },
+    {
+      "id": "gargoyle-hands",
+      "name": "Gargoyle's hands",
+      "source": "item",
+      "text": "Trophy crafting material (Monstrous humanoid). Crafts: Gargoyle bracers — DR 10/magic, freeze DC +15, +2 Con.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "item": {
+        "category": "material"
+      }
+    },
+    {
+      "id": "gorgon-scale",
+      "name": "Gorgon's scale",
+      "source": "item",
+      "text": "Trophy crafting material (Magical beast). Crafts: Gorgon belt — +2d6 damage when charging, petrifying cone 60 ft 1/day DC +14 Fort negates.",
+      "activation": "passive",
+      "effects": [],
+      "enabledByDefault": true,
+      "item": {
+        "category": "material"
+      }
     },
     {
       "id": "chuul-gloves",
@@ -787,7 +922,11 @@
           ]
         }
       ],
-      "enabledByDefault": true
+      "enabledByDefault": true,
+      "item": {
+        "category": "trophy",
+        "slot": "hands"
+      }
     },
     {
       "id": "gargoyle-bracers",
@@ -817,7 +956,11 @@
         }
       ],
       "enabledByDefault": false,
-      "todo": "Equip in Inventory if worn."
+      "todo": "Equip in Inventory if worn.",
+      "item": {
+        "category": "trophy",
+        "slot": "arms"
+      }
     },
     {
       "id": "rider-ring",
@@ -827,7 +970,11 @@
       "activation": "passive",
       "effects": [],
       "enabledByDefault": false,
-      "todo": "Enable if worn."
+      "todo": "Enable if worn.",
+      "item": {
+        "category": "trophy",
+        "slot": "ring"
+      }
     },
     {
       "id": "medusa-mask",
@@ -845,7 +992,11 @@
       ],
       "effects": [],
       "enabledByDefault": false,
-      "todo": "Enable if worn."
+      "todo": "Enable if worn.",
+      "item": {
+        "category": "trophy",
+        "slot": "head"
+      }
     },
     {
       "id": "shield-amulet",
@@ -871,7 +1022,11 @@
         }
       ],
       "enabledByDefault": false,
-      "todo": "Enable if worn."
+      "todo": "Enable if worn.",
+      "item": {
+        "category": "trophy",
+        "slot": "neck"
+      }
     }
   ],
   "monsters": [],
@@ -1178,7 +1333,12 @@
           "paramValues": {}
         },
         {
-          "abilityId": "boots-of-speed",
+          "abilityId": "composite-longbow-1",
+          "enabled": true,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "armor-unknown",
           "enabled": true,
           "paramValues": {}
         },
@@ -1188,22 +1348,12 @@
           "paramValues": {}
         },
         {
-          "abilityId": "bracers-of-armor-1",
-          "enabled": false,
-          "paramValues": {}
-        },
-        {
           "abilityId": "ring-of-swimming",
           "enabled": true,
           "paramValues": {}
         },
         {
-          "abilityId": "bracers-of-archery-lesser",
-          "enabled": true,
-          "paramValues": {}
-        },
-        {
-          "abilityId": "belt-of-strength",
+          "abilityId": "boots-of-speed",
           "enabled": true,
           "paramValues": {}
         },
@@ -1213,8 +1363,18 @@
           "paramValues": {}
         },
         {
-          "abilityId": "pearl-of-sirines",
-          "enabled": false,
+          "abilityId": "bracers-of-archery-lesser",
+          "enabled": true,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "chuul-gloves",
+          "enabled": true,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "belt-of-strength",
+          "enabled": true,
           "paramValues": {}
         },
         {
@@ -1223,8 +1383,33 @@
           "paramValues": {}
         },
         {
-          "abilityId": "chuul-gloves",
+          "abilityId": "vaelors-manual",
           "enabled": true,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "pearl-of-sirines",
+          "enabled": false,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "bracers-of-armor-1",
+          "enabled": false,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "potion-unknown",
+          "enabled": false,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "gargoyle-hands",
+          "enabled": false,
+          "paramValues": {}
+        },
+        {
+          "abilityId": "gorgon-scale",
+          "enabled": false,
           "paramValues": {}
         },
         {
@@ -1390,137 +1575,111 @@
       "hpAdjust": 0,
       "inventory": [
         {
-          "id": "rs-5c52a6ea",
-          "name": "Composite Longbow +1 (?)",
+          "id": "inv-composite-longbow-1",
+          "abilityId": "composite-longbow-1",
           "quantity": 1,
           "equipped": true,
-          "category": "weapon"
+          "slotIndex": 0
         },
         {
-          "id": "rs-2fb8d074",
-          "name": "Ring of Protection (+1)",
+          "id": "inv-armor-unknown",
+          "abilityId": "armor-unknown",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-ring-of-protection-1",
           "abilityId": "ring-of-protection-1",
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-467f6348",
-          "name": "Boots of Speed",
           "quantity": 1,
           "equipped": true,
-          "abilityId": "boots-of-speed",
-          "weight": 1,
-          "category": "wondrous"
+          "slotIndex": 0
         },
         {
-          "id": "rs-470d0c5a",
-          "name": "Bracers of Armor (+1)",
-          "quantity": 1,
-          "equipped": false,
-          "abilityId": "bracers-of-armor-1",
-          "weight": 1,
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-2dfb869f",
-          "name": "Armor (unknown type, from RPG Scribe library)",
-          "quantity": 1,
-          "equipped": true,
-          "category": "armor"
-        },
-        {
-          "id": "rs-060ee3cb",
-          "name": "Ring of Swimming",
-          "quantity": 1,
-          "equipped": true,
+          "id": "inv-ring-of-swimming",
           "abilityId": "ring-of-swimming",
-          "notes": "Cursed-\nCan't take off\nMust explore new bodies of water, will save",
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-1d33a943",
-          "name": "Potion or scroll (unknown spell)",
-          "quantity": 1,
-          "equipped": false,
-          "category": "consumable"
-        },
-        {
-          "id": "rs-536efbc8",
-          "name": "Hand of Glory",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 1,
+          "notes": "Cursed: cannot be removed; must explore new bodies of water (Will save)."
+        },
+        {
+          "id": "inv-boots-of-speed",
+          "abilityId": "boots-of-speed",
+          "quantity": 1,
+          "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-hand-of-glory",
           "abilityId": "hand-of-glory",
-          "weight": 2,
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-9d26fd82",
-          "name": "Pearl of the Sirines",
-          "quantity": 1,
-          "equipped": false,
-          "abilityId": "pearl-of-sirines",
-          "notes": "Water breathing",
-          "category": "gear"
-        },
-        {
-          "id": "rs-850ffa9a",
-          "name": "Bracers of Archery, Lesser",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-bracers-of-archery-lesser",
           "abilityId": "bracers-of-archery-lesser",
-          "notes": "These wristbands look like normal protective wear.\n\nThe bracers empower the wearer to use any bow (not including crossbows) as if she were proficient in its use. If she already has proficiency with any type of bow, she gains a +1 competence bonus on attack rolls whenever using that type of bow. Both bracers must be worn for the magic to be effective.",
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-60e9aa3f",
-          "name": "Chuul Gloves - Abberration",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-chuul-gloves",
           "abilityId": "chuul-gloves",
-          "notes": "Chuul gloves (Aberration trophy).\nParalysis DC +11 For negates, improved initiative.",
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-27343ed6",
-          "name": "belt of strength",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-belt-of-strength",
           "abilityId": "belt-of-strength",
-          "category": "wondrous"
-        },
-        {
-          "id": "rs-3686b6e3",
-          "name": "Gargoyle's hands",
-          "quantity": 1,
-          "equipped": false,
-          "notes": "Trophy crafting material\nMonster: Gargoyle\nType: Monstrous humanoid\nTrophy: Gargoyle bracers\nEffect: DR 10/magic, freeze appear as statue DC +15, +2 Con",
-          "category": "material"
-        },
-        {
-          "id": "rs-f9f4cbb3",
-          "name": "Gorgon's Scale",
-          "quantity": 1,
-          "equipped": false,
-          "notes": "Trophy crafting material\nMonster: Gorgon\nType: Magical beast\nTrophy: Gorgon belt\nEffect: +2d6 DMG when charging, petrifying cone 60ft 1/day DC +14 For negates",
-          "category": "material"
-        },
-        {
-          "id": "item-whistle",
-          "name": "Monsters' Agony Whisper Whistle",
           "quantity": 1,
           "equipped": true,
+          "slotIndex": 0
+        },
+        {
+          "id": "inv-whistle-of-agony",
           "abilityId": "whistle-of-agony",
-          "notes": "Unique artifact, requires attunement. 1/day.",
-          "category": "wondrous"
+          "quantity": 1,
+          "equipped": true
         },
         {
-          "id": "item-vaelors-manual",
-          "name": "Vaelor's Monsters' Manual",
+          "id": "inv-vaelors-manual",
+          "abilityId": "vaelors-manual",
           "quantity": 1,
-          "equipped": true,
-          "notes": "Unique artifact, no slot. Grants Monster Knowledge, Hunter's Analysis, Hunter's Instinct, Bestiary Collection.",
-          "category": "wondrous"
+          "equipped": true
+        },
+        {
+          "id": "inv-pearl-of-sirines",
+          "abilityId": "pearl-of-sirines",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "id": "inv-bracers-of-armor-1",
+          "abilityId": "bracers-of-armor-1",
+          "quantity": 1,
+          "equipped": false,
+          "notes": "Not worn: arms slot holds the Bracers of Archery."
+        },
+        {
+          "id": "inv-potion-unknown",
+          "abilityId": "potion-unknown",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "id": "inv-gargoyle-hands",
+          "abilityId": "gargoyle-hands",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "id": "inv-gorgon-scale",
+          "abilityId": "gorgon-scale",
+          "quantity": 1,
+          "equipped": false
         }
       ],
       "journal": [

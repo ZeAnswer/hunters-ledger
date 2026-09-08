@@ -13,5 +13,5 @@ test('sheets close via button and browser back', async ({ page }) => {
   await page.goBack();
   await expect(page.getByRole('button', { name: 'Remove from character' })).toHaveCount(0);
   await page.getByRole('button', { name: /Inventory/ }).click();
-  await page.getByRole('button', { name: /Storage/ }).click();
+  await page.getByRole('button', { name: /All items/ }).click();
 });

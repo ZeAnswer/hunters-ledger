@@ -1,80 +1,180 @@
-import { useState } from 'react';
-import { addInventoryItem, removeInventoryItem, setEquipped, type InventoryItem } from '@hl/engine';
+import { useMemo, useState } from 'react';
+import { SLOTS, addItemInstance, equipItem, itemAbility, removeItemInstance, slotCapacity, slotOccupants, slotOf, unequipItem, type Ability, type EvalContext, type InventoryEntry, type ItemCategory, type SlotId } from '@hl/engine';
 import { useStore } from '../store/store';
 import { useCtx } from '../store/hooks';
 import { Button, Chip, Field, Sheet, cx, humanize, inputCls } from '../components/ui';
+import { AbilityEditor } from '../components/library/AbilityEditor';
 import { AbilitySheet } from '../components/character/AbilitySheet';
 
-const CATEGORIES: InventoryItem['category'][] = ['weapon', 'armor', 'wondrous', 'consumable', 'trophy', 'material', 'gear'];
+const CATEGORIES: ItemCategory[] = ['weapon', 'armor', 'shield', 'ammunition', 'wondrous', 'potion', 'scroll', 'wand', 'tool', 'trophy', 'material', 'gear'];
+
+function entryName(ctx: EvalContext, e: InventoryEntry) { return itemAbility(ctx, e)?.name ?? e.name ?? '(unknown item)'; }
+function entryCategory(ctx: EvalContext, e: InventoryEntry) { return itemAbility(ctx, e)?.item?.category ?? (e.category as ItemCategory | undefined) ?? 'gear'; }
 
 export function InventoryScreen() {
   const ctx = useCtx();
   const setCharacter = useStore((s) => s.setCharacter);
+  const library = useStore((s) => s.library);
+  const setLibrary = useStore((s) => s.setLibrary);
   const showToast = useStore((s) => s.showToast);
   const [tab, setTab] = useState<'equipped' | 'storage'>('equipped');
-  const [editing, setEditing] = useState<InventoryItem | undefined>();
-  const [abilityId, setAbilityId] = useState<string | undefined>();
-  if (!ctx) return <div className="p-4 text-zinc-500">No character.</div>;
+  const [open, setOpen] = useState<InventoryEntry | undefined>();
+  const [pickFor, setPickFor] = useState<SlotId | 'any' | undefined>();
+  const [creating, setCreating] = useState<Ability | undefined>();
+  const [editingRules, setEditingRules] = useState<Ability | undefined>();
+  const [viewRules, setViewRules] = useState<Ability | undefined>();
+  const cap = useMemo(() => (ctx ? slotCapacity(ctx) : undefined), [ctx]);
+  if (!ctx || !cap) return <div className="p-4 text-zinc-500">No character.</div>;
   const c = ctx.character;
-  const items = c.inventory.filter((i) => (tab === 'equipped' ? i.equipped : !i.equipped));
-  const groups = CATEGORIES.map((cat) => ({ cat, items: items.filter((i) => i.category === cat) })).filter((g) => g.items.length);
-  const toggle = (i: InventoryItem) => { setCharacter(setEquipped(c, i.id, !i.equipped)); showToast(`${i.name}: ${i.equipped ? 'stored' : 'equipped'}`); };
-  const save = () => {
-    if (!editing) return;
-    const exists = c.inventory.some((i) => i.id === editing.id);
-    setCharacter(exists ? { ...c, inventory: c.inventory.map((i) => (i.id === editing.id ? editing : i)) } : addInventoryItem(c, editing));
-    setEditing(undefined);
+
+  const doEquip = (e: InventoryEntry) => {
+    const r = equipItem(ctx, e.id);
+    if (!r.ok) {
+      if (confirm(`${r.reason}. Replace what is there?`)) { const r2 = equipItem(ctx, e.id, { replace: true }); setCharacter(r2.character); showToast(`${entryName(ctx, e)} equipped`); }
+      return;
+    }
+    setCharacter(r.character); showToast(`${entryName(ctx, e)} equipped`);
   };
+  const doUnequip = (e: InventoryEntry) => { setCharacter(unequipItem(ctx, e.id).character); showToast(`${entryName(ctx, e)} unequipped`); };
+  const fresh = (): Ability => ({ id: `item-${Date.now().toString(36)}`, name: '', source: 'item', activation: 'passive', enabledByDefault: true, effects: [], item: { category: 'gear' } });
+  const saveNew = (a: Ability) => {
+    setLibrary({ ...library, abilities: { ...library.abilities, [a.id]: a } });
+    setCharacter(addItemInstance(c, a.id));
+    setCreating(undefined); showToast(`${a.name} added`);
+  };
+  const saveRules = (a: Ability) => {
+    const rest = { ...library.abilities }; if (editingRules && a.id !== editingRules.id) delete rest[editingRules.id];
+    setLibrary({ ...library, abilities: { ...rest, [a.id]: a } });
+    if (editingRules && a.id !== editingRules.id) setCharacter({ ...c, inventory: c.inventory.map((i) => (i.abilityId === editingRules.id ? { ...i, abilityId: a.id } : i)), abilities: c.abilities.map((x) => (x.abilityId === editingRules.id ? { ...x, abilityId: a.id } : x)) });
+    setEditingRules(undefined); showToast('Saved');
+  };
+
+  const storage = [...c.inventory].sort((a, b) => entryName(ctx, a).localeCompare(entryName(ctx, b)));
+  const byCat = CATEGORIES.map((cat) => ({ cat, items: storage.filter((i) => entryCategory(ctx, i) === cat) })).filter((g) => g.items.length);
+  const carried = c.inventory.filter((i) => slotOf(itemAbility(ctx, i)) === 'none');
 
   return (
     <div className="p-4">
-      <div className="mb-3 flex items-center justify-between"><h1 className="text-2xl font-bold">Inventory</h1><Button size="sm" onClick={() => setEditing({ id: `new-${Date.now().toString(36)}`, name: '', quantity: 1, equipped: tab === 'equipped', category: 'gear' })}>+ Add</Button></div>
-      <div className="mb-3 flex gap-1 rounded-xl bg-zinc-900 p-1">
-        {(['equipped', 'storage'] as const).map((t) => <button key={t} type="button" onClick={() => setTab(t)} className={cx('flex-1 rounded-lg py-1.5 text-sm', tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-400')}>{t === 'equipped' ? `Equipped (${c.inventory.filter((i) => i.equipped).length})` : `Storage (${c.inventory.filter((i) => !i.equipped).length})`}</button>)}
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Inventory</h1>
+        <div className="flex gap-1"><Button size="sm" onClick={() => setPickFor('any')}>From library</Button><Button size="sm" variant="primary" onClick={() => setCreating(fresh())}>+ New item</Button></div>
       </div>
-      {groups.length === 0 && <p className="text-sm text-zinc-500">Nothing here.</p>}
-      {groups.map((g) => (
-        <div key={g.cat} className="mb-3">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">{humanize(g.cat)}</div>
-          <div className="space-y-1">
-            {g.items.map((i) => (
-              <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2">
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => (i.abilityId && ctx.library.abilities[i.abilityId] ? setAbilityId(i.abilityId) : setEditing(i))}>
-                  <div className="truncate">{i.name}{i.quantity !== 1 ? <span className="ml-1 text-zinc-400">×{i.quantity}</span> : null}{i.abilityId ? <span className="ml-1 text-amber-400" title="has rules">✦</span> : null}</div>
-                  {i.notes && <div className="truncate text-xs text-zinc-500">{i.notes.split('\n')[0]}</div>}
-                </button>
-                <Button size="sm" variant={i.equipped ? 'ghost' : 'default'} onClick={() => toggle(i)}>{i.equipped ? 'Unequip' : 'Equip'}</Button>
-                <button type="button" className="px-1 text-zinc-500" onClick={() => setEditing(i)}>✎</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className="mb-3 flex gap-1 rounded-xl bg-zinc-900 p-1">
+        {(['equipped', 'storage'] as const).map((t) => <button key={t} type="button" onClick={() => setTab(t)} className={cx('flex-1 rounded-lg py-1.5 text-sm', tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-400')}>{t === 'equipped' ? 'Equipped' : `All items (${c.inventory.length})`}</button>)}
+      </div>
 
-      <Sheet open={!!editing} onClose={() => setEditing(undefined)} title={editing?.name || 'New item'}>
-        {editing && (
-          <div>
-            <Field label="Name" htmlFor="it-name"><input id="it-name" className={inputCls} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></Field>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Quantity"><input className={inputCls} inputMode="numeric" value={editing.quantity} onChange={(e) => setEditing({ ...editing, quantity: Number(e.target.value) || 0 })} /></Field>
-              <Field label="Weight (lb)"><input className={inputCls} inputMode="decimal" value={editing.weight ?? ''} onChange={(e) => setEditing({ ...editing, weight: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
+      {tab === 'equipped' ? (
+        <div className="space-y-1">
+          {SLOTS.map((s) => {
+            const occ = slotOccupants(ctx, s.id);
+            const n = cap[s.id];
+            return Array.from({ length: n }, (_, idx) => {
+              const e = occ.find((o) => (o.slotIndex ?? 0) === idx) ?? occ[idx];
+              return (
+                <div key={`${s.id}-${idx}`} className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2">
+                  <div className="w-24 shrink-0 text-xs uppercase tracking-wide text-zinc-500">{s.label}{n > 1 ? ` ${idx + 1}` : ''}</div>
+                  {e ? (
+                    <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen(e)}><span className="truncate">{entryName(ctx, e)}</span>{itemAbility(ctx, e)?.effects.length ? <span className="ml-1 text-amber-400">✦</span> : null}</button>
+                  ) : (
+                    <button type="button" className="min-w-0 flex-1 text-left text-zinc-600" onClick={() => setPickFor(s.id)}>— empty —</button>
+                  )}
+                  {e ? <Button size="sm" variant="ghost" onClick={() => doUnequip(e)}>Unequip</Button> : <Button size="sm" variant="ghost" onClick={() => setPickFor(s.id)}>Equip…</Button>}
+                </div>
+              );
+            });
+          })}
+          {carried.length > 0 && (
+            <div className="pt-2">
+              <div className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Carried, no slot (active when carried)</div>
+              {carried.map((e) => (
+                <div key={e.id} className="mb-1 flex items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2">
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen(e)}>{e.equipped ? '✓ ' : ''}{entryName(ctx, e)}</button>
+                  <Button size="sm" variant="ghost" onClick={() => (e.equipped ? doUnequip(e) : doEquip(e))}>{e.equipped ? 'Deactivate' : 'Activate'}</Button>
+                </div>
+              ))}
             </div>
-            <Field label="Category"><div className="flex flex-wrap gap-1">{CATEGORIES.map((k) => <Chip key={k} active={editing.category === k} onClick={() => setEditing({ ...editing, category: k })}>{humanize(k)}</Chip>)}</div></Field>
-            <Field label="Rules (ability from the library, optional)">
-              <select className={inputCls} value={editing.abilityId ?? ''} onChange={(e) => setEditing({ ...editing, abilityId: e.target.value || undefined })}>
-                <option value="">— none, plain item —</option>
-                {Object.values(ctx.library.abilities).filter((a) => a.source === 'item').sort((a, b) => a.name.localeCompare(b.name)).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Notes"><textarea className={inputCls} value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value || undefined })} /></Field>
-            <div className="flex gap-2">
-              <Button variant="primary" onClick={save} disabled={!editing.name.trim()}>Save</Button>
-              {c.inventory.some((i) => i.id === editing.id) && <Button variant="danger" className="ml-auto" onClick={() => { if (confirm(`Delete ${editing.name}?`)) { setCharacter(removeInventoryItem(c, editing.id)); setEditing(undefined); } }}>Delete</Button>}
+          )}
+        </div>
+      ) : (
+        <div>
+          {byCat.map((g) => (
+            <div key={g.cat} className="mb-3">
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">{humanize(g.cat)}</div>
+              <div className="space-y-1">
+                {g.items.map((e) => { const a = itemAbility(ctx, e); const slot = slotOf(a); return (
+                  <button key={e.id} type="button" onClick={() => setOpen(e)} className="flex w-full items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2 text-left">
+                    <span className="min-w-0 flex-1 truncate"><span className={cx('mr-2', e.equipped ? 'text-emerald-400' : 'text-zinc-700')}>{e.equipped ? '✓' : '○'}</span>{entryName(ctx, e)}{e.quantity !== 1 ? <span className="ml-1 text-zinc-400">×{e.quantity}</span> : null}{a?.effects.length ? <span className="ml-1 text-amber-400">✦</span> : null}</span>
+                    <span className="shrink-0 text-xs text-zinc-500">{slot && slot !== 'none' ? SLOTS.find((s) => s.id === slot)?.label : slot === 'none' ? 'no slot' : ''}</span>
+                  </button>
+                ); })}
+              </div>
             </div>
+          ))}
+          {c.inventory.length === 0 && <p className="text-sm text-zinc-500">No items yet.</p>}
+        </div>
+      )}
+
+      {/* item instance sheet */}
+      {open && (() => { const e = c.inventory.find((i) => i.id === open.id); if (!e) return null; const a = itemAbility(ctx, e); const slot = slotOf(a); return (
+        <Sheet open onClose={() => setOpen(undefined)} title={entryName(ctx, e)}>
+          <div className="mb-2 text-xs text-zinc-500">{humanize(entryCategory(ctx, e))}{slot ? ` · ${slot === 'none' ? 'no slot' : SLOTS.find((s) => s.id === slot)?.label}` : ' · not equippable'}{a?.item?.weight !== undefined ? ` · ${a.item.weight} lb` : ''}{a?.item?.price ? ` · ${a.item.price}` : ''}</div>
+          {a?.text && <p className="mb-3 whitespace-pre-wrap text-sm text-zinc-300">{a.text}</p>}
+          {a?.todo && <p className="mb-3 rounded-xl border border-amber-900 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">⚑ {a.todo}</p>}
+          <div className="mb-3 flex flex-wrap gap-2">
+            {slot && (e.equipped ? <Button variant="ghost" onClick={() => doUnequip(e)}>{slot === 'none' ? 'Deactivate' : 'Unequip'}</Button> : <Button variant="primary" onClick={() => doEquip(e)}>{slot === 'none' ? 'Activate' : 'Equip'}</Button>)}
+            {a && a.effects.length > 0 && <Button onClick={() => setViewRules(a)}>Rules & charges</Button>}
+            {a && <Button onClick={() => setEditingRules(a)}>Edit item</Button>}
           </div>
-        )}
+          <Field label="Quantity"><input className={inputCls + ' w-24'} inputMode="numeric" value={e.quantity} onChange={(ev) => setCharacter({ ...c, inventory: c.inventory.map((i) => (i.id === e.id ? { ...i, quantity: Number(ev.target.value) || 0 } : i)) })} /></Field>
+          <Field label="Notes (this copy)"><textarea className={inputCls} value={e.notes ?? ''} onChange={(ev) => setCharacter({ ...c, inventory: c.inventory.map((i) => (i.id === e.id ? { ...i, notes: ev.target.value || undefined } : i)) })} /></Field>
+          <Button variant="danger" onClick={() => { if (confirm(`Remove ${entryName(ctx, e)} from ${c.name}? (stays in the library)`)) { setCharacter(removeItemInstance(ctx, e.id)); setOpen(undefined); } }}>Remove from character</Button>
+        </Sheet>
+      ); })()}
+
+      {/* pick from library / storage for a slot */}
+      {pickFor && <PickSheet ctx={ctx} slot={pickFor} onClose={() => setPickFor(undefined)} onEquipExisting={(e) => { doEquip(e); setPickFor(undefined); }} onAddFromLibrary={(a, equip) => { let next = addItemInstance(c, a.id); if (equip) { const r = equipItem({ ...ctx, character: next }, next.inventory.at(-1)!.id, { replace: true }); next = r.character; } setCharacter(next); showToast(`${a.name} added`); setPickFor(undefined); }} onCreate={() => { setPickFor(undefined); setCreating({ ...fresh(), item: { category: pickFor === 'any' ? 'gear' : 'wondrous', ...(pickFor !== 'any' ? { slot: pickFor } : {}) } }); }} />}
+
+      <Sheet open={!!creating} onClose={() => setCreating(undefined)} title="New item" tall>
+        {creating && <AbilityEditor key={creating.id} initial={creating} onSave={saveNew} onCancel={() => setCreating(undefined)} />}
       </Sheet>
-      {abilityId && ctx.library.abilities[abilityId] && <AbilitySheet ctx={ctx} ability={ctx.library.abilities[abilityId]!} onClose={() => setAbilityId(undefined)} />}
+      <Sheet open={!!editingRules} onClose={() => setEditingRules(undefined)} title={editingRules?.name} tall>
+        {editingRules && <AbilityEditor key={editingRules.id} initial={editingRules} onSave={saveRules} onCancel={() => setEditingRules(undefined)} />}
+      </Sheet>
+      {viewRules && <AbilitySheet ctx={ctx} ability={viewRules} onClose={() => setViewRules(undefined)} />}
     </div>
+  );
+}
+
+function PickSheet({ ctx, slot, onClose, onEquipExisting, onAddFromLibrary, onCreate }: { ctx: EvalContext; slot: SlotId | 'any'; onClose: () => void; onEquipExisting: (e: InventoryEntry) => void; onAddFromLibrary: (a: Ability, equip: boolean) => void; onCreate: () => void }) {
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState<ItemCategory | undefined>();
+  const fits = (a: Ability | undefined) => !!a && (slot === 'any' || slotOf(a) === slot);
+  const owned = ctx.character.inventory.filter((e) => !e.equipped && fits(itemAbility(ctx, e)) && (!q || entryName(ctx, e).toLowerCase().includes(q.toLowerCase())));
+  const ownedIds = new Set(ctx.character.inventory.map((e) => e.abilityId));
+  const libraryItems = Object.values(ctx.library.abilities).filter((a) => a.source === 'item' && fits(a) && (!cat || a.item?.category === cat) && (!q || a.name.toLowerCase().includes(q.toLowerCase()))).sort((a, b) => a.name.localeCompare(b.name));
+  const label = slot === 'any' ? 'Add item' : `Equip: ${SLOTS.find((s) => s.id === slot)?.label}`;
+  return (
+    <Sheet open onClose={onClose} title={label} tall>
+      <input className={inputCls + ' mb-2'} placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+      {slot !== 'any' && (
+        <Field label="From your items">
+          {owned.length === 0 && <div className="text-sm text-zinc-500">Nothing in storage fits this slot.</div>}
+          <div className="space-y-1">{owned.map((e) => <button key={e.id} type="button" onClick={() => onEquipExisting(e)} className="flex w-full items-center justify-between rounded-xl bg-zinc-900 px-3 py-2 text-left"><span>{entryName(ctx, e)}</span><span className="text-xs text-amber-300">Equip</span></button>)}</div>
+        </Field>
+      )}
+      <Field label="From the library">
+        <div className="mb-2 flex gap-1 overflow-x-auto pb-1"><Chip active={!cat} onClick={() => setCat(undefined)}>all</Chip>{CATEGORIES.map((k) => <Chip key={k} active={cat === k} onClick={() => setCat(cat === k ? undefined : k)}>{humanize(k)}</Chip>)}</div>
+        <div className="max-h-[40vh] space-y-1 overflow-y-auto">
+          {libraryItems.map((a) => (
+            <div key={a.id} className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2">
+              <div className="min-w-0"><div className="truncate">{a.name}{ownedIds.has(a.id) ? <span className="ml-1 text-xs text-zinc-500">(owned)</span> : null}</div><div className="text-xs text-zinc-500">{humanize(a.item?.category ?? 'gear')}{a.item?.slot ? ` · ${a.item.slot === 'none' ? 'no slot' : SLOTS.find((s) => s.id === a.item!.slot)?.label}` : ''}</div></div>
+              <div className="flex gap-1"><Button size="sm" onClick={() => onAddFromLibrary(a, false)}>Add</Button>{slot !== 'any' && <Button size="sm" variant="primary" onClick={() => onAddFromLibrary(a, true)}>Add & equip</Button>}</div>
+            </div>
+          ))}
+          {libraryItems.length === 0 && <div className="text-sm text-zinc-500">No library items match.</div>}
+        </div>
+      </Field>
+      <Button className="w-full" onClick={onCreate}>+ Create a new item</Button>
+    </Sheet>
   );
 }

@@ -1,8 +1,8 @@
 import type { Library } from './context';
 import type { Pack } from './schema';
 
-export type ItemMeta = { packId: string; version: number };
-export type LibraryWithMeta = Library & { meta: Record<string, ItemMeta> };
+export type PackItemMeta = { packId: string; version: number };
+export type LibraryWithMeta = Library & { meta: Record<string, PackItemMeta> };
 
 export type MergeReport = {
   added: string[];
@@ -18,7 +18,7 @@ export function emptyLibrary(): LibraryWithMeta {
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Merge a pack into a library. Same-pack newer versions update; foreign differing items conflict unless overwrite. */
-export function mergePack(library: Library & { meta?: Record<string, ItemMeta> }, pack: Pack, opts: { overwrite?: boolean } = {}): { library: LibraryWithMeta; report: MergeReport } {
+export function mergePack(library: Library & { meta?: Record<string, PackItemMeta> }, pack: Pack, opts: { overwrite?: boolean } = {}): { library: LibraryWithMeta; report: MergeReport } {
   const lib: LibraryWithMeta = {
     abilities: { ...library.abilities }, tags: { ...library.tags }, skills: { ...library.skills },
     classTables: { ...library.classTables }, xpTable: [...library.xpTable], meta: { ...(library.meta ?? {}) },

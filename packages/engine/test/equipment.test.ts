@@ -1,0 +1,63 @@
+import { equipItem, unequipItem, slotCapacity, slotOf, SLOTS } from '../src/equipment';
+import { makeCtx, makeCharacter, makeAbility } from './fixtures';
+import type { Ability } from '../src/schema';
+
+const ring1 = makeAbility({ id: 'ring-a', source: 'item', item: { category: 'wondrous', slot: 'ring' }, effects: [{ id: 'e', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'deflection' }] }] });
+const ring2 = makeAbility({ id: 'ring-b', source: 'item', item: { category: 'wondrous', slot: 'ring' } });
+const ring3 = makeAbility({ id: 'ring-c', source: 'item', item: { category: 'wondrous', slot: 'ring' } });
+const handOfGlory = makeAbility({ id: 'hog', source: 'item', item: { category: 'wondrous', slot: 'neck' }, effects: [{ id: 's', do: [{ kind: 'extraSlot', slot: 'ring', count: 1 }] }] });
+const bracersA = makeAbility({ id: 'bracers-a', source: 'item', item: { category: 'wondrous', slot: 'arms' } });
+const bracersB = makeAbility({ id: 'bracers-b', source: 'item', item: { category: 'wondrous', slot: 'arms' } });
+const potion = makeAbility({ id: 'potion', source: 'item', item: { category: 'potion' } });
+const manual = makeAbility({ id: 'manual', source: 'item', item: { category: 'wondrous', slot: 'none' } });
+
+function ctxWith(items: Ability[], inventory: { id: string; abilityId: string; equipped?: boolean }[]) {
+  const c = makeCtx({ character: makeCharacter({ inventory: inventory.map((i) => ({ ...i, quantity: 1, equipped: i.equipped ?? false })) }) });
+  for (const a of items) c.library.abilities[a.id] = a;
+  return c;
+}
+
+test('slot list and lookups', () => {
+  expect(SLOTS.map((s) => s.id)).toContain('mainHand');
+  expect(slotOf(ring1)).toBe('ring');
+  expect(slotOf(potion)).toBeUndefined();
+});
+
+test('equipping fills the slot and enables the rules; ring has two slots', () => {
+  let ctx = ctxWith([ring1, ring2, ring3], [{ id: 'i1', abilityId: 'ring-a' }, { id: 'i2', abilityId: 'ring-b' }, { id: 'i3', abilityId: 'ring-c' }]);
+  let r = equipItem(ctx, 'i1');
+  expect(r.ok).toBe(true);
+  ctx = { ...ctx, character: r.character };
+  expect(ctx.character.inventory[0]).toMatchObject({ equipped: true, slotIndex: 0 });
+  expect(ctx.character.abilities.find((a) => a.abilityId === 'ring-a')?.enabled).toBe(true);
+  r = equipItem(ctx, 'i2'); ctx = { ...ctx, character: r.character };
+  expect(ctx.character.inventory[1]).toMatchObject({ equipped: true, slotIndex: 1 });
+  r = equipItem(ctx, 'i3');
+  expect(r.ok).toBe(false);
+  expect(r.reason).toMatch(/ring.*full/i);
+});
+
+test('replace: equipping into a full single slot swaps the old item out', () => {
+  let ctx = ctxWith([bracersA, bracersB], [{ id: 'a', abilityId: 'bracers-a', equipped: true }, { id: 'b', abilityId: 'bracers-b' }]);
+  const r = equipItem(ctx, 'b', { replace: true });
+  ctx = { ...ctx, character: r.character };
+  expect(ctx.character.inventory.map((i) => i.equipped)).toEqual([false, true]);
+});
+
+test('an extraSlot effect from an equipped item raises capacity', () => {
+  let ctx = ctxWith([ring1, ring2, ring3, handOfGlory], [{ id: 'i1', abilityId: 'ring-a', equipped: true }, { id: 'i2', abilityId: 'ring-b', equipped: true }, { id: 'i3', abilityId: 'ring-c' }, { id: 'h', abilityId: 'hog' }]);
+  ctx.character.abilities = [{ abilityId: 'ring-a', enabled: true, paramValues: {} }, { abilityId: 'ring-b', enabled: true, paramValues: {} }];
+  expect(slotCapacity(ctx).ring).toBe(2);
+  ctx = { ...ctx, character: equipItem(ctx, 'h').character };
+  expect(slotCapacity(ctx).ring).toBe(3);
+  expect(equipItem(ctx, 'i3').ok).toBe(true);
+});
+
+test('slotless items (potions, manuals) toggle "carried/active" without a slot; unequip disables rules', () => {
+  let ctx = ctxWith([manual, ring1], [{ id: 'm', abilityId: 'manual' }, { id: 'i1', abilityId: 'ring-a', equipped: true }]);
+  ctx.character.abilities = [{ abilityId: 'ring-a', enabled: true, paramValues: {} }];
+  ctx = { ...ctx, character: equipItem(ctx, 'm').character };
+  expect(ctx.character.inventory[0]!.equipped).toBe(true);
+  ctx = { ...ctx, character: unequipItem(ctx, 'i1').character };
+  expect(ctx.character.abilities.find((a) => a.abilityId === 'ring-a')?.enabled).toBe(false);
+});

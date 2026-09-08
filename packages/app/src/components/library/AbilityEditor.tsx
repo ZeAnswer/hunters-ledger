@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { AbilitySchema, type Ability, type EffectBlock, type Trigger } from '@hl/engine';
+import { AbilitySchema, SLOTS, type Ability, type EffectBlock, type ItemCategory, type Trigger } from '@hl/engine';
 import { Button, Chip, Field, cx, inputCls } from '../ui';
 import { ConditionEditor } from './ConditionEditor';
 import { DurationPicker, EffectEditor } from './EffectEditor';
 
 const SOURCES = ['feat', 'class', 'item', 'memory', 'buff', 'condition', 'spell', 'situational', 'core'] as const;
+const ITEM_CATEGORIES: ItemCategory[] = ['weapon', 'armor', 'shield', 'ammunition', 'wondrous', 'potion', 'scroll', 'wand', 'tool', 'trophy', 'material', 'gear'];
+/** Categories that occupy a body slot; the slot must be chosen. */
+const SLOTTED: Partial<Record<ItemCategory, readonly string[]>> = { weapon: ['mainHand', 'offHand'], armor: ['armor'], shield: ['offHand', 'buckler'], ammunition: ['quiver'], wondrous: SLOTS.map((s) => s.id), trophy: SLOTS.map((s) => s.id), tool: ['mainHand', 'offHand', 'none'] };
 const TRIGGERS: { id: Trigger; label: string }[] = [
   { id: 'always', label: 'While conditions hold (passive)' }, { id: 'onHit', label: 'When I hit' }, { id: 'onMiss', label: 'When I miss' }, { id: 'onCrit', label: 'When I crit' }, { id: 'onUse', label: 'When I use this ability' }, { id: 'onRoundStart', label: 'At round start' },
 ];
@@ -25,6 +28,8 @@ export function AbilityEditor({ initial, onSave, onDelete, onCancel }: { initial
     try {
       const parsed = AbilitySchema.parse(tab === 'json' ? JSON.parse(json) : a);
       if (!parsed.id.trim()) throw new Error('id required');
+      if (!parsed.name.trim()) throw new Error('name required');
+      if (parsed.source === 'item' && parsed.item && SLOTTED[parsed.item.category] && !parsed.item.slot) throw new Error(`Choose a body slot for this ${parsed.item.category}`);
       onSave(parsed);
     } catch (e) { setErr((e as Error).message); }
   };
@@ -41,7 +46,24 @@ export function AbilityEditor({ initial, onSave, onDelete, onCancel }: { initial
             <Field label="Name" htmlFor="ab-name"><input id="ab-name" className={inputCls} value={a.name} onChange={(e) => set({ name: e.target.value })} /></Field>
             <Field label="Id (stable, no spaces)" htmlFor="ab-id"><input id="ab-id" className={inputCls} value={a.id} onChange={(e) => set({ id: e.target.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-') })} /></Field>
           </div>
-          <Field label="Source"><div className="flex flex-wrap gap-1">{SOURCES.map((s) => <Chip key={s} active={a.source === s} onClick={() => set({ source: s })}>{s}</Chip>)}</div></Field>
+          <Field label="Source"><div className="flex flex-wrap gap-1">{SOURCES.map((s) => <Chip key={s} active={a.source === s} onClick={() => set({ source: s, ...(s === 'item' && !a.item ? { item: { category: 'gear' } } : {}) })}>{s}</Chip>)}</div></Field>
+          {a.source === 'item' && (() => { const cat = a.item?.category ?? 'gear'; const slots = SLOTTED[cat]; return (
+            <>
+              <Field label="Item category" htmlFor="item-cat"><select id="item-cat" className={inputCls} value={cat} onChange={(e) => { const nc = e.target.value as ItemCategory; const ns = SLOTTED[nc]; set({ item: { ...(a.item ?? { category: nc }), category: nc, slot: ns ? (ns.length === 1 ? (ns[0] as never) : undefined) : undefined } }); }}>{ITEM_CATEGORIES.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
+              {slots && (
+                <Field label={`Body slot${a.item?.slot ? '' : ' — choose one'}`}>
+                  <div className="flex flex-wrap gap-1">
+                    {slots.map((id) => <Chip key={id} tone="amber" active={a.item?.slot === id} onClick={() => set({ item: { ...(a.item ?? { category: cat }), slot: id as never } })}>{id === 'none' ? 'No slot (active when carried)' : SLOTS.find((s) => s.id === id)?.label ?? id}</Chip>)}
+                    {(cat === 'wondrous' || cat === 'trophy') && <Chip tone="amber" active={a.item?.slot === 'none'} onClick={() => set({ item: { ...(a.item ?? { category: cat }), slot: 'none' } })}>No slot (active when carried)</Chip>}
+                  </div>
+                </Field>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Weight (lb)"><input className={inputCls} inputMode="decimal" value={a.item?.weight ?? ''} onChange={(e) => set({ item: { ...(a.item ?? { category: cat }), weight: e.target.value === '' ? undefined : Number(e.target.value) } })} /></Field>
+                <Field label="Price"><input className={inputCls} value={a.item?.price ?? ''} onChange={(e) => set({ item: { ...(a.item ?? { category: cat }), price: e.target.value || undefined } })} /></Field>
+              </div>
+            </>
+          ); })()}
           <Field label="Rules text"><textarea className={inputCls} value={a.text ?? ''} onChange={(e) => set({ text: e.target.value || undefined })} /></Field>
           <Field label="How it activates">
             <div className="flex flex-wrap gap-1">
