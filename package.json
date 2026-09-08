@@ -12,7 +12,8 @@
     "build": "npm run build -w packages/engine && npm run build -w packages/app",
     "typecheck": "npm run typecheck -ws",
     "validate-packs": "tsx tools/pack-validate.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "serve": "npm run build -w packages/app && npm run preview -w packages/app"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
