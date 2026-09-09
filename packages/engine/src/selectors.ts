@@ -39,7 +39,7 @@ export function readSelector(ctx: EvalContext, sel: string): SelValue {
           const inst = c.abilities.find((a) => a.abilityId === id);
           const suppressed = !!ctx.battle?.suppressedAbilities.includes(id);
           if (what === 'enabled') return !!inst?.enabled && !suppressed;
-          if (what === 'active') return !suppressed && (!!ctx.battle?.activeAbilities.includes(id) || !!ctx.battle?.activeBuffs.some((b) => b.abilityId === id && b.owner === 'self' && !b.suppressed));
+          if (what === 'active') return !suppressed && !!ctx.battle?.activeBuffs.some((b) => b.abilityId === id && b.owner === 'self' && !b.suppressed);
           if (what === 'usesLeft' || what === 'used') {
             const a = ctx.library.abilities[id]; const r = a?.resources[0]; if (!r) return undefined;
             const max = evalExpr(r.max, exprVarsRaw(ctx)); const used = resourceUsed(ctx, r.id, r.resetOn);

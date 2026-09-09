@@ -10,6 +10,7 @@ const isObj = (x: unknown): x is Any => !!x && typeof x === 'object' && !Array.i
 export function isV1Ability(a: unknown): boolean {
   if (!isObj(a)) return false;
   if ('source' in a && !('origin' in a)) return true;
+  if (a.activation === 'toggle') return true;
   const effects = a.effects as Any[] | undefined;
   return !!effects?.some((b) => isObj(b) && ((Array.isArray(b.do) && b.do.some((e) => isObj(e) && 'kind' in e)) || (isObj(b.when) && 'kind' in b.when)));
 }
@@ -97,6 +98,7 @@ export function convertV1(a: unknown): Any {
   const out: Any = { ...a };
   if ('source' in out) { out.origin = ORIGIN[out.source as string] ?? out.source; delete out.source; }
   if (isObj(out.activation) && 'action' in out.activation) out.activation = { action: out.activation.action === 'full' ? 'fullRound' : out.activation.action };
+  if (out.activation === 'toggle') { out.activation = { action: 'free' }; if (out.duration === undefined) out.duration = 'endOfRound'; }
   if (out.duration !== undefined) out.duration = convertDuration(out.duration);
   if (Array.isArray(out.resources)) out.resources = out.resources.map((r) => { const rr = { ...(r as Any) }; if ('per' in rr) { rr.resetOn = rr.per; delete rr.per; } return rr; });
   if (Array.isArray(out.effects)) out.effects = out.effects.map((b) => { const bb = { ...(b as Any) }; if (bb.when !== undefined) bb.when = convertCondition(bb.when); if (Array.isArray(bb.do)) bb.do = bb.do.map(convertEffect); return bb; });

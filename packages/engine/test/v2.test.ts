@@ -1,6 +1,6 @@
 import { resolveAttack, attackProfiles, availableActions, resolveStat, resolveFlags } from '../src/resolve';
 import { evalCondition } from '../src/conditions';
-import { setAbilityActive, nextRound, useAbility, logEnemyAction, setDistance } from '../src/battle';
+import { nextRound, useAbility, logEnemyAction, setDistance } from '../src/battle';
 import { makeCtx, makeCharacter, makeAbility, makeBattle, makeCombatant } from './fixtures';
 import type { Ability } from '../src/schema';
 
@@ -9,7 +9,7 @@ const weaponFocus = makeAbility({ id: 'wf-longbow', name: 'Weapon Focus (longbow
 const flaming = makeAbility({ id: 'flaming-bow', name: 'Flaming', origin: 'item', binding: 'thisWeapon', item: { category: 'weapon', slot: 'mainHand', weapon: { kind: 'ranged', dice: '1d8', attackAbility: 'dex' } }, effects: [{ id: 'f', do: [{ verb: 'dice', dice: '1d6', damageType: 'fire' }] }] });
 const pbs = makeAbility({ id: 'pbs', name: 'Point Blank Shot', origin: 'feat', effects: [{ id: 'e', when: { all: [{ compare: 'attack.kind', op: '=', value: 'ranged' }, { compare: 'target.distance', op: '<=', value: 30 }] }, do: [{ verb: 'modify', to: 'attack', value: 1 }, { verb: 'modify', to: 'damage', value: 1 }] }] });
 const boots = makeAbility({
-  id: 'boots', name: 'Boots of Speed', origin: 'item', activation: 'toggle', item: { category: 'wondrous', slot: 'feet' },
+  id: 'boots', name: 'Boots of Speed', origin: 'item', activation: { action: 'free' }, duration: 'endOfRound', item: { category: 'wondrous', slot: 'feet' },
   resources: [{ id: 'boots-rounds', label: 'Haste rounds', max: 10, resetOn: 'day' }], cost: [{ kind: 'charge', resourceId: 'boots-rounds' }],
   effects: [{ id: 'haste', do: [{ verb: 'attack', extraAttacks: 1, appliesToBase: 'full' }, { verb: 'modify', to: 'attack', value: 1, type: 'dodge' }] }],
 });
@@ -62,26 +62,20 @@ test('distance per combatant drives range conditions', () => {
   expect(r.attacks[0]!.nearMiss[0]!.failed).toMatch(/distance.*at most 30/);
 });
 
-test('toggle ability with charges: switching on is free and needs charges; the charge is spent when the round executes; dry → off', () => {
+test('per-round charged ability: Use spends a charge and the effect lasts this round only', () => {
   let c = ctxWith([bow, boots], { equipped: ['bow', 'boots'] });
   expect(resolveAttack(c, { profileId: 'weapon:bow', modeId: 'full' }).attacks.length).toBe(2);
-  c = { ...c, ...setAbilityActive(c, 'boots', true) };
-  expect(c.battle!.activeAbilities).toEqual(['boots']);
+  expect(availableActions(c).find((a) => a.abilityId === 'boots')).toMatchObject({ usable: true, active: false });
+  c = { ...c, ...useAbility(c, { abilityId: 'boots' }) };
+  expect(c.character.resourceState['boots-rounds']).toEqual({ used: 1 });
+  expect(c.battle!.activeBuffs).toEqual([expect.objectContaining({ abilityId: 'boots', remainingRounds: 1 })]);
   expect(resolveAttack(c, { profileId: 'weapon:bow', modeId: 'full' }).attacks.length).toBe(3);
-  expect(c.character.resourceState['boots-rounds']).toBeUndefined(); // nothing spent yet
-  c = { ...c, ...setAbilityActive(c, 'boots', false) };
-  c = { ...c, ...setAbilityActive(c, 'boots', true) }; // flip-flopping within the round costs nothing
+  expect(availableActions(c).find((a) => a.abilityId === 'boots')?.active).toBe(true);
   c = { ...c, ...nextRound(c) };
-  expect(c.character.resourceState['boots-rounds']).toEqual({ used: 1 }); // round executed while on
-  expect(c.battle!.activeAbilities).toEqual(['boots']); // stays on into the next round
-  c = { ...c, ...nextRound(c) };
-  expect(c.character.resourceState['boots-rounds']).toEqual({ used: 2 });
-  c.character.resourceState['boots-rounds'] = { used: 9 };
-  c = { ...c, ...nextRound(c) };
-  expect(c.character.resourceState['boots-rounds']).toEqual({ used: 10 });
-  expect(c.battle!.activeAbilities).toEqual([]); // spent the last charge → switched off
-  expect(c.battle!.log.at(-1)).toMatchObject({ kind: 'deactivate', abilityId: 'boots' });
-  expect(setAbilityActive(c, 'boots', true).battle.activeAbilities).toEqual([]); // cannot turn on with no charges
+  expect(c.battle!.activeBuffs).toEqual([]); // expired: choose again this round
+  expect(resolveAttack(c, { profileId: 'weapon:bow', modeId: 'full' }).attacks.length).toBe(2);
+  c.character.resourceState['boots-rounds'] = { used: 10 };
+  expect(availableActions(c).find((a) => a.abilityId === 'boots')?.usable).toBe(false);
 });
 
 test('granted abilities appear as separate actions with their granter, each with its own charges', () => {

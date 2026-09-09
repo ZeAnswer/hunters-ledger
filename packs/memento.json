@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 8,
+  "version": 9,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -671,9 +671,11 @@
       "id": "boots-of-speed",
       "name": "Boots of Speed",
       "origin": "item",
-      "text": "Free action to switch on or off: haste for up to 10 rounds per day, in any increments. While on: one extra attack on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed. One round is spent for every round executed with the boots on.",
+      "text": "Free action: spend one haste round (10 per day). This round: one extra attack on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed. Choose again each round.",
       "binding": "none",
-      "activation": "toggle",
+      "activation": {
+        "action": "free"
+      },
       "cost": [
         {
           "kind": "charge",
@@ -681,6 +683,7 @@
           "amount": 1
         }
       ],
+      "duration": "endOfRound",
       "resources": [
         {
           "id": "boots-rounds",

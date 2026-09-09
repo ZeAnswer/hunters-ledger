@@ -148,7 +148,7 @@ export type EffectBlock = z.infer<typeof EffectBlockSchema>;
 // ---------- ability envelope ----------
 export const ActionSchema = z.union([z.enum(['free', 'swift', 'immediate', 'move', 'standard', 'fullRound']), z.object({ minutes: z.number().positive() }), z.object({ hours: z.number().positive() })]);
 export const ActivationSchema = z.union([
-  z.enum(['passive', 'toggle', 'declare', 'atWill']),
+  z.enum(['passive', 'declare', 'atWill']),
   z.object({ action: ActionSchema }),
   z.object({ reaction: TriggerSchema }),
 ]);
@@ -446,8 +446,6 @@ export const BattleSchema = z.object({
   activeBuffs: z.array(ActiveBuffSchema).default([]),
   situational: z.array(AbilitySchema).default([]),
   suppressedAbilities: z.array(z.string()).default([]),
-  /** Abilities currently switched on (toggle activation). */
-  activeAbilities: z.array(z.string()).default([]),
   selfConditions: z.array(z.object({ tag: z.string(), expires: DurationSchema.optional(), appliedRound: z.number().int().optional(), source: z.string().optional() })).default([]),
   toggles: z.record(z.boolean()).default({}),
   /** Environment tags for this battle (underwater, darkness, forest…). */

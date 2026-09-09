@@ -9,7 +9,7 @@ Every feat, class feature, item, spell, buff, condition, memory and situational 
   "id": "monster-blow", "name": "Monster Blow", "text": "…", "sourceRef": "Monster Hunter PDF",
   "origin": "classFeature",            // feat | classFeature | race | item | spell | buff | condition | memory | situational | monster | core
   "binding": "none",                   // none | thisItem | thisWeapon | { "slot": "arms" }
-  "activation": "declare",             // passive | toggle | declare | atWill | { "action": "standard" } | { "reaction": "onDamaged" }
+  "activation": "declare",             // passive | declare | atWill | { "action": "standard" } | { "reaction": "onDamaged" }
   "cost": [{ "kind": "charge", "resourceId": "monster-blow" }],   // charge | gold | xp | hp | item | spellSlot
   "duration": { "rounds": 5 },         // instant | thisAttack | thisTurn | untilMyNextTurn | endOfRound | {rounds} | {minutes} | encounter | untilRemoved | whileActive | concentration
   "resources": [{ "id": "monster-blow", "max": "1 + floor(classLevel(monster-hunter) / 5)", "resetOn": "day", "resetTo": "max" }],
@@ -20,7 +20,7 @@ Every feat, class feature, item, spell, buff, condition, memory and situational 
 }
 ```
 
-Activation rules of thumb: **passive** = always on; **toggle** = a *sustained* ability you start and stop (Boots of Speed, stances, Power Attack), effects apply only while active; switching on needs charges but costs nothing, one charge is spent for every round executed (Next round) while it is on, and it switches off when the pool is empty; **declare** = a chip you tap before rolling, cleared each round; **action** = a Use button that logs, pays costs and runs `onUse` blocks; **reaction** = automatic on the named trigger.
+Activation rules of thumb: **passive** = always on (suppressible in battle); **action** = a Use button that logs, pays costs and runs `onUse` blocks, and if the ability has a `duration` its passive blocks then apply for that long (Boots of Speed: `endOfRound` → pick it again each round, one charge each time); **declare** = a chip you tap before rolling, cleared each round; **atWill** = usable without charges; **reaction** = automatic on the named trigger. Older rules with `activation: toggle` are converted to a free action lasting until end of round.
 
 Resources: `resetOn` = round | encounter | day | rest | manual | never. `resetTo: max` shows charges left (10/10 baseline); `resetTo: zero` shows a counter that climbs from 0.
 
@@ -102,7 +102,7 @@ Expressions: numbers, `strMod`…`chaMod`, `level`, `bab`, `round`, `damage` (la
 
 **Monster Blow** — declare; resource 1/day scaling with class level; block `when: { all: [ { is: "battle.toggle.monster-blow" }, { in: "target.tags", param: "types" }, { compare: "target.hurt", op: ">=", value: "bloodied" } ] }`, `do: [ { verb: "note", text: "Fort DC {damage + classLevel(monster-hunter) + wisMod} or die" } ]`; `onUse` block consumes the charge.
 
-**Boots of Speed** — toggle, cost charge `boots-rounds`, always-block with the haste effects; a round is spent at each Next round while on; switches off when dry.
+**Boots of Speed** — free action, cost charge `boots-rounds`, duration `endOfRound`, always-block with the haste effects: Use spends one round and applies haste for this round.
 
 **Medusa mask** — item, head slot; `naturalAttack` snakes; 1/day gaze as a granted spell-like ability with its own resource.
 

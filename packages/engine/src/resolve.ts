@@ -73,7 +73,7 @@ function bindingOk(ctx: EvalContext, a: Ability): boolean {
   return ctx.character.inventory.some((i) => i.equipped && i.abilityId && ctx.library.abilities[i.abilityId]?.item?.slot === b.slot);
 }
 
-/** Every ability currently contributing effects for the character. Toggle abilities only while active; buffs via activeBuffs. */
+/** Every ability currently contributing effects for the character. Abilities with a duration contribute only while active (via activeBuffs). */
 export function activeSources(ctx: EvalContext, warnings: string[] = []): Source[] {
   const out: Source[] = [];
   const seen = new Set<string>();
@@ -83,7 +83,6 @@ export function activeSources(ctx: EvalContext, warnings: string[] = []): Source
     for (const gid of parent.grants) {
       const g = ctx.library.abilities[gid];
       if (!g || suppressed.has(gid)) continue;
-      if (g.activation === 'toggle' && !ctx.battle?.activeAbilities.includes(gid)) continue;
       push({ ability: g, instance, kind: 'granted', grantedBy: parent.id });
     }
   };
@@ -92,7 +91,7 @@ export function activeSources(ctx: EvalContext, warnings: string[] = []): Source
     const ability = ctx.library.abilities[inst.abilityId];
     if (!ability) { warnings.push(`Unknown ability "${inst.abilityId}" on character; ignored.`); continue; }
     if (ability.origin === 'buff' || ability.origin === 'condition') continue; // only via activeBuffs
-    if (ability.activation === 'toggle' && !ctx.battle?.activeAbilities.includes(ability.id)) { addGranted(ability, inst); continue; }
+    if (ability.duration && ability.activation !== 'passive') { addGranted(ability, inst); continue; } // lasts only after use: contributes via activeBuffs
     if (!bindingOk(ctx, ability)) continue;
     push({ ability, instance: inst, kind: 'ability' });
     addGranted(ability, inst);
@@ -478,7 +477,7 @@ export function availableActions(ctx: EvalContext): ActionInfo[] {
       if (!eligible) for (const b of blocks) { const f = firstFailure(b.when, declared); if (f) reasons.push(`Needs: ${f}`); }
       for (const b of passing) for (const e of b.do) if (e.verb === 'note') notes.push(interpolate(e.text, vars));
     }
-    const active = !!ctx.battle?.activeAbilities.includes(ability.id) || !!ctx.battle?.activeBuffs.some((b) => b.abilityId === ability.id && !b.suppressed);
+    const active = !!ctx.battle?.activeBuffs.some((b) => b.abilityId === ability.id && !b.suppressed);
     out.push({ abilityId: ability.id, name: ability.name, origin: ability.origin, ...(grantedBy ? { grantedBy } : {}), activation: ability.activation, active, usable, eligible, reasons, resources, notes });
   };
   for (const inst of ctx.character.abilities) {

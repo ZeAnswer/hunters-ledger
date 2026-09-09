@@ -29,17 +29,17 @@ test('distance chip enables Point Blank Shot; Boots of Speed toggle adds an atta
   await expect(rows).toHaveCount(2);
   const boots = page.locator('[data-ability="boots-of-speed"]');
   await expect(boots).toContainText('8/10');
-  await boots.getByRole('button', { name: 'Start' }).click();
-  await expect(rows).toHaveCount(3); // haste extra attack
+  await boots.getByRole('button', { name: 'Use' }).click();
+  await expect(rows).toHaveCount(3); // haste extra attack this round
   await expect(rows.nth(0)).toContainText('+14'); // +1 dodge
-  await expect(boots).toContainText('8/10'); // nothing spent until the round executes
-  await page.getByRole('button', { name: /Next round/ }).click();
   await expect(boots).toContainText('7/10');
-  await expect(boots).toContainText('ACTIVE this round'); // stays on
-  await boots.getByRole('button', { name: 'Stop' }).click();
-  await expect(rows).toHaveCount(2);
+  await expect(boots).toContainText('ACTIVE');
   await page.getByRole('button', { name: /Next round/ }).click();
-  await expect(boots).toContainText('7/10'); // off during that round: no charge
+  await expect(rows).toHaveCount(2); // expired: choose again
+  await expect(boots).toContainText('7/10');
+  await boots.getByRole('button', { name: 'Use' }).click();
+  await expect(rows).toHaveCount(3);
+  await expect(boots).toContainText('6/10');
 });
 
 test('it hit me: logs enemy action and reduces HP', async ({ page }) => {

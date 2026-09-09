@@ -68,8 +68,8 @@ function applyTriggered(ctx: EvalContext, state: State, ability: Ability, effect
       case 'grant': {
         const g = ctx.library.abilities[e.ability];
         const dur = e.duration ?? g?.duration;
-        const rounds = typeof dur === 'object' && 'rounds' in dur ? evalExpr(dur.rounds, vars) : undefined;
-        if (!battle.activeBuffs.some((b) => b.abilityId === e.ability)) battle = { ...battle, activeBuffs: [...battle.activeBuffs, { instanceId: newId('buff'), abilityId: e.ability, owner: 'self', suppressed: false, ...(rounds !== undefined ? { remainingRounds: rounds } : {}) }] };
+        const rounds = durationRounds(dur, vars);
+        if (rounds !== 0 && !battle.activeBuffs.some((b) => b.abilityId === e.ability)) battle = { ...battle, activeBuffs: [...battle.activeBuffs, { instanceId: newId('buff'), abilityId: e.ability, owner: 'self', suppressed: false, ...(rounds !== undefined ? { remainingRounds: rounds } : {}) }] };
         break;
       }
       case 'hp': {
@@ -97,9 +97,8 @@ function runTriggers(ctx: EvalContext, trigger: Trigger, targetId: string | unde
     if (!inst.enabled || suppressed.has(inst.abilityId)) continue;
     const ability = ctx.library.abilities[inst.abilityId];
     if (!ability) continue;
-    if (ability.activation === 'toggle' && !state.battle.activeAbilities.includes(ability.id)) continue;
     candidates.push({ ability, inst });
-    for (const gid of ability.grants) { const g = ctx.library.abilities[gid]; if (g && !suppressed.has(gid) && !(g.activation === 'toggle' && !state.battle.activeAbilities.includes(gid))) candidates.push({ ability: g, inst }); }
+    for (const gid of ability.grants) { const g = ctx.library.abilities[gid]; if (g && !suppressed.has(gid)) candidates.push({ ability: g, inst }); }
   }
   for (const b of state.battle.activeBuffs) {
     if (b.owner !== 'self' || b.suppressed || suppressed.has(b.abilityId)) continue;
@@ -169,8 +168,6 @@ export function undoEvent(ctx: EvalContext, eventId: string): State {
     for (const r of u.resources) ({ battle, character } = changeResource(ctx, { battle, character }, r.id, -r.delta));
     if (u.hp) character = { ...character, hp: { ...character.hp, current: character.hp.current - u.hp } };
   }
-  if (ev.kind === 'activate' && ev.abilityId) battle = { ...battle, activeAbilities: battle.activeAbilities.filter((x) => x !== ev.abilityId) };
-  if (ev.kind === 'deactivate' && ev.abilityId && !battle.activeAbilities.includes(ev.abilityId)) battle = { ...battle, activeAbilities: [...battle.activeAbilities, ev.abilityId] };
   return { battle, character };
 }
 
@@ -216,8 +213,8 @@ export function useAbility(ctx: EvalContext, input: UseAbilityInput): State {
   let state: State = { battle: appendEvent(ctx.battle, { kind: 'use', actor: 'self', abilityId: ability.id, ...(input.targetId ? { targetId: input.targetId } : {}) }), character: ctx.character };
   const vars = exprVars(ctx);
 
-  if (ability.duration && ability.activation !== 'toggle') {
-    const rounds = typeof ability.duration === 'object' && 'rounds' in ability.duration ? evalExpr(ability.duration.rounds, vars) : undefined;
+  const rounds = durationRounds(ability.duration, vars);
+  if (ability.duration && rounds !== 0 && !state.battle.activeBuffs.some((b) => b.abilityId === ability.id && b.owner === 'self')) {
     state = { ...state, battle: { ...state.battle, activeBuffs: [...state.battle.activeBuffs, { instanceId: newId('buff'), abilityId: ability.id, owner: 'self', suppressed: false, ...(rounds !== undefined ? { remainingRounds: rounds } : {}) }] } };
   }
 
@@ -236,43 +233,15 @@ export function useAbility(ctx: EvalContext, input: UseAbilityInput): State {
   return stampUndo({ battle: ctx.battle, character: ctx.character }, state);
 }
 
-/** Switch a toggle ability on or off (Boots of Speed, stances). */
-export function setAbilityActive(ctx: EvalContext, abilityId: string, active: boolean): State {
-  if (!ctx.battle) throw new Error('No battle');
-  const ability = ctx.library.abilities[abilityId];
-  if (!ability) throw new Error(`Unknown ability "${abilityId}"`);
-  const already = ctx.battle.activeAbilities.includes(abilityId);
-  if (already === active) return { battle: ctx.battle, character: ctx.character };
-  if (active && !hasCharges(ctx, ability)) return { battle: ctx.battle, character: ctx.character };
-  let state: State = {
-    battle: appendEvent({ ...ctx.battle, activeAbilities: active ? [...ctx.battle.activeAbilities, abilityId] : ctx.battle.activeAbilities.filter((x) => x !== abilityId) }, { kind: active ? 'activate' : 'deactivate', actor: 'self', abilityId }),
-    character: ctx.character,
-  };
-  const inst = state.character.abilities.find((a) => a.abilityId === abilityId);
-  const explicit = new Set<string>();
-  for (const block of ability.effects) {
-    if (block.trigger !== (active ? 'onActivate' : 'onDeactivate')) continue;
-    const ectx: EvalContext = { ...ctx, ...state, target: ctx.target, abilityInstance: inst };
-    if (!evalCondition(block.when, ectx)) continue;
-    for (const e of block.do) if (e.verb === 'resource' && e.op === 'consume') explicit.add(e.id);
-    state = applyTriggered(ectx, state, ability, block.do, ctx.target?.id);
+/** Rounds a duration lasts when applied as a buff in the round model; undefined = until removed. */
+export function durationRounds(d: Duration | undefined, vars: ReturnType<typeof exprVars>): number | undefined {
+  if (d === undefined) return undefined;
+  if (typeof d === 'object') return 'rounds' in d ? evalExpr(d.rounds, vars) : Math.max(1, Math.round(d.minutes * 10));
+  switch (d) {
+    case 'instant': return 0;
+    case 'thisAttack': case 'thisTurn': case 'endOfRound': case 'untilMyNextTurn': return 1;
+    default: return undefined;
   }
-  // Charge costs of a toggle are paid per executed round (see nextRound); other costs are paid on activation.
-  if (active) state = payCosts(ctx, state, { ...ability, cost: ability.cost.filter((c) => c.kind !== 'charge') }, explicit, { implicitPools: false });
-  return state;
-}
-
-/** Charge pools named by the ability's cost list (or all its own pools) all have something left. */
-function hasCharges(ctx: EvalContext, ability: Ability): boolean {
-  const vars = exprVars(ctx);
-  const ids = ability.cost.filter((c) => c.kind === 'charge').map((c) => (c as { resourceId: string }).resourceId);
-  const pools = ids.length ? ids : ability.resources.map((r) => r.id);
-  return pools.every((rid) => { const def = findResourceDefLocal(ctx, rid); if (!def) return true; return evalExpr(def.max, vars) - resourceUsed(ctx, rid, def.resetOn) > 0; });
-}
-
-function findResourceDefLocal(ctx: EvalContext, id: string) {
-  for (const a of [...Object.values(ctx.library.abilities), ...(ctx.battle?.situational ?? [])]) { const r = a.resources.find((x) => x.id === id); if (r) return r; }
-  return undefined;
 }
 
 function expired(c: Conditioned, newRound: number): boolean {
@@ -298,25 +267,9 @@ export function nextRound(ctx: EvalContext): State {
     toggles: Object.fromEntries(Object.entries(ctx.battle.toggles).map(([k, v]) => [k, declareIds.has(k) ? false : v])),
     roundResources: {},
   };
-  // The round that just ended: every toggle ability that was on pays its charge cost once.
-  let state: State = { battle, character: ctx.character };
-  for (const id of ctx.battle.activeAbilities) {
-    const a = ctx.library.abilities[id];
-    if (!a) continue;
-    const vars = exprVars({ ...ctx, ...state });
-    const charges = a.cost.filter((c) => c.kind === 'charge');
-    if (charges.length) { for (const c of charges) if (c.kind === 'charge') state = changeResource(ctx, state, c.resourceId, evalExpr(c.amount, vars)); }
-    else for (const r of a.resources) state = changeResource(ctx, state, r.id, 1);
-  }
-  state = { ...state, battle: appendEvent(state.battle, { kind: 'roundStart', actor: 'self' }) };
+  let state: State = { battle: appendEvent(battle, { kind: 'roundStart', actor: 'self' }), character: ctx.character };
   state = runTriggers({ ...ctx, ...state }, 'onRoundStart', ctx.target?.id);
-  // Toggles whose pool is now empty switch off.
-  let out = state.battle;
-  for (const id of out.activeAbilities) {
-    const a = ctx.library.abilities[id];
-    if (a && !hasCharges({ ...ctx, ...state, battle: out }, a)) out = appendEvent({ ...out, activeAbilities: out.activeAbilities.filter((x) => x !== id) }, { kind: 'deactivate', actor: 'self', abilityId: id, text: 'out of charges' });
-  }
-  return { battle: out, character: state.character };
+  return state;
 }
 
 export type SituationalSpec = {
@@ -411,6 +364,6 @@ export function addCombatant(battle: Battle, input: AddCombatantInput): Battle {
 export function newBattle(name = 'Battle'): Battle {
   return {
     id: newId('battle'), name, startedAt: new Date().toISOString(), round: 1, combatants: [], activeBuffs: [], situational: [],
-    suppressedAbilities: [], activeAbilities: [], selfConditions: [], toggles: {}, tags: [], encounterResources: {}, roundResources: {}, prompts: {}, log: [], ended: false,
+    suppressedAbilities: [], selfConditions: [], toggles: {}, tags: [], encounterResources: {}, roundResources: {}, prompts: {}, log: [], ended: false,
   };
 }

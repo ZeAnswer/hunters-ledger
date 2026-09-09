@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  attackProfiles, availableActions, listAttackModes, logAttack, resolveAttack, setAbilityActive, setPrompt, undoEvent, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
+  attackProfiles, availableActions, listAttackModes, logAttack, resolveAttack, setPrompt, undoEvent, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
 } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { collectToggles } from '../../store/hooks';
@@ -39,7 +39,6 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
     showToast(`Used ${ctx.library.abilities[abilityId]?.name ?? abilityId}`);
   };
 
-  const toggleActive = (abilityId: string, on: boolean) => { const r = setAbilityActive(ctx, abilityId, on); setBattle(r.battle); setCharacter(r.character); showToast(`${ctx.library.abilities[abilityId]?.name ?? abilityId} ${on ? 'on' : 'off'}`); };
   const originLabel = (a: (typeof actions)[number]) => a.grantedBy ? ctx.library.abilities[a.grantedBy]?.name ?? a.grantedBy : a.origin === 'classFeature' ? `${ctx.library.classTables[ctx.library.abilities[a.abilityId]?.classId ?? '']?.name ?? 'class feature'}${ctx.library.abilities[a.abilityId]?.classLevel ? ` ${ctx.library.abilities[a.abilityId]!.classLevel}` : ''}` : a.origin;
   if (!profiles.length) return <p className="text-zinc-500">No weapon equipped. Equip one in Inventory.</p>;
 
@@ -144,22 +143,19 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
             {actions.map((a) => (
               <div key={a.abilityId} data-ability={a.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl border px-3 py-2', a.usable ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-70', a.active && 'border-emerald-700')}>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ACTIVE this round</span> : null}</div>
+                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ACTIVE</span> : null}</div>
                   <div className="truncate text-xs text-zinc-500">{originLabel(a)}</div>
                   <div className="text-xs text-zinc-400">
                     {a.resources.map((r) => <span key={r.id} className="mr-2">{r.label}: <b className={r.remaining === 0 ? 'text-red-400' : 'text-emerald-300'}>{r.resetTo === 'zero' ? `${r.max - r.remaining}/${r.max}` : `${r.remaining}/${r.max}`}</b> /{r.resetOn}</span>)}
                     {typeof a.activation === 'object' && 'action' in a.activation && <span className="mr-2">{typeof a.activation.action === 'string' ? a.activation.action : 'long'} action</span>}
                     {a.activation === 'declare' && <span className="mr-2">declare before roll</span>}
                     {a.activation === 'atWill' && <span className="mr-2">at will</span>}
-                    {a.activation === 'toggle' && <span className="mr-2">sustained{a.resources.length ? ': 1 charge per round while active' : ''}</span>}
                   </div>
                   {a.reasons.map((r) => <div key={r} className="text-xs text-amber-300">{r}</div>)}
                   {a.notes.map((n) => <div key={n} className="text-xs text-zinc-300">{n}</div>)}
                 </div>
-                {a.activation === 'toggle' ? (
-                  <Button size="sm" variant={a.active ? 'ghost' : 'primary'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'Stop' : 'Start'}</Button>
-                ) : a.activation !== 'passive' ? (
-                  <Button size="sm" disabled={!a.usable} onClick={() => use(a.abilityId)}>Use</Button>
+                {a.activation !== 'passive' ? (
+                  <Button size="sm" variant={a.active ? 'ghost' : 'default'} disabled={!a.usable || a.active} onClick={() => use(a.abilityId)}>{a.active ? 'Active' : 'Use'}</Button>
                 ) : null}
               </div>
             ))}

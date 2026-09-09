@@ -104,12 +104,12 @@ export function AbilityEditor({ initial, onSave, onDelete, onCancel }: { initial
 
           <Field label="Activation">
             <div className="flex flex-wrap gap-1">
-              {(['passive', 'toggle', 'declare', 'atWill', 'action', 'reaction'] as const).map((k) => <Chip key={k} active={actKind === k} onClick={() => set({ activation: k === 'action' ? { action: 'standard' } : k === 'reaction' ? { reaction: 'onDamaged' } : k })}>{{ passive: 'passive (always on)', toggle: 'sustained (start / stop)', declare: 'declare before roll', atWill: 'at will', action: 'instant action', reaction: 'reaction to an event' }[k]}</Chip>)}
+              {(['passive', 'action', 'declare', 'atWill', 'reaction'] as const).map((k) => <Chip key={k} active={actKind === k} onClick={() => set({ activation: k === 'action' ? { action: 'standard' } : k === 'reaction' ? { reaction: 'onDamaged' } : k })}>{{ passive: 'passive (always on)', action: 'active (takes an action)', declare: 'declare before roll', atWill: 'at will', reaction: 'reaction to an event' }[k]}</Chip>)}
             </div>
             {actKind === 'action' && typeof act === 'object' && 'action' in act && <div className="mt-1 flex flex-wrap gap-1">{ACTIONS.map((k) => <Chip key={k} tone="blue" active={act.action === k} onClick={() => set({ activation: { action: k } })}>{k}</Chip>)}<Chip tone="blue" active={typeof act.action === 'object'} onClick={() => set({ activation: { action: { minutes: 1 } } })}>minutes…</Chip>{typeof act.action === 'object' && 'minutes' in act.action && <input className={inputCls + ' w-16 py-1'} inputMode="numeric" value={act.action.minutes} onChange={(e) => set({ activation: { action: { minutes: Number(e.target.value) || 1 } } })} />}</div>}
             {actKind === 'reaction' && typeof act === 'object' && 'reaction' in act && <select className={inputCls + ' mt-1'} value={act.reaction} onChange={(e) => set({ activation: { reaction: e.target.value as Trigger } })}>{TRIGGERS.filter((t) => t.id !== 'always').map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>}
             {a.activation === 'declare' && <div className="mt-1 text-xs text-zinc-500">Shows a chip named after its id; condition it with "Battle → declared / toggle" = {a.id}.</div>}
-            {a.activation === 'toggle' && <div className="mt-1 text-xs text-zinc-500">Started and stopped in battle; effects apply while active. Starting needs charges but costs nothing; one charge is spent per executed round while active.</div>}
+            {actKind === 'action' && <div className="mt-1 text-xs text-zinc-500">Use pays the cost and runs "When I use it" blocks. With a duration set below, its passive blocks apply for that long (e.g. end of round: choose again each round).</div>}
           </Field>
 
           <Field label="Cost">
@@ -141,7 +141,7 @@ export function AbilityEditor({ initial, onSave, onDelete, onCancel }: { initial
             <button type="button" className="text-sm text-amber-300" onClick={() => set({ resources: [...a.resources, { id: a.id, max: 1, resetOn: 'day', resetTo: 'max' }] })}>+ add charges</button>
           </Field>
 
-          <Field label="Duration when applied as a buff / granted (optional)">
+          <Field label="Duration after use (optional; also used when granted as a buff)">
             {a.duration !== undefined ? <div className="flex items-center gap-2"><DurationPicker value={a.duration} onChange={(d) => set({ duration: d })} /><button type="button" className="text-xs text-zinc-500" onClick={() => set({ duration: undefined })}>clear</button></div> : <button type="button" className="text-sm text-amber-300" onClick={() => set({ duration: { rounds: 10 } })}>+ set duration</button>}
           </Field>
 
