@@ -54,7 +54,7 @@ export type Duration = z.infer<typeof DurationSchema>;
  * target.(exists|tags|type|size|hurt|distance|revealed|tag.<tag>|condition.<tag>) · attack.(exists|kind|index|isFirstThisRound|mode|weapon.id|weapon.category|weapon.tag.<tag>)
  * battle.(round|toggle.<id>|prompt.<id>|tag.<tag>) · flag.<name>
  */
-export const SelectorSchema = z.string().regex(/^(self|target|attack|battle|flag)(\.[A-Za-z0-9_-]+)+$/, 'selector must be a dot path like target.tag.aquatic');
+export const SelectorSchema = z.string().regex(/^(self|target|attack|battle|flag|history)(\.[A-Za-z0-9_-]+)+$/, 'selector must be a dot path like target.tag.aquatic');
 export type Selector = z.infer<typeof SelectorSchema>;
 
 export const CompareOpSchema = z.enum(['=', '!=', '<', '<=', '>', '>=']);
@@ -424,6 +424,16 @@ export const LogEventSchema = z.object({
   damage: z.number().int().optional(),
   text: z.string().optional(),
   editedAt: z.string().optional(),
+  /** Numbers shown when the attack was executed (frozen in the UI). */
+  snapshot: z.object({ attackBonus: z.number(), damageText: z.string() }).optional(),
+  /** What this event's triggers changed, so it can be undone. */
+  undo: z.object({
+    targetConditions: z.array(z.object({ combatantId: z.string(), tag: z.string() })).default([]),
+    selfConditions: z.array(z.string()).default([]),
+    resources: z.array(z.object({ id: z.string(), delta: z.number() })).default([]),
+    buffs: z.array(z.string()).default([]),
+    hp: z.number().optional(),
+  }).optional(),
 });
 export type LogEvent = z.infer<typeof LogEventSchema>;
 

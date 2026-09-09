@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  attackProfiles, availableActions, listAttackModes, logAttack, resolveAttack, setAbilityActive, setPrompt, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
+  attackProfiles, availableActions, listAttackModes, logAttack, resolveAttack, setAbilityActive, setPrompt, undoEvent, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
 } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { collectToggles } from '../../store/hooks';
@@ -28,7 +28,8 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
   const setToggle = (id: string, v: boolean) => setBattle({ ...battle, toggles: { ...battle.toggles, [id]: v } });
   const record = (a: AttackResult, res: 'hit' | 'miss' | 'crit') => {
     if (!target) return;
-    const r = logAttack(ctx, { targetId: target.id, profileId: effectiveProfileId, modeId: mode!.modeId, attackIndex: a.index, result: res });
+    const damageText = `${a.damage.dice.map((d) => d.dice).join(' + ')}${a.damage.flat ? ` ${signed(a.damage.flat)}` : ''}`;
+    const r = logAttack(ctx, { targetId: target.id, profileId: effectiveProfileId, modeId: mode!.modeId, attackIndex: a.index, result: res }, { attackBonus: a.attackBonus, damageText });
     setBattle(r.battle); setCharacter(r.character);
     showToast(`#${a.index} ${res.toUpperCase()} vs ${target.name}`);
   };
@@ -81,16 +82,21 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
         <div className="space-y-2">
           {result.attacks.map((a) => {
             const logged = battle.log.find((e) => e.kind === 'attack' && e.round === battle.round && e.targetId === target?.id && e.modeId === mode?.modeId && e.attackIndex === a.index && e.profileId === effectiveProfileId);
-            if (logged && expanded !== a.index) {
+            if (logged) {
+              // Executed: frozen at the numbers it was rolled with; only Undo can change it.
               return (
-                <button key={a.index} data-attack={a.index} type="button" onClick={() => setExpanded(a.index)} className={cx('flex w-full items-center justify-between rounded-2xl border bg-zinc-900 px-3 py-2 text-left', logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800')}>
-                  <span><span className="text-xs text-zinc-500">#{a.index}</span> <span className={cx('ml-2 font-bold', logged.result === 'miss' ? 'text-red-300' : 'text-emerald-300')}>{logged.result!.toUpperCase()}</span></span>
-                  <span className="text-xs text-zinc-500">tap to change</span>
-                </button>
+                <div key={a.index} data-attack={a.index} className={cx('flex w-full items-center justify-between rounded-2xl border bg-zinc-950 px-3 py-2 opacity-80', logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800')}>
+                  <span className="min-w-0">
+                    <span className="text-xs text-zinc-500">#{a.index}</span>
+                    <span className={cx('ml-2 font-bold', logged.result === 'miss' ? 'text-red-300' : 'text-emerald-300')}>{logged.result!.toUpperCase()}</span>
+                    {logged.snapshot && <span className="ml-3 text-sm text-zinc-400">{signed(logged.snapshot.attackBonus)} · {logged.snapshot.damageText}</span>}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => { const r = undoEvent(ctx, logged.id); setBattle(r.battle); setCharacter(r.character); showToast(`Undid attack #${a.index}`); }}>Undo</Button>
+                </div>
               );
             }
             return (
-              <div key={a.index} data-attack={a.index} className={cx('rounded-2xl border bg-zinc-900 p-3', logged ? (logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800') : 'border-zinc-700')}>
+              <div key={a.index} data-attack={a.index} className="rounded-2xl border border-zinc-700 bg-zinc-900 p-3">
                 <button type="button" className="flex w-full items-center justify-between text-left" onClick={() => setExpanded(expanded === a.index ? undefined : a.index)}>
                   <div>
                     <span className="text-xs text-zinc-500">#{a.index}</span>
@@ -101,7 +107,6 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
                   <span className="text-zinc-500">{expanded === a.index ? '▲' : '▼'}</span>
                 </button>
                 {a.damage.dice.length > 1 && <div className="mt-1 text-xs text-zinc-400">{a.damage.dice.map((d) => `${d.dice} ${d.label}${d.damageType ? ` (${d.damageType})` : ''}`).join(' · ')}</div>}
-                {logged && <div className="mt-1 text-xs text-zinc-400">Logged: {logged.result?.toUpperCase()}</div>}
                 {target && !target.dead && (
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     <Button variant="success" onClick={() => record(a, 'hit')}>Hit</Button>
@@ -139,20 +144,20 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
             {actions.map((a) => (
               <div key={a.abilityId} data-ability={a.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl border px-3 py-2', a.usable ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-70', a.active && 'border-emerald-700')}>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ON this round</span> : null}</div>
+                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ACTIVE this round</span> : null}</div>
                   <div className="truncate text-xs text-zinc-500">{originLabel(a)}</div>
                   <div className="text-xs text-zinc-400">
                     {a.resources.map((r) => <span key={r.id} className="mr-2">{r.label}: <b className={r.remaining === 0 ? 'text-red-400' : 'text-emerald-300'}>{r.resetTo === 'zero' ? `${r.max - r.remaining}/${r.max}` : `${r.remaining}/${r.max}`}</b> /{r.resetOn}</span>)}
                     {typeof a.activation === 'object' && 'action' in a.activation && <span className="mr-2">{typeof a.activation.action === 'string' ? a.activation.action : 'long'} action</span>}
                     {a.activation === 'declare' && <span className="mr-2">declare before roll</span>}
                     {a.activation === 'atWill' && <span className="mr-2">at will</span>}
-                    {a.activation === 'toggle' && a.resources.length > 0 && <span className="mr-2">1 charge per round while on</span>}
+                    {a.activation === 'toggle' && <span className="mr-2">sustained{a.resources.length ? ': 1 charge per round while active' : ''}</span>}
                   </div>
                   {a.reasons.map((r) => <div key={r} className="text-xs text-amber-300">{r}</div>)}
                   {a.notes.map((n) => <div key={n} className="text-xs text-zinc-300">{n}</div>)}
                 </div>
                 {a.activation === 'toggle' ? (
-                  <Button size="sm" variant={a.active ? 'ghost' : 'primary'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'Turn off' : 'Turn on'}</Button>
+                  <Button size="sm" variant={a.active ? 'ghost' : 'primary'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'Stop' : 'Start'}</Button>
                 ) : a.activation !== 'passive' ? (
                   <Button size="sm" disabled={!a.usable} onClick={() => use(a.abilityId)}>Use</Button>
                 ) : null}

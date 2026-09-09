@@ -57,7 +57,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 7, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 8, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -81,12 +81,12 @@ const pack: Pack = PackSchema.parse({
     // ---- DM feats / memories ----
     {
       id: 'woodland-archer', name: 'Woodland Archer', source: 'feat', sourceRef: 'Races of the Wild p.154',
-      text: 'Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round. Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.',
+      text: 'Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round (DM ruling: stacks per miss). Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.',
       effects: [
         {
           id: 'adjust', label: 'Adjust for Range',
-          when: { kind: 'all', of: [{ kind: 'attack.kind', attackKind: 'ranged' }, { kind: 'log', event: 'miss', target: 'current', scope: 'thisRound' }] },
-          do: [{ kind: 'bonus', to: 'attack', value: 4 }],
+          when: { all: [{ compare: 'attack.kind', op: '=', value: 'ranged' }, { history: { event: 'miss', by: 'me', vs: 'current', scope: 'thisRound' } }] },
+          do: [{ verb: 'modify', to: 'attack', value: '4 * sel(history.miss.me.current.thisRound)' }],
         },
         {
           id: 'pierce', label: 'Pierce the Foliage',

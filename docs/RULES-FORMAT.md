@@ -20,7 +20,7 @@ Every feat, class feature, item, spell, buff, condition, memory and situational 
 }
 ```
 
-Activation rules of thumb: **passive** = always on; **toggle** = on/off switch (Boots of Speed, stances), effects apply only while on; switching on needs charges but costs nothing, one charge is spent for every round executed (Next round) while it is on, and it switches off when the pool is empty; **declare** = a chip you tap before rolling, cleared each round; **action** = a Use button that logs, pays costs and runs `onUse` blocks; **reaction** = automatic on the named trigger.
+Activation rules of thumb: **passive** = always on; **toggle** = a *sustained* ability you start and stop (Boots of Speed, stances, Power Attack), effects apply only while active; switching on needs charges but costs nothing, one charge is spent for every round executed (Next round) while it is on, and it switches off when the pool is empty; **declare** = a chip you tap before rolling, cleared each round; **action** = a Use button that logs, pays costs and runs `onUse` blocks; **reaction** = automatic on the named trigger.
 
 Resources: `resetOn` = round | encounter | day | rest | manual | never. `resetTo: max` shows charges left (10/10 baseline); `resetTo: zero` shows a counter that climbs from 0.
 

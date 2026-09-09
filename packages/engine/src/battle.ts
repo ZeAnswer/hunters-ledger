@@ -118,13 +118,60 @@ function runTriggers(ctx: EvalContext, trigger: Trigger, targetId: string | unde
 
 export type AttackLogInput = { targetId: string; profileId: string; modeId: string; attackIndex: number; result: 'hit' | 'miss' | 'crit'; damage?: number };
 
-export function logAttack(ctx: EvalContext, input: AttackLogInput): State {
+/** Diff two states into an undo record for a log event. */
+function undoRecord(before: State, after: State): NonNullable<LogEvent['undo']> {
+  const targetConditions: { combatantId: string; tag: string }[] = [];
+  for (const c of after.battle.combatants) {
+    const prev = before.battle.combatants.find((x) => x.id === c.id);
+    for (const cond of c.conditions) if (!prev?.conditions.some((x) => x.tag === cond.tag)) targetConditions.push({ combatantId: c.id, tag: cond.tag });
+  }
+  const selfConditions = after.battle.selfConditions.filter((x) => !before.battle.selfConditions.some((y) => y.tag === x.tag)).map((x) => x.tag);
+  const resources: { id: string; delta: number }[] = [];
+  const ids = new Set([...Object.keys(before.character.resourceState), ...Object.keys(after.character.resourceState), ...Object.keys(before.battle.encounterResources), ...Object.keys(after.battle.encounterResources), ...Object.keys(before.battle.roundResources), ...Object.keys(after.battle.roundResources)]);
+  for (const id of ids) {
+    const b = (before.character.resourceState[id]?.used ?? 0) + (before.battle.encounterResources[id] ?? 0) + (before.battle.roundResources[id] ?? 0);
+    const a = (after.character.resourceState[id]?.used ?? 0) + (after.battle.encounterResources[id] ?? 0) + (after.battle.roundResources[id] ?? 0);
+    if (a !== b) resources.push({ id, delta: a - b });
+  }
+  const buffs = after.battle.activeBuffs.filter((b) => !before.battle.activeBuffs.some((x) => x.instanceId === b.instanceId)).map((b) => b.instanceId);
+  const hp = after.character.hp.current - before.character.hp.current;
+  return { targetConditions, selfConditions, resources, buffs, ...(hp ? { hp } : {}) };
+}
+
+function stampUndo(before: State, after: State): State {
+  const last = after.battle.log.at(-1);
+  if (!last) return after;
+  const undo = undoRecord(before, after);
+  return { ...after, battle: { ...after.battle, log: after.battle.log.map((e) => (e.id === last.id ? { ...e, undo } : e)) } };
+}
+
+export function logAttack(ctx: EvalContext, input: AttackLogInput, snapshot?: { attackBonus: number; damageText: string }): State {
   if (!ctx.battle) throw new Error('No battle');
-  const battle = appendEvent(ctx.battle, { kind: 'attack', actor: 'self', ...input });
+  const before: State = { battle: ctx.battle, character: ctx.character };
+  const battle = appendEvent(ctx.battle, { kind: 'attack', actor: 'self', ...input, ...(snapshot ? { snapshot } : {}) });
   let state: State = { battle, character: ctx.character };
   const triggers: Trigger[] = input.result === 'miss' ? ['onMiss'] : input.result === 'crit' ? ['onHit', 'onCrit'] : ['onHit'];
   for (const t of triggers) state = runTriggers({ ...ctx, battle: state.battle, character: state.character, ...(input.damage !== undefined ? { lastDamage: input.damage } : {}) }, t, input.targetId);
-  return state;
+  return stampUndo(before, state);
+}
+
+/** Remove a logged event and revert what its triggers changed (conditions, charges, buffs, hp). */
+export function undoEvent(ctx: EvalContext, eventId: string): State {
+  if (!ctx.battle) throw new Error('No battle');
+  const ev = ctx.battle.log.find((e) => e.id === eventId);
+  if (!ev) return { battle: ctx.battle, character: ctx.character };
+  let battle: Battle = { ...ctx.battle, log: ctx.battle.log.filter((e) => e.id !== eventId) };
+  let character = ctx.character;
+  const u = ev.undo;
+  if (u) {
+    for (const tc of u.targetConditions) battle = withCombatant(battle, tc.combatantId, (c) => ({ ...c, conditions: c.conditions.filter((x) => x.tag !== tc.tag) }));
+    battle = { ...battle, selfConditions: battle.selfConditions.filter((x) => !u.selfConditions.includes(x.tag)), activeBuffs: battle.activeBuffs.filter((b) => !u.buffs.includes(b.instanceId)) };
+    for (const r of u.resources) ({ battle, character } = changeResource(ctx, { battle, character }, r.id, -r.delta));
+    if (u.hp) character = { ...character, hp: { ...character.hp, current: character.hp.current - u.hp } };
+  }
+  if (ev.kind === 'activate' && ev.abilityId) battle = { ...battle, activeAbilities: battle.activeAbilities.filter((x) => x !== ev.abilityId) };
+  if (ev.kind === 'deactivate' && ev.abilityId && !battle.activeAbilities.includes(ev.abilityId)) battle = { ...battle, activeAbilities: [...battle.activeAbilities, ev.abilityId] };
+  return { battle, character };
 }
 
 export type EnemyLogInput = { actorId: string; result: 'hit' | 'miss' | 'crit'; damage?: number; text?: string };
@@ -140,7 +187,7 @@ export function logEnemyAction(ctx: EvalContext, input: EnemyLogInput): State {
     state = { ...state, character: { ...state.character, hp } };
     state = runTriggers({ ...ctx, battle: state.battle, character: state.character, lastDamage: input.damage }, 'onDamaged', input.actorId);
   }
-  return state;
+  return stampUndo({ battle: ctx.battle, character: ctx.character }, state);
 }
 
 export type UseAbilityInput = { abilityId: string; targetId?: string };
@@ -186,7 +233,7 @@ export function useAbility(ctx: EvalContext, input: UseAbilityInput): State {
   }
   state = payCosts(ctx, state, ability, explicit);
   if (ability.activation === 'declare' || state.battle.toggles[ability.id] !== undefined) state = { ...state, battle: { ...state.battle, toggles: { ...state.battle.toggles, [ability.id]: false } } };
-  return state;
+  return stampUndo({ battle: ctx.battle, character: ctx.character }, state);
 }
 
 /** Switch a toggle ability on or off (Boots of Speed, stances). */

@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 7,
+  "version": 8,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -51,7 +51,7 @@
       "id": "woodland-archer",
       "name": "Woodland Archer",
       "origin": "feat",
-      "text": "Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round. Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.",
+      "text": "Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round (DM ruling: stacks per miss). Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.",
       "sourceRef": "Races of the Wild p.154",
       "binding": "none",
       "activation": "passive",
@@ -76,9 +76,7 @@
                   "by": "me",
                   "vs": "current",
                   "scope": "thisRound"
-                },
-                "op": ">=",
-                "value": 1
+                }
               }
             ]
           },
@@ -86,7 +84,7 @@
             {
               "verb": "modify",
               "to": "attack",
-              "value": 4,
+              "value": "4 * sel(history.miss.me.current.thisRound)",
               "type": "untyped",
               "mode": "add"
             }

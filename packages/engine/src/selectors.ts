@@ -2,6 +2,7 @@ import { HURT_ORDER, SIZE_ORDER, abilityMod, findResourceDef, resourceUsed, targ
 import { evalExpr } from './expr';
 import { derivedFromLevels } from './levels';
 import { resolveFlags, resolveStat } from './resolve';
+import { countHistory } from './history';
 import type { Ability } from './schema';
 
 export type SelValue = number | boolean | string | string[] | undefined;
@@ -130,6 +131,11 @@ export function readSelector(ctx: EvalContext, sel: string): SelValue {
       }
     }
     case 'flag': return !!resolveFlags(ctx)[p.slice(1).join('.')];
+    case 'history': {
+      // history.<event>.<by>.<vs>.<scope>[.<abilityId>]
+      const [, event, by = 'me', vs = 'current', scope = 'thisRound', abilityId] = p;
+      return countHistory(ctx, { event: event as 'hit', by: by as 'me', vs: vs as 'current', scope: scope as 'thisRound', ...(abilityId ? { abilityId } : {}) });
+    }
     default: return undefined;
   }
 }

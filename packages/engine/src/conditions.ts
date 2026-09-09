@@ -23,7 +23,7 @@ function rhs(ctx: EvalContext, sel: string, value: number | string, left: SelVal
   const ord = ORDINALS[sel];
   if (ord) return ord.indexOf(value);
   if (typeof left === 'string' || typeof left === 'boolean') return value;
-  if (/^(self|target|attack|battle|flag)\./.test(value)) { const v = readSelector(ctx, value); return typeof v === 'number' ? v : undefined; }
+  if (/^(self|target|attack|battle|flag|history)\./.test(value)) { const v = readSelector(ctx, value); return typeof v === 'number' ? v : undefined; }
   try { return evalExpr(value, exprVars(ctx)); } catch { return value; }
 }
 

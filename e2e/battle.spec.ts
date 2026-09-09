@@ -29,9 +29,15 @@ test('gargoyle fight: knowledge check, woodland archer +4 after a miss, monster 
   // miss attack 1 → attack 2 gets Woodland Archer +4 (7+2+4 = 13)
   await rows.nth(0).getByRole('button', { name: 'Miss' }).click();
   await expect(rows.nth(0)).toContainText('MISS');
+  await expect(rows.nth(0)).toContainText('+14'); // frozen at the number it was rolled with
   await expect(rows.nth(1)).toContainText('+13');
   await rows.nth(1).locator("button").first().click();
   await expect(rows.nth(1)).toContainText('Adjust for Range');
+  // undo the miss → bonus disappears, row is live again; redo the miss
+  await rows.nth(0).getByRole('button', { name: 'Undo' }).click();
+  await expect(rows.nth(1)).toContainText('+9');
+  await rows.nth(0).getByRole('button', { name: 'Miss' }).click();
+  await expect(rows.nth(1)).toContainText('+13');
 
   // hit attack 2 → Distracting Attack flanks the target
   await rows.nth(1).getByRole('button', { name: 'Hit' }).click();
