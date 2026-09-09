@@ -29,14 +29,17 @@ test('distance chip enables Point Blank Shot; Boots of Speed toggle adds an atta
   await expect(rows).toHaveCount(2);
   const boots = page.locator('[data-ability="boots-of-speed"]');
   await expect(boots).toContainText('8/10');
-  await boots.getByRole('button', { name: 'Off' }).click();
+  await boots.getByRole('button', { name: 'Turn on' }).click();
   await expect(rows).toHaveCount(3); // haste extra attack
   await expect(rows.nth(0)).toContainText('+14'); // +1 dodge
-  await expect(boots).toContainText('7/10');
+  await expect(boots).toContainText('8/10'); // nothing spent until the round executes
   await page.getByRole('button', { name: /Next round/ }).click();
-  await expect(boots).toContainText('6/10');
-  await boots.getByRole('button', { name: 'On' }).click();
+  await expect(boots).toContainText('7/10');
+  await expect(boots).toContainText('ON this round'); // stays on
+  await boots.getByRole('button', { name: 'Turn off' }).click();
   await expect(rows).toHaveCount(2);
+  await page.getByRole('button', { name: /Next round/ }).click();
+  await expect(boots).toContainText('7/10'); // off during that round: no charge
 });
 
 test('it hit me: logs enemy action and reduces HP', async ({ page }) => {

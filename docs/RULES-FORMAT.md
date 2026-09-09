@@ -20,7 +20,7 @@ Every feat, class feature, item, spell, buff, condition, memory and situational 
 }
 ```
 
-Activation rules of thumb: **passive** = always on; **toggle** = on/off switch (Boots of Speed, stances), effects apply only while on, `charge` costs are paid on activation and again by any `onRoundStart` resource block; **declare** = a chip you tap before rolling, cleared each round; **action** = a Use button that logs, pays costs and runs `onUse` blocks; **reaction** = automatic on the named trigger.
+Activation rules of thumb: **passive** = always on; **toggle** = on/off switch (Boots of Speed, stances), effects apply only while on; switching on needs charges but costs nothing, one charge is spent for every round executed (Next round) while it is on, and it switches off when the pool is empty; **declare** = a chip you tap before rolling, cleared each round; **action** = a Use button that logs, pays costs and runs `onUse` blocks; **reaction** = automatic on the named trigger.
 
 Resources: `resetOn` = round | encounter | day | rest | manual | never. `resetTo: max` shows charges left (10/10 baseline); `resetTo: zero` shows a counter that climbs from 0.
 
@@ -102,7 +102,7 @@ Expressions: numbers, `strMod`…`chaMod`, `level`, `bab`, `round`, `damage` (la
 
 **Monster Blow** — declare; resource 1/day scaling with class level; block `when: { all: [ { is: "battle.toggle.monster-blow" }, { in: "target.tags", param: "types" }, { compare: "target.hurt", op: ">=", value: "bloodied" } ] }`, `do: [ { verb: "note", text: "Fort DC {damage + classLevel(monster-hunter) + wisMod} or die" } ]`; `onUse` block consumes the charge.
 
-**Boots of Speed** — toggle, cost charge `boots-rounds`, always-block with the haste effects, `onRoundStart` block consuming one round; switches off when dry.
+**Boots of Speed** — toggle, cost charge `boots-rounds`, always-block with the haste effects; a round is spent at each Next round while on; switches off when dry.
 
 **Medusa mask** — item, head slot; `naturalAttack` snakes; 1/day gaze as a granted spell-like ability with its own resource.
 

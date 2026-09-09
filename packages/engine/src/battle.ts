@@ -145,7 +145,7 @@ export function logEnemyAction(ctx: EvalContext, input: EnemyLogInput): State {
 
 export type UseAbilityInput = { abilityId: string; targetId?: string };
 
-function payCosts(ctx: EvalContext, state: State, ability: Ability, explicitConsumed: Set<string>): State {
+function payCosts(ctx: EvalContext, state: State, ability: Ability, explicitConsumed: Set<string>, opts: { implicitPools?: boolean } = {}): State {
   const vars = exprVars({ ...ctx, ...state });
   for (const c of ability.cost) {
     if (c.kind === 'charge') { if (!explicitConsumed.has(c.resourceId)) state = changeResource(ctx, state, c.resourceId, evalExpr(c.amount, vars)); }
@@ -157,7 +157,7 @@ function payCosts(ctx: EvalContext, state: State, ability: Ability, explicitCons
     }
   }
   // Abilities with charge pools but no explicit cost/consume: one use spends one charge of each pool.
-  if (!ability.cost.some((c) => c.kind === 'charge')) for (const r of ability.resources) if (!explicitConsumed.has(r.id)) state = changeResource(ctx, state, r.id, 1);
+  if (opts.implicitPools !== false && !ability.cost.some((c) => c.kind === 'charge')) for (const r of ability.resources) if (!explicitConsumed.has(r.id)) state = changeResource(ctx, state, r.id, 1);
   return state;
 }
 
@@ -196,6 +196,7 @@ export function setAbilityActive(ctx: EvalContext, abilityId: string, active: bo
   if (!ability) throw new Error(`Unknown ability "${abilityId}"`);
   const already = ctx.battle.activeAbilities.includes(abilityId);
   if (already === active) return { battle: ctx.battle, character: ctx.character };
+  if (active && !hasCharges(ctx, ability)) return { battle: ctx.battle, character: ctx.character };
   let state: State = {
     battle: appendEvent({ ...ctx.battle, activeAbilities: active ? [...ctx.battle.activeAbilities, abilityId] : ctx.battle.activeAbilities.filter((x) => x !== abilityId) }, { kind: active ? 'activate' : 'deactivate', actor: 'self', abilityId }),
     character: ctx.character,
@@ -209,8 +210,22 @@ export function setAbilityActive(ctx: EvalContext, abilityId: string, active: bo
     for (const e of block.do) if (e.verb === 'resource' && e.op === 'consume') explicit.add(e.id);
     state = applyTriggered(ectx, state, ability, block.do, ctx.target?.id);
   }
-  if (active) state = payCosts(ctx, state, ability, explicit);
+  // Charge costs of a toggle are paid per executed round (see nextRound); other costs are paid on activation.
+  if (active) state = payCosts(ctx, state, { ...ability, cost: ability.cost.filter((c) => c.kind !== 'charge') }, explicit, { implicitPools: false });
   return state;
+}
+
+/** Charge pools named by the ability's cost list (or all its own pools) all have something left. */
+function hasCharges(ctx: EvalContext, ability: Ability): boolean {
+  const vars = exprVars(ctx);
+  const ids = ability.cost.filter((c) => c.kind === 'charge').map((c) => (c as { resourceId: string }).resourceId);
+  const pools = ids.length ? ids : ability.resources.map((r) => r.id);
+  return pools.every((rid) => { const def = findResourceDefLocal(ctx, rid); if (!def) return true; return evalExpr(def.max, vars) - resourceUsed(ctx, rid, def.resetOn) > 0; });
+}
+
+function findResourceDefLocal(ctx: EvalContext, id: string) {
+  for (const a of [...Object.values(ctx.library.abilities), ...(ctx.battle?.situational ?? [])]) { const r = a.resources.find((x) => x.id === id); if (r) return r; }
+  return undefined;
 }
 
 function expired(c: Conditioned, newRound: number): boolean {
@@ -236,16 +251,23 @@ export function nextRound(ctx: EvalContext): State {
     toggles: Object.fromEntries(Object.entries(ctx.battle.toggles).map(([k, v]) => [k, declareIds.has(k) ? false : v])),
     roundResources: {},
   };
-  battle = appendEvent(battle, { kind: 'roundStart', actor: 'self' });
-  const state = runTriggers({ ...ctx, battle }, 'onRoundStart', ctx.target?.id);
-  // Toggle abilities whose charge pool ran dry switch off.
+  // The round that just ended: every toggle ability that was on pays its charge cost once.
+  let state: State = { battle, character: ctx.character };
+  for (const id of ctx.battle.activeAbilities) {
+    const a = ctx.library.abilities[id];
+    if (!a) continue;
+    const vars = exprVars({ ...ctx, ...state });
+    const charges = a.cost.filter((c) => c.kind === 'charge');
+    if (charges.length) { for (const c of charges) if (c.kind === 'charge') state = changeResource(ctx, state, c.resourceId, evalExpr(c.amount, vars)); }
+    else for (const r of a.resources) state = changeResource(ctx, state, r.id, 1);
+  }
+  state = { ...state, battle: appendEvent(state.battle, { kind: 'roundStart', actor: 'self' }) };
+  state = runTriggers({ ...ctx, ...state }, 'onRoundStart', ctx.target?.id);
+  // Toggles whose pool is now empty switch off.
   let out = state.battle;
   for (const id of out.activeAbilities) {
     const a = ctx.library.abilities[id];
-    if (!a) continue;
-    const pools = a.cost.filter((c) => c.kind === 'charge').map((c) => (c as { resourceId: string }).resourceId);
-    const dry = pools.some((rid) => { const r = a.resources.find((x) => x.id === rid); if (!r) return false; return evalExpr(r.max, exprVars({ ...ctx, ...state })) - resourceUsed({ ...ctx, ...state }, rid, r.resetOn) <= 0; });
-    if (dry) out = appendEvent({ ...out, activeAbilities: out.activeAbilities.filter((x) => x !== id) }, { kind: 'deactivate', actor: 'self', abilityId: id, text: 'out of charges' });
+    if (a && !hasCharges({ ...ctx, ...state, battle: out }, a)) out = appendEvent({ ...out, activeAbilities: out.activeAbilities.filter((x) => x !== id) }, { kind: 'deactivate', actor: 'self', abilityId: id, text: 'out of charges' });
   }
   return { battle: out, character: state.character };
 }

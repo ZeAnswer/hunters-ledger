@@ -57,7 +57,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 6, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 7, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -181,12 +181,11 @@ const pack: Pack = PackSchema.parse({
     // ---- items ----
     {
       id: 'boots-of-speed', name: 'Boots of Speed', origin: 'item', activation: 'toggle', item: { category: 'wondrous', slot: 'feet', weight: 1, price: '12,000 gp' },
-      text: 'Free action to switch on or off: haste for up to 10 rounds per day, in any increments. While on: one extra attack on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed. Spends one round at each round start.',
+      text: 'Free action to switch on or off: haste for up to 10 rounds per day, in any increments. While on: one extra attack on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed. One round is spent for every round executed with the boots on.',
       resources: [{ id: 'boots-rounds', label: 'Haste rounds', max: 10, resetOn: 'day' }],
       cost: [{ kind: 'charge', resourceId: 'boots-rounds' }],
       effects: [
         { id: 'haste', label: 'Haste', do: [{ verb: 'attack', extraAttacks: 1, appliesToBase: 'full' }, { verb: 'modify', to: 'attack', value: 1, type: 'dodge' }, { verb: 'modify', to: 'ac', value: 1, type: 'dodge' }, { verb: 'modify', to: 'save.ref', value: 1, type: 'dodge' }, { verb: 'modify', to: 'speed', value: 30 }] },
-        { id: 'tick', trigger: 'onRoundStart', do: [{ verb: 'resource', id: 'boots-rounds', op: 'consume', amount: 1 }] },
       ],
     },
     { id: 'ring-of-protection-1', item: { category: 'wondrous', slot: 'ring', price: '2,000 gp' }, name: 'Ring of Protection +1', source: 'item', effects: [{ id: 'r', do: [{ kind: 'bonus', to: 'ac', value: 1, bonusType: 'deflection' }] }] },

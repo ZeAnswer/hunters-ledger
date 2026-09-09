@@ -139,19 +139,20 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
             {actions.map((a) => (
               <div key={a.abilityId} data-ability={a.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl border px-3 py-2', a.usable ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-70', a.active && 'border-emerald-700')}>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ON</span> : null}</div>
+                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ON this round</span> : null}</div>
                   <div className="truncate text-xs text-zinc-500">{originLabel(a)}</div>
                   <div className="text-xs text-zinc-400">
                     {a.resources.map((r) => <span key={r.id} className="mr-2">{r.label}: <b className={r.remaining === 0 ? 'text-red-400' : 'text-emerald-300'}>{r.resetTo === 'zero' ? `${r.max - r.remaining}/${r.max}` : `${r.remaining}/${r.max}`}</b> /{r.resetOn}</span>)}
                     {typeof a.activation === 'object' && 'action' in a.activation && <span className="mr-2">{typeof a.activation.action === 'string' ? a.activation.action : 'long'} action</span>}
                     {a.activation === 'declare' && <span className="mr-2">declare before roll</span>}
                     {a.activation === 'atWill' && <span className="mr-2">at will</span>}
+                    {a.activation === 'toggle' && a.resources.length > 0 && <span className="mr-2">1 charge per round while on</span>}
                   </div>
                   {a.reasons.map((r) => <div key={r} className="text-xs text-amber-300">{r}</div>)}
                   {a.notes.map((n) => <div key={n} className="text-xs text-zinc-300">{n}</div>)}
                 </div>
                 {a.activation === 'toggle' ? (
-                  <Button size="sm" variant={a.active ? 'success' : 'default'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'On' : 'Off'}</Button>
+                  <Button size="sm" variant={a.active ? 'ghost' : 'primary'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'Turn off' : 'Turn on'}</Button>
                 ) : a.activation !== 'passive' ? (
                   <Button size="sm" disabled={!a.usable} onClick={() => use(a.abilityId)}>Use</Button>
                 ) : null}
