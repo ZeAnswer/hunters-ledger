@@ -1,14 +1,17 @@
 # TODO
 
 ## Battle
-- [ ] **Activations per effect, not per item.** Using Hand of Glory spends Daylight and See Invisibility together. Each resource must be its own action: one "Use" per charge pool.
-- [ ] **Activatable list with origin.** One list of everything that can be activated, each row with a subtext for its source: "Daylight — Hand of Glory", "Cure Light Wounds — ranger spell (Ranger 5)", "Monster Blow — Monster Hunter 1". Group by origin optional.
-- [ ] Consumables: drinking a potion decrements quantity and logs it (heal amount prompt).
+- [ ] Situational modifier sheet: use the new selector conditions (currently stat + value + duration only).
+- [ ] Roster: a Monsters tab in Library should also expose the remembered tag overlay for editing.
+- [x] **Activations per effect, not per item.** Hand of Glory now grants Daylight and See Invisibility as separate actions with their own charges.
+- [x] **Activatable list with origin.** Each action row shows its granter or class as subtext.
+- [x] Consumables: potions have an item cost (quantity decrements on use); healing amount still entered by hand on the character screen.
 - [ ] Situational modifier: "save to library" to turn a one-off into a reusable ability.
-- [ ] Attack profiles linked to weapon items (equipping a weapon supplies the profile).
+- [x] Attack profiles come from equipped weapon items.
 
 ## Rules builder
-- [ ] **More basic logic blocks** for effects (to be designed with the user): smaller primitives, arithmetic/comparison on values, counters, "per N" scaling, cleaner composition. User will think about it.
+- [x] **Rules v2**: selectors + compare/is/in/exists/history conditions, 13 effect verbs, ability envelope (origin, binding, activation, cost, duration, reset policy, grants). See `docs/RULES-FORMAT.md`.
+- [ ] Builder: friendlier presets ("+N to a stat vs a creature type" templates) on top of the generic blocks.
 - [ ] Preview an effect against a sample target inside the editor.
 
 ## Character data to confirm (Memento)
@@ -28,7 +31,7 @@
 - [ ] Android APK via Capacitor (needs Android Studio + JDK on the mac; `docs/ANDROID.md`).
 - [ ] Decide whether `tools/data/memento-rpgscribe.json` (DM's Hebrew memory notes) stays in the public repo.
 - [ ] Lazy-load the bestiary pack (1.8 MB) instead of bundling it in the main chunk.
-- [ ] Migration for pre-slot inventory entries (old phone data without abilityId).
+- [x] Old v1 rules in stored data are converted on load. Pre-slot inventory entries without abilityId still display but cannot be equipped: use Settings → Replace inventory.
 
 ## Later
 - [ ] Multi-character / party sync.
