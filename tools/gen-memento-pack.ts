@@ -57,7 +57,7 @@ const MK = { kind: 'param', name: 'types', includesTargetTag: true } as const;
 const pack: Pack = PackSchema.parse({
   id: 'memento',
   name: 'Memento (Ranger 5 / Monster Hunter 1)',
-  version: 5, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
+  version: 6, // bump when regenerating so installed apps merge the new abilities (the stored character is never overwritten)
   description: 'Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor\'s Monsters\' Manual.',
   tags: [
     { id: 'analyzed', label: 'Analyzed (Hunter\'s Analysis)', category: 'condition' },
@@ -76,6 +76,8 @@ const pack: Pack = PackSchema.parse({
     },
   ],
   abilities: [
+    // ---- feats bound to gear ----
+    { id: 'weapon-focus-longbow', name: 'Weapon Focus (longbow)', origin: 'feat', sourceRef: 'PHB p.102', text: '+1 on attack rolls with longbows.', effects: [{ id: 'wf', when: { is: 'attack.weapon.tag.longbow' }, do: [{ verb: 'modify', to: 'attack', value: 1 }] }] },
     // ---- DM feats / memories ----
     {
       id: 'woodland-archer', name: 'Woodland Archer', source: 'feat', sourceRef: 'Races of the Wild p.154',
@@ -203,10 +205,10 @@ const pack: Pack = PackSchema.parse({
       effects: [],
     },
     // ---- plain gear (no rules yet) ----
-    { id: 'strong-arm-composite-longbow-1', name: 'Strong-Arm Composite Longbow +1', source: 'item', item: { category: 'weapon', slot: 'mainHand', weight: 3 }, text: 'Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. Attack profile "bow" on the sheet: 1d8, ×3, 110 ft.', effects: [] },
+    { id: 'strong-arm-composite-longbow-1', name: 'Strong-Arm Composite Longbow +1', source: 'item', item: { category: 'weapon', slot: 'mainHand', weight: 3, tags: ['bow', 'longbow', 'composite'], weapon: { kind: 'ranged', dice: '1d8', critRange: 20, critMult: 3, rangeIncrement: 110, attackAbility: 'dex', damageAbility: 'str', maxDamageAbilityBonus: 4, enhancement: 1 } }, text: 'Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. 1d8, ×3, 110 ft.', effects: [] },
     { id: 'studded-leather', name: 'Studded Leather Armor', source: 'item', item: { category: 'armor', slot: 'armor', weight: 20, price: '25 gp' }, text: 'Light armor: +3 AC, max Dex +5, armor check penalty -1, 15% arcane spell failure.', effects: [{ id: 'ac', do: [{ kind: 'bonus', to: 'ac', value: 3, bonusType: 'armor' }] }] },
-    { id: 'potion-cure-moderate', name: 'Potion of Cure Moderate Wounds', source: 'item', item: { category: 'potion', weight: 0, price: '300 gp' }, text: 'CL 3: heals 2d8+3 hp. Standard action to drink.', activation: { action: 'standard' }, effects: [] },
-    { id: 'potion-cure-serious', name: 'Potion of Cure Serious Wounds', source: 'item', item: { category: 'potion', weight: 0, price: '750 gp' }, text: 'CL 5: heals 3d8+5 hp. Standard action to drink.', activation: { action: 'standard' }, effects: [] },
+    { id: 'potion-cure-moderate', name: 'Potion of Cure Moderate Wounds', origin: 'item', item: { category: 'potion', weight: 0, price: '300 gp' }, text: 'CL 3: heals 2d8+3 hp. Standard action to drink; one potion is used up.', activation: { action: 'standard' }, cost: [{ kind: 'item', abilityId: 'potion-cure-moderate' }], effects: [{ id: 'n', trigger: 'onUse', do: [{ verb: 'note', text: 'Roll 2d8+3 and apply as healing.' }] }] },
+    { id: 'potion-cure-serious', name: 'Potion of Cure Serious Wounds', origin: 'item', item: { category: 'potion', weight: 0, price: '750 gp' }, text: 'CL 5: heals 3d8+5 hp. Standard action to drink; one potion is used up.', activation: { action: 'standard' }, cost: [{ kind: 'item', abilityId: 'potion-cure-serious' }], effects: [{ id: 'n', trigger: 'onUse', do: [{ verb: 'note', text: 'Roll 3d8+5 and apply as healing.' }] }] },
     { id: 'vaelors-manual', name: "Vaelor's Monsters' Manual", source: 'item', item: { category: 'wondrous', slot: 'none', weight: 5 }, text: 'Unique artifact, no slot, CL 12. Grants Monster Knowledge, Hunter\'s Analysis, Hunter\'s Instinct and the Bestiary Collection.', effects: [] },
     { id: 'gargoyle-hands', name: "Gargoyle's hands", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Monstrous humanoid). Crafts: Gargoyle bracers — DR 10/magic, freeze DC +15, +2 Con.', effects: [] },
     { id: 'gorgon-scale', name: "Gorgon's scale", source: 'item', item: { category: 'material' }, text: 'Trophy crafting material (Magical beast). Crafts: Gorgon belt — +2d6 damage when charging, petrifying cone 60 ft 1/day DC +14 Fort negates.', effects: [] },
@@ -231,14 +233,12 @@ const pack: Pack = PackSchema.parse({
       spot: { ranks: 8 }, hide: { ranks: 7 }, 'move-silently': { ranks: 7 }, survival: { ranks: 7 }, listen: { ranks: 6 }, climb: { ranks: 2 },
       'knowledge-monsters': { ranks: 8 }, 'craft-taxidermy': { ranks: 6 },
     },
-    attackProfiles: [
-      { id: 'bow', name: 'Strong-Arm Composite Longbow +1', kind: 'ranged', baseDice: '1d8', enhancement: 1, critRange: 20, critMult: 3, rangeIncrement: 110, attackAbility: 'dex', damageAbility: 'str', maxDamageAbilityBonus: 4 },
-    ],
+    attackProfiles: [],
     abilities: [
       { abilityId: 'favored-enemy-1', paramValues: { types: ['monstrous-humanoid'] } },
       { abilityId: 'favored-enemy-2', paramValues: { types: ['aberration'] } },
       { abilityId: 'track' }, { abilityId: 'endurance' }, { abilityId: 'wild-empathy', enabled: false },
-      { abilityId: 'point-blank-shot' }, { abilityId: 'rapid-shot' }, { abilityId: 'weapon-focus-ranged' }, { abilityId: 'ranger-spells' },
+      { abilityId: 'point-blank-shot' }, { abilityId: 'rapid-shot' }, { abilityId: 'weapon-focus-longbow' }, { abilityId: 'ranger-spells' },
       { abilityId: 'woodland-archer' }, { abilityId: 'knowledge-devotion' }, { abilityId: 'distracting-attack' },
       { abilityId: 'memento-aqua' }, { abilityId: 'memento-formido', paramValues: { types: ['monstrous-humanoid', 'aberration', 'magical-beast'] } },
       { abilityId: 'the-shit-ive-seen' },

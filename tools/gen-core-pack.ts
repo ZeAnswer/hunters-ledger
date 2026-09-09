@@ -34,7 +34,7 @@ const KD_TABLE = [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { upTo: 30, va
 const pack: Pack = PackSchema.parse({
   id: 'core-3.5e',
   name: 'Core 3.5e',
-  version: 1,
+  version: 2,
   description: 'Creature types, subtypes, conditions, skills, XP table, Ranger class, common feats and buffs.',
   tags: [
     ...creatureTypes.map((t) => tag(t, 'creatureType')),
@@ -99,7 +99,7 @@ const pack: Pack = PackSchema.parse({
       id: 'point-blank-shot', name: 'Point Blank Shot', source: 'feat', sourceRef: 'PHB p.98',
       text: '+1 on attack and damage rolls with ranged weapons at ranges up to 30 feet.',
       effects: [{
-        id: 'pbs', label: 'Point Blank Shot', when: { kind: 'all', of: [{ kind: 'attack.kind', attackKind: 'ranged' }, { kind: 'toggle', id: 'within-30ft' }] },
+        id: 'pbs', label: 'Point Blank Shot', when: { all: [{ compare: 'attack.kind', op: '=', value: 'ranged' }, { compare: 'target.distance', op: '<=', value: 30 }] },
         do: [{ kind: 'bonus', to: 'attack', value: 1 }, { kind: 'bonus', to: 'damage', value: 1 }],
       }],
     },

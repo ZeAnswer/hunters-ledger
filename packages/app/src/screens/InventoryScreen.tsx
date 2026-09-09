@@ -36,7 +36,7 @@ export function InventoryScreen() {
     setCharacter(r.character); showToast(`${entryName(ctx, e)} equipped`);
   };
   const doUnequip = (e: InventoryEntry) => { setCharacter(unequipItem(ctx, e.id).character); showToast(`${entryName(ctx, e)} unequipped`); };
-  const fresh = (): Ability => ({ id: `item-${Date.now().toString(36)}`, name: '', source: 'item', activation: 'passive', enabledByDefault: true, effects: [], item: { category: 'gear' } });
+  const fresh = (): Ability => ({ id: `item-${Date.now().toString(36)}`, name: '', origin: 'item', binding: 'none', activation: 'passive', cost: [], resources: [], grants: [], enabledByDefault: true, effects: [], item: { category: 'gear', tags: [] } });
   const saveNew = (a: Ability) => {
     setLibrary({ ...library, abilities: { ...library.abilities, [a.id]: a } });
     setCharacter(addItemInstance(c, a.id));
@@ -132,7 +132,7 @@ export function InventoryScreen() {
       ); })()}
 
       {/* pick from library / storage for a slot */}
-      {pickFor && <PickSheet ctx={ctx} slot={pickFor} onClose={() => setPickFor(undefined)} onEquipExisting={(e) => { doEquip(e); setPickFor(undefined); }} onAddFromLibrary={(a, equip) => { let next = addItemInstance(c, a.id); if (equip) { const r = equipItem({ ...ctx, character: next }, next.inventory.at(-1)!.id, { replace: true }); next = r.character; } setCharacter(next); showToast(`${a.name} added`); setPickFor(undefined); }} onCreate={() => { setPickFor(undefined); setCreating({ ...fresh(), item: { category: pickFor === 'any' ? 'gear' : 'wondrous', ...(pickFor !== 'any' ? { slot: pickFor } : {}) } }); }} />}
+      {pickFor && <PickSheet ctx={ctx} slot={pickFor} onClose={() => setPickFor(undefined)} onEquipExisting={(e) => { doEquip(e); setPickFor(undefined); }} onAddFromLibrary={(a, equip) => { let next = addItemInstance(c, a.id); if (equip) { const r = equipItem({ ...ctx, character: next }, next.inventory.at(-1)!.id, { replace: true }); next = r.character; } setCharacter(next); showToast(`${a.name} added`); setPickFor(undefined); }} onCreate={() => { setPickFor(undefined); setCreating({ ...fresh(), item: { category: pickFor === 'any' ? 'gear' : 'wondrous', tags: [], ...(pickFor !== 'any' ? { slot: pickFor } : {}) } }); }} />}
 
       <Sheet open={!!creating} onClose={() => setCreating(undefined)} title="New item" tall>
         {creating && <AbilityEditor key={creating.id} initial={creating} onSave={saveNew} onCancel={() => setCreating(undefined)} />}
@@ -151,7 +151,7 @@ function PickSheet({ ctx, slot, onClose, onEquipExisting, onAddFromLibrary, onCr
   const fits = (a: Ability | undefined) => !!a && (slot === 'any' || slotOf(a) === slot);
   const owned = ctx.character.inventory.filter((e) => !e.equipped && fits(itemAbility(ctx, e)) && (!q || entryName(ctx, e).toLowerCase().includes(q.toLowerCase())));
   const ownedIds = new Set(ctx.character.inventory.map((e) => e.abilityId));
-  const libraryItems = Object.values(ctx.library.abilities).filter((a) => a.source === 'item' && fits(a) && (!cat || a.item?.category === cat) && (!q || a.name.toLowerCase().includes(q.toLowerCase()))).sort((a, b) => a.name.localeCompare(b.name));
+  const libraryItems = Object.values(ctx.library.abilities).filter((a) => a.origin === 'item' && fits(a) && (!cat || a.item?.category === cat) && (!q || a.name.toLowerCase().includes(q.toLowerCase()))).sort((a, b) => a.name.localeCompare(b.name));
   const label = slot === 'any' ? 'Add item' : `Equip: ${SLOTS.find((s) => s.id === slot)?.label}`;
   return (
     <Sheet open onClose={onClose} title={label} tall>

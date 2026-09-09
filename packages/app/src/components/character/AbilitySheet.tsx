@@ -14,14 +14,15 @@ export function AbilitySheet({ ctx, ability, onClose }: { ctx: EvalContext; abil
   return (
     <Sheet open onClose={onClose} title={ability.name} tall>
       <div className="mb-3 flex items-center gap-2 text-xs text-zinc-500">
-        <span>{ability.source}{ability.sourceRef ? ` · ${ability.sourceRef}` : ''}</span>
-        {ability.source === 'item' && <span className={inst.enabled ? 'text-emerald-300' : 'text-zinc-500'}>{inst.enabled ? '· equipped' : '· not equipped (see Inventory)'}</span>}
-        {ability.source !== 'item' && !inst.enabled && <span className="text-amber-300">· inactive</span>}
+        <span>{ability.origin}{ability.sourceRef ? ` · ${ability.sourceRef}` : ''}</span>
+        {ability.origin === 'item' && <span className={inst.enabled ? 'text-emerald-300' : 'text-zinc-500'}>{inst.enabled ? '· equipped' : '· not equipped (see Inventory)'}</span>}
+        {ability.origin !== 'item' && !inst.enabled && <span className="text-amber-300">· inactive</span>}
       </div>
       {ability.text && <p className="mb-3 whitespace-pre-wrap text-sm text-zinc-300">{ability.text}</p>}
       {ability.todo && <p className="mb-3 rounded-xl border border-amber-900 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">⚑ {ability.todo}</p>}
       {Object.entries(ability.params ?? {}).map(([name, def]) => {
         const chosen = inst.paramValues[name] ?? [];
+        if (def.kind !== 'tags') return null;
         const options = tags.filter((t) => !def.category || t.category === def.category).sort((a, b) => a.label.localeCompare(b.label));
         return (
           <Field key={name} label={`${def.label ?? name}${def.count ? ` (pick ${def.count})` : ''}`}>
@@ -33,7 +34,7 @@ export function AbilitySheet({ ctx, ability, onClose }: { ctx: EvalContext; abil
       })}
       {ability.resources?.map((r) => {
         const used = c.resourceState[r.id]?.used ?? 0;
-        return r.per === 'day' ? (
+        return r.resetOn !== 'round' && r.resetOn !== 'encounter' ? (
           <Field key={r.id} label={`${r.label ?? r.id} used today`}>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={() => setCharacter({ ...c, resourceState: { ...c.resourceState, [r.id]: { used: Math.max(0, used - 1) } } })}>−</Button>
@@ -44,7 +45,7 @@ export function AbilitySheet({ ctx, ability, onClose }: { ctx: EvalContext; abil
         ) : null;
       })}
       <div className="mb-3 text-xs text-zinc-500">{ability.effects.length} effect block{ability.effects.length === 1 ? '' : 's'}. Edit the logic in Library.</div>
-      {ability.source !== 'item' && <Button variant="danger" onClick={() => { if (confirm(`Remove ${ability.name} from ${c.name}?`)) { setCharacter({ ...c, abilities: c.abilities.filter((x) => x.abilityId !== ability.id) }); onClose(); } }}>Remove from character</Button>}
+      {ability.origin !== 'item' && <Button variant="danger" onClick={() => { if (confirm(`Remove ${ability.name} from ${c.name}?`)) { setCharacter({ ...c, abilities: c.abilities.filter((x) => x.abilityId !== ability.id) }); onClose(); } }}>Remove from character</Button>}
     </Sheet>
   );
 }

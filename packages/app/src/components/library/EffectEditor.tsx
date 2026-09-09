@@ -3,111 +3,130 @@ import { useStore } from '../../store/store';
 import { Chip, inputCls } from '../ui';
 import { StatSelect } from './StatSelect';
 
-type Kind = Effect['kind'];
-const KINDS: { kind: Kind; label: string }[] = [
-  { kind: 'bonus', label: 'Bonus / penalty' }, { kind: 'extraDice', label: 'Extra damage dice' }, { kind: 'bonusFromTable', label: 'Bonus from a check (table)' },
-  { kind: 'note', label: 'Reminder note' }, { kind: 'applyTag', label: 'Apply condition/tag' }, { kind: 'consume', label: 'Spend charges' },
-  { kind: 'attackMode', label: 'New attack mode' }, { kind: 'extraAttack', label: 'Extra attack (haste-like)' }, { kind: 'ignoreConcealment', label: 'Ignore concealment' },
-  { kind: 'suppress', label: 'Suppress an ability' }, { kind: 'revealTarget', label: 'Reveal target lore' }, { kind: 'extraSlot', label: 'Extra equipment slot' },
+type Verb = Effect['verb'];
+const VERBS: { verb: Verb; label: string; group: string }[] = [
+  { verb: 'modify', label: 'Change a number (bonus / penalty / set / multiply)', group: 'Numbers' },
+  { verb: 'dice', label: 'Extra damage dice', group: 'Numbers' },
+  { verb: 'attack', label: 'Extra attacks / attack mode / natural attack', group: 'Numbers' },
+  { verb: 'flag', label: 'Set a flag (ignore concealment, never flat-footed, immunity…)', group: 'State' },
+  { verb: 'tag', label: 'Apply a condition / tag', group: 'State' },
+  { verb: 'grant', label: 'Grant an ability (buff, feature, spell-like)', group: 'State' },
+  { verb: 'suppress', label: 'Suppress an ability', group: 'State' },
+  { verb: 'slot', label: 'Extra equipment slot', group: 'State' },
+  { verb: 'resource', label: 'Spend / restore charges', group: 'Bookkeeping' },
+  { verb: 'hp', label: 'Damage / heal / temp HP', group: 'Bookkeeping' },
+  { verb: 'prompt', label: 'Ask for a value (a check result)', group: 'Bookkeeping' },
+  { verb: 'note', label: 'Reminder note (with DC formula)', group: 'Bookkeeping' },
+  { verb: 'reveal', label: 'Reveal target lore', group: 'Bookkeeping' },
 ];
 const TYPES: BonusType[] = ['untyped', 'enhancement', 'insight', 'morale', 'competence', 'circumstance', 'dodge', 'luck', 'sacred', 'profane', 'racial', 'size', 'deflection', 'natural', 'armor', 'shield', 'resistance', 'alchemical', 'inherent'];
 
-function defaultFor(kind: Kind): Effect {
-  switch (kind) {
-    case 'bonus': return { kind, to: 'attack', value: 1, bonusType: 'untyped' };
-    case 'extraDice': return { kind, dice: '1d6' };
-    case 'bonusFromTable': return { kind, promptId: 'knowledge', perTagCategory: 'creatureType', to: 'attack', bonusType: 'insight', table: [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { value: 3 }] };
-    case 'note': return { kind, text: '' };
-    case 'applyTag': return { kind, to: 'target', tag: 'flanked', duration: 'endOfNextTurn' };
-    case 'consume': return { kind, resourceId: '', amount: 1 };
-    case 'attackMode': return { kind, modeId: 'new-mode', label: 'New mode', base: 'full', extraAttacksAtTop: 1, penalty: -2 };
-    case 'extraAttack': return { kind, appliesToBase: 'full', count: 1 };
-    case 'ignoreConcealment': return { kind };
-    case 'suppress': return { kind, abilityId: '' };
-    case 'revealTarget': return { kind };
-    case 'extraSlot': return { kind, slot: 'ring', count: 1 };
+function defaultFor(verb: Verb): Effect {
+  switch (verb) {
+    case 'modify': return { verb, to: 'attack', value: 1, type: 'untyped', mode: 'add' };
+    case 'dice': return { verb, dice: '1d6' };
+    case 'attack': return { verb, extraAttacks: 1, penaltyAll: 0, appliesToBase: 'full' };
+    case 'flag': return { verb, flag: 'ignoreConcealment', value: true };
+    case 'tag': return { verb, to: 'target', tag: 'flanked', duration: 'untilMyNextTurn' };
+    case 'grant': return { verb, ability: '' };
+    case 'suppress': return { verb, ability: '' };
+    case 'slot': return { verb, slot: 'ring', count: 1 };
+    case 'resource': return { verb, id: '', op: 'consume', amount: 1 };
+    case 'hp': return { verb, op: 'heal', amount: 1 };
+    case 'prompt': return { verb, id: 'knowledge', per: 'creatureType', remember: 'encounter' };
+    case 'note': return { verb, text: '' };
+    case 'reveal': return { verb };
   }
+}
+
+export function DurationPicker({ value, onChange }: { value: Duration; onChange: (d: Duration) => void }) {
+  const kind = typeof value === 'object' ? ('rounds' in value ? 'rounds' : 'minutes') : value;
+  const opts: [string, string][] = [['instant', 'instant'], ['thisAttack', 'this attack'], ['thisTurn', 'this turn'], ['untilMyNextTurn', 'until my next turn'], ['endOfRound', 'end of round'], ['rounds', 'N rounds'], ['minutes', 'N minutes'], ['encounter', 'whole battle'], ['untilRemoved', 'until removed'], ['whileActive', 'while active'], ['concentration', 'concentration']];
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-xs">
+      <select className={inputCls + ' w-auto py-1.5'} value={kind} onChange={(e) => { const k = e.target.value; onChange(k === 'rounds' ? { rounds: 3 } : k === 'minutes' ? { minutes: 1 } : (k as Duration)); }}>{opts.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      {typeof value === 'object' && 'rounds' in value && <input className={inputCls + ' w-24'} value={String(value.rounds)} onChange={(e) => onChange({ rounds: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} />}
+      {typeof value === 'object' && 'minutes' in value && <input className={inputCls + ' w-16'} inputMode="numeric" value={value.minutes} onChange={(e) => onChange({ minutes: Number(e.target.value) || 1 })} />}
+    </div>
+  );
 }
 
 export function EffectEditor({ value, onChange, onRemove }: { value: Effect; onChange: (e: Effect) => void; onRemove: () => void }) {
   const tags = useStore((s) => s.library.tags);
+  const abilities = useStore((s) => s.library.abilities);
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch } as Effect);
-  const statSelect = (current: string) => <StatSelect value={current} onChange={(v) => set({ to: v })} />;
-  const typeChips = (current: BonusType) => <div className="flex flex-wrap gap-1">{TYPES.map((t) => <Chip key={t} active={current === t} onClick={() => set({ bonusType: t })}>{t}</Chip>)}</div>;
   const kindChips = (current: 'ranged' | 'melee' | undefined) => (
     <div className="flex gap-1 text-xs"><span className="self-center text-zinc-500">only for</span>{(['any', 'ranged', 'melee'] as const).map((k) => <Chip key={k} active={(current ?? 'any') === k} onClick={() => set({ attackKind: k === 'any' ? undefined : k })}>{k}</Chip>)}</div>
   );
+  const abilitySelect = (cur: string, onSel: (v: string) => void) => (
+    <select className={inputCls} value={cur} onChange={(e) => onSel(e.target.value)}><option value="">— pick ability —</option>{Object.values(abilities).sort((a, b) => a.name.localeCompare(b.name)).map((a) => <option key={a.id} value={a.id}>{a.name} ({a.origin})</option>)}</select>
+  );
 
   let body: React.ReactNode = null;
-  switch (value.kind) {
-    case 'bonus': body = (
-      <div className="space-y-1">
-        <div className="flex gap-2">{statSelect(value.to)}<input className={inputCls + ' w-28'} placeholder="value or expr" value={String(value.value)} onChange={(e) => set({ value: /^-?\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} /></div>
-        {typeChips(value.bonusType)}
-        {kindChips(value.attackKind)}
-        <div className="text-[11px] text-zinc-500">Expressions: wisMod, strMod, level, bab, classLevel(ranger), prompt(knowledge), floor/min/max, + - * /, plus character vars like trophyMultiplier.</div>
-      </div>
-    ); break;
-    case 'extraDice': body = (
-      <div className="space-y-1">
-        <div className="flex gap-2"><input className={inputCls + ' w-24'} value={value.dice} onChange={(e) => set({ dice: e.target.value })} /><input className={inputCls} placeholder="label" value={value.label ?? ''} onChange={(e) => set({ label: e.target.value || undefined })} /><input className={inputCls + ' w-28'} placeholder="type (fire…)" value={value.damageType ?? ''} onChange={(e) => set({ damageType: e.target.value || undefined })} /></div>
-        {kindChips(value.attackKind)}
-      </div>
-    ); break;
-    case 'bonusFromTable': body = (
-      <div className="space-y-1">
-        <div className="flex gap-2"><input className={inputCls} placeholder="prompt id" value={value.promptId} onChange={(e) => set({ promptId: e.target.value })} /><input className={inputCls} placeholder="per tag category" value={value.perTagCategory ?? ''} onChange={(e) => set({ perTagCategory: e.target.value || undefined })} /></div>
-        {statSelect(value.to)}
-        {typeChips(value.bonusType)}
-        <div className="text-xs text-zinc-400">Table (check result up to → bonus; last row = anything higher)</div>
-        {value.table.map((row, i) => (
-          <div key={i} className="flex items-center gap-2"><input className={inputCls + ' w-24'} inputMode="numeric" placeholder="∞" value={row.upTo ?? ''} onChange={(e) => set({ table: value.table.map((r, j) => (j === i ? { ...r, upTo: e.target.value === '' ? undefined : Number(e.target.value) } : r)) })} /><span>→</span><input className={inputCls + ' w-20'} inputMode="numeric" value={row.value} onChange={(e) => set({ table: value.table.map((r, j) => (j === i ? { ...r, value: Number(e.target.value) } : r)) })} /><button type="button" className="text-zinc-500" onClick={() => set({ table: value.table.filter((_, j) => j !== i) })}>✕</button></div>
-        ))}
-        <button type="button" className="text-sm text-amber-300" onClick={() => set({ table: [...value.table, { value: 0 }] })}>+ row</button>
-      </div>
-    ); break;
-    case 'note': body = <textarea className={inputCls} value={value.text} onChange={(e) => set({ text: e.target.value })} placeholder="Shown during battle when this applies" />; break;
-    case 'applyTag': body = (
-      <div className="space-y-1">
-        <div className="flex gap-1">{(['target', 'self'] as const).map((t) => <Chip key={t} active={value.to === t} onClick={() => set({ to: t })}>{t === 'self' ? 'me' : 'target'}</Chip>)}</div>
-        <select className={inputCls} value={value.tag} onChange={(e) => set({ tag: e.target.value })}>{Object.values(tags).filter((t) => t.category === 'condition' || t.category === 'custom').map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
-        <DurationPicker value={value.duration} onChange={(d) => set({ duration: d })} />
-      </div>
-    ); break;
-    case 'consume': body = <div className="flex gap-2"><input className={inputCls} placeholder="resource id" value={value.resourceId} onChange={(e) => set({ resourceId: e.target.value })} /><input className={inputCls + ' w-20'} inputMode="numeric" value={value.amount} onChange={(e) => set({ amount: Number(e.target.value) || 1 })} /></div>; break;
-    case 'attackMode': body = (
-      <div className="space-y-1">
-        <div className="flex gap-2"><input className={inputCls} placeholder="mode id" value={value.modeId} onChange={(e) => set({ modeId: e.target.value })} /><input className={inputCls} placeholder="label" value={value.label} onChange={(e) => set({ label: e.target.value })} /></div>
-        <div className="flex gap-1">{(['single', 'full'] as const).map((b) => <Chip key={b} active={value.base === b} onClick={() => set({ base: b })}>based on {b}</Chip>)}</div>
-        <div className="flex items-center gap-2 text-xs text-zinc-400">extra attacks at top <input className={inputCls + ' w-16'} inputMode="numeric" value={value.extraAttacksAtTop} onChange={(e) => set({ extraAttacksAtTop: Number(e.target.value) || 0 })} /> penalty on all <input className={inputCls + ' w-16'} inputMode="numeric" value={value.penalty} onChange={(e) => set({ penalty: Number(e.target.value) || 0 })} /></div>
-        {kindChips(value.attackKind)}
-        <input className={inputCls} placeholder="note shown when using this mode" value={value.note ?? ''} onChange={(e) => set({ note: e.target.value || undefined })} />
-      </div>
-    ); break;
-    case 'extraAttack': body = <div className="flex items-center gap-2 text-xs text-zinc-400">{(['full', 'single', 'any'] as const).map((b) => <Chip key={b} active={value.appliesToBase === b} onClick={() => set({ appliesToBase: b })}>{b} modes</Chip>)} count <input className={inputCls + ' w-16'} inputMode="numeric" value={value.count} onChange={(e) => set({ count: Number(e.target.value) || 1 })} /></div>; break;
-    case 'suppress': body = <input className={inputCls} placeholder="ability id" value={value.abilityId} onChange={(e) => set({ abilityId: e.target.value })} />; break;
-    case 'extraSlot': body = <div className="flex items-center gap-2 text-xs text-zinc-400"><select className={inputCls} value={value.slot} onChange={(e) => set({ slot: e.target.value })}>{SLOTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select> +<input className={inputCls + ' w-16'} inputMode="numeric" value={value.count} onChange={(e) => set({ count: Number(e.target.value) || 1 })} /></div>; break;
+  switch (value.verb) {
+    case 'modify': {
+      const isTable = typeof value.value === 'object';
+      body = (
+        <div className="space-y-1">
+          <div className="flex gap-1"><StatSelect value={value.to} onChange={(v) => set({ to: v })} /><select className={inputCls + ' w-auto'} value={value.mode} onChange={(e) => set({ mode: e.target.value })}><option value="add">add</option><option value="set">set to</option><option value="multiply">multiply by</option></select></div>
+          <div className="flex gap-1">
+            <Chip active={!isTable} onClick={() => isTable && set({ value: 1 })}>number / expression</Chip>
+            <Chip active={isTable} onClick={() => !isTable && set({ value: { prompt: 'knowledge', per: 'creatureType', table: [{ upTo: 15, value: 1 }, { upTo: 25, value: 2 }, { value: 3 }] } })}>from a check result</Chip>
+          </div>
+          {!isTable ? (
+            <input className={inputCls} placeholder="e.g. 2, wisMod, 2 * trophyMultiplier" value={String(value.value)} onChange={(e) => set({ value: /^-?\d+(\.\d+)?$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} />
+          ) : (() => { const t = value.value as { prompt: string; per?: string; table: { upTo?: number; value: number }[] }; return (
+            <div className="space-y-1">
+              <div className="flex gap-1"><input className={inputCls} placeholder="check id (knowledge)" value={t.prompt} onChange={(e) => set({ value: { ...t, prompt: e.target.value } })} /><input className={inputCls} placeholder="once per tag category (creatureType)" value={t.per ?? ''} onChange={(e) => set({ value: { ...t, per: e.target.value || undefined } })} /></div>
+              {t.table.map((row, i) => <div key={i} className="flex items-center gap-2 text-sm"><span className="text-zinc-500">up to</span><input className={inputCls + ' w-20'} inputMode="numeric" placeholder="∞" value={row.upTo ?? ''} onChange={(e) => set({ value: { ...t, table: t.table.map((r, j) => (j === i ? { ...r, upTo: e.target.value === '' ? undefined : Number(e.target.value) } : r)) } })} /><span>→</span><input className={inputCls + ' w-20'} inputMode="numeric" value={row.value} onChange={(e) => set({ value: { ...t, table: t.table.map((r, j) => (j === i ? { ...r, value: Number(e.target.value) } : r)) } })} /><button type="button" className="text-zinc-500" onClick={() => set({ value: { ...t, table: t.table.filter((_, j) => j !== i) } })}>✕</button></div>)}
+              <button type="button" className="text-sm text-amber-300" onClick={() => set({ value: { ...t, table: [...t.table, { value: 0 }] } })}>+ row</button>
+            </div>
+          ); })()}
+          <div className="flex flex-wrap gap-1">{TYPES.map((t) => <Chip key={t} active={value.type === t} onClick={() => set({ type: t })}>{t}</Chip>)}</div>
+          {kindChips(value.attackKind)}
+        </div>
+      );
+      break;
+    }
+    case 'dice': body = <div className="space-y-1"><div className="flex gap-2"><input className={inputCls + ' w-24'} value={value.dice} onChange={(e) => set({ dice: e.target.value })} /><input className={inputCls} placeholder="label" value={value.label ?? ''} onChange={(e) => set({ label: e.target.value || undefined })} /><input className={inputCls + ' w-28'} placeholder="type (fire…)" value={value.damageType ?? ''} onChange={(e) => set({ damageType: e.target.value || undefined })} /></div>{kindChips(value.attackKind)}</div>; break;
+    case 'attack': {
+      const kind = value.mode ? 'mode' : value.naturalAttack ? 'natural' : 'extra';
+      body = (
+        <div className="space-y-1">
+          <div className="flex flex-wrap gap-1">
+            <Chip active={kind === 'extra'} onClick={() => onChange({ verb: 'attack', extraAttacks: 1, penaltyAll: 0, appliesToBase: 'full' })}>extra attack(s) in existing modes</Chip>
+            <Chip active={kind === 'mode'} onClick={() => onChange({ verb: 'attack', mode: { id: 'new-mode', label: 'New mode', base: 'full' }, extraAttacks: 1, penaltyAll: -2 })}>a new attack mode</Chip>
+            <Chip active={kind === 'natural'} onClick={() => onChange({ verb: 'attack', extraAttacks: 0, penaltyAll: 0, naturalAttack: { name: 'Bite', dice: '1d6', count: 1, attackBonus: 0 } })}>a natural attack</Chip>
+          </div>
+          {kind === 'mode' && value.mode && <div className="flex gap-1"><input className={inputCls} placeholder="mode id" value={value.mode.id} onChange={(e) => set({ mode: { ...value.mode, id: e.target.value } })} /><input className={inputCls} placeholder="label" value={value.mode.label} onChange={(e) => set({ mode: { ...value.mode, label: e.target.value } })} /><select className={inputCls + ' w-auto'} value={value.mode.base} onChange={(e) => set({ mode: { ...value.mode, base: e.target.value } })}><option value="full">based on full attack</option><option value="single">based on single attack</option></select></div>}
+          {kind === 'mode' && value.mode && <input className={inputCls} placeholder="note shown when using this mode" value={value.mode.note ?? ''} onChange={(e) => set({ mode: { ...value.mode, note: e.target.value || undefined } })} />}
+          {kind !== 'natural' && <div className="flex items-center gap-2 text-xs text-zinc-400">extra attacks at top <input className={inputCls + ' w-16'} inputMode="numeric" value={value.extraAttacks} onChange={(e) => set({ extraAttacks: Number(e.target.value) || 0 })} /> penalty on all <input className={inputCls + ' w-16'} inputMode="numeric" value={value.penaltyAll} onChange={(e) => set({ penaltyAll: Number(e.target.value) || 0 })} />{kind === 'extra' && <select className={inputCls + ' w-auto py-1'} value={value.appliesToBase ?? 'full'} onChange={(e) => set({ appliesToBase: e.target.value })}><option value="full">in full-attack modes</option><option value="single">in single-attack modes</option><option value="any">in any mode</option></select>}</div>}
+          {kind === 'natural' && value.naturalAttack && <div className="flex gap-1"><input className={inputCls} placeholder="name" value={value.naturalAttack.name} onChange={(e) => set({ naturalAttack: { ...value.naturalAttack, name: e.target.value } })} /><input className={inputCls + ' w-20'} value={value.naturalAttack.dice} onChange={(e) => set({ naturalAttack: { ...value.naturalAttack, dice: e.target.value } })} /><input className={inputCls + ' w-16'} inputMode="numeric" title="count" value={value.naturalAttack.count} onChange={(e) => set({ naturalAttack: { ...value.naturalAttack, count: Number(e.target.value) || 1 } })} /><input className={inputCls + ' w-16'} inputMode="numeric" title="attack bonus" value={value.naturalAttack.attackBonus} onChange={(e) => set({ naturalAttack: { ...value.naturalAttack, attackBonus: Number(e.target.value) || 0 } })} /></div>}
+          {kindChips(value.attackKind)}
+        </div>
+      );
+      break;
+    }
+    case 'flag': body = <div className="flex gap-1"><input className={inputCls} list="flag-names" placeholder="ignoreConcealment, neverFlatFooted, immune.fear, sense.darkvision…" value={value.flag} onChange={(e) => set({ flag: e.target.value })} /><datalist id="flag-names"><option value="ignoreConcealment" /><option value="neverFlatFooted" /><option value="immune.fear" /><option value="immune.paralysis" /><option value="sense.darkvision" /><option value="sense.scent" /><option value="canFly" /></datalist><select className={inputCls + ' w-auto'} value={String(value.value)} onChange={(e) => set({ value: e.target.value === 'true' })}><option value="true">on</option><option value="false">off</option></select></div>; break;
+    case 'tag': body = <div className="space-y-1"><div className="flex gap-1">{(['target', 'self', 'allEnemies'] as const).map((t) => <Chip key={t} active={value.to === t} onClick={() => set({ to: t })}>{{ target: 'target', self: 'me', allEnemies: 'all enemies' }[t]}</Chip>)}</div><select className={inputCls} value={value.tag} onChange={(e) => set({ tag: e.target.value })}>{Object.values(tags).filter((t) => t.category === 'condition' || t.category === 'custom').sort((a, b) => a.label.localeCompare(b.label)).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select><DurationPicker value={value.duration} onChange={(d) => set({ duration: d })} /></div>; break;
+    case 'grant': body = <div className="space-y-1">{abilitySelect(value.ability, (v) => set({ ability: v }))}<div className="text-xs text-zinc-500">Duration: {value.duration ? '' : "the granted ability's own"}</div>{value.duration && <DurationPicker value={value.duration} onChange={(d) => set({ duration: d })} />}{!value.duration && <button type="button" className="text-sm text-amber-300" onClick={() => set({ duration: { rounds: 5 } })}>+ override duration</button>}</div>; break;
+    case 'suppress': body = abilitySelect(value.ability, (v) => set({ ability: v })); break;
+    case 'slot': body = <div className="flex items-center gap-2 text-xs text-zinc-400"><select className={inputCls} value={value.slot} onChange={(e) => set({ slot: e.target.value })}>{SLOTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select> +<input className={inputCls + ' w-16'} inputMode="numeric" value={value.count} onChange={(e) => set({ count: Number(e.target.value) || 1 })} /></div>; break;
+    case 'resource': body = <div className="flex gap-1"><select className={inputCls + ' w-auto'} value={value.op} onChange={(e) => set({ op: e.target.value })}><option value="consume">spend</option><option value="restore">restore</option><option value="set">set used to</option></select><input className={inputCls + ' w-20'} placeholder="amount" value={String(value.amount)} onChange={(e) => set({ amount: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} /><input className={inputCls} placeholder="resource id" value={value.id} onChange={(e) => set({ id: e.target.value })} /></div>; break;
+    case 'hp': body = <div className="flex gap-1"><select className={inputCls + ' w-auto'} value={value.op} onChange={(e) => set({ op: e.target.value })}><option value="heal">heal</option><option value="damage">damage</option><option value="temp">temp HP</option></select><input className={inputCls} placeholder="amount or expression" value={String(value.amount)} onChange={(e) => set({ amount: /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} /></div>; break;
+    case 'prompt': body = <div className="flex gap-1"><input className={inputCls} placeholder="prompt id" value={value.id} onChange={(e) => set({ id: e.target.value })} /><input className={inputCls} placeholder="label" value={value.label ?? ''} onChange={(e) => set({ label: e.target.value || undefined })} /><input className={inputCls} placeholder="per tag category" value={value.per ?? ''} onChange={(e) => set({ per: e.target.value || undefined })} /></div>; break;
+    case 'note': body = <div className="space-y-1"><textarea className={inputCls} placeholder="Text; {expressions} are filled in, e.g. Fort DC {damage + wisMod}" value={value.text} onChange={(e) => set({ text: e.target.value })} /><input className={inputCls} placeholder="DC expression (optional)" value={value.dc === undefined ? '' : String(value.dc)} onChange={(e) => set({ dc: e.target.value === '' ? undefined : /^\d+$/.test(e.target.value) ? Number(e.target.value) : e.target.value })} /></div>; break;
     default: body = null;
   }
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-2">
       <div className="mb-1 flex items-center gap-2">
-        <select className={inputCls + ' flex-1 py-1.5 text-sm'} value={value.kind} onChange={(e) => onChange(defaultFor(e.target.value as Kind))}>{KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}</select>
+        <select className={inputCls + ' flex-1 py-1.5 text-sm'} value={value.verb} onChange={(e) => onChange(defaultFor(e.target.value as Verb))}>
+          {[...new Set(VERBS.map((v) => v.group))].map((g) => <optgroup key={g} label={g}>{VERBS.filter((v) => v.group === g).map((v) => <option key={v.verb} value={v.verb}>{v.label}</option>)}</optgroup>)}
+        </select>
         <button type="button" className="px-2 text-zinc-500" onClick={onRemove}>✕</button>
       </div>
       {body}
-    </div>
-  );
-}
-
-export function DurationPicker({ value, onChange }: { value: Duration; onChange: (d: Duration) => void }) {
-  const kind = typeof value === 'object' ? 'rounds' : value;
-  return (
-    <div className="flex flex-wrap items-center gap-1 text-xs">
-      {([['endOfRound', 'this round'], ['endOfNextTurn', 'until my next turn ends'], ['encounter', 'whole battle'], ['untilRemoved', 'until removed'], ['rounds', 'N rounds']] as const).map(([k, l]) => (
-        <Chip key={k} active={kind === k} onClick={() => onChange(k === 'rounds' ? { rounds: 3 } : k)}>{l}</Chip>
-      ))}
-      {typeof value === 'object' && <input className={inputCls + ' w-16'} inputMode="numeric" value={value.rounds} onChange={(e) => onChange({ rounds: Math.max(1, Number(e.target.value) || 1) })} />}
     </div>
   );
 }

@@ -8,12 +8,12 @@ export function BuffsDrawer({ ctx, open, onClose }: { ctx: EvalContext; open: bo
   const battle = ctx.battle!;
   const [q, setQ] = useState('');
   const lib = ctx.library;
-  const candidates = Object.values(lib.abilities).filter((a) => (a.source === 'buff' || a.source === 'condition' || a.source === 'situational') && (!q || a.name.toLowerCase().includes(q.toLowerCase())));
+  const candidates = Object.values(lib.abilities).filter((a) => (a.origin === 'buff' || a.origin === 'condition' || a.origin === 'situational') && (!q || a.name.toLowerCase().includes(q.toLowerCase())));
   const nameOf = (id: string) => lib.abilities[id]?.name ?? battle.situational.find((s) => s.id === id)?.name ?? id;
 
   const add = (abilityId: string) => {
     const a = lib.abilities[abilityId]!;
-    const rounds = typeof a.duration === 'object' ? a.duration.rounds : undefined;
+    const rounds = typeof a.duration === 'object' && 'rounds' in a.duration && typeof a.duration.rounds === 'number' ? a.duration.rounds : undefined;
     setBattle({ ...battle, activeBuffs: [...battle.activeBuffs, { instanceId: newId('buff'), abilityId, owner: 'self', suppressed: false, ...(rounds !== undefined ? { remainingRounds: rounds } : {}) }] });
   };
   const patch = (instanceId: string, p: Partial<(typeof battle.activeBuffs)[number]>) => setBattle({ ...battle, activeBuffs: battle.activeBuffs.map((b) => (b.instanceId === instanceId ? { ...b, ...p } : b)) });
@@ -47,7 +47,7 @@ export function BuffsDrawer({ ctx, open, onClose }: { ctx: EvalContext; open: bo
       )}
       <Field label="Add buff / condition">
         <input className={inputCls} placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="mt-2 flex flex-wrap gap-2">{candidates.map((a) => <Chip key={a.id} tone={a.source === 'condition' ? 'red' : 'green'} onClick={() => add(a.id)}>+ {a.name}</Chip>)}</div>
+        <div className="mt-2 flex flex-wrap gap-2">{candidates.map((a) => <Chip key={a.id} tone={a.origin === 'condition' ? 'red' : 'green'} onClick={() => add(a.id)}>+ {a.name}</Chip>)}</div>
       </Field>
       <Field label="Suppress abilities (anti-magic, disarmed…)">
         <div className="flex flex-wrap gap-2">

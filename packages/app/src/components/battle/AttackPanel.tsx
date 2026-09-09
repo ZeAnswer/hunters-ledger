@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  availableActions, listAttackModes, logAttack, resolveAttack, setPrompt, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
+  attackProfiles, availableActions, listAttackModes, logAttack, resolveAttack, setAbilityActive, setPrompt, useAbility, type AttackResult, type BreakdownEntry, type EvalContext,
 } from '@hl/engine';
 import { useStore } from '../../store/store';
 import { collectToggles } from '../../store/hooks';
@@ -12,22 +12,23 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
   const showToast = useStore((s) => s.showToast);
   const battle = ctx.battle!;
   const target = ctx.target;
-  const profiles = ctx.character.attackProfiles;
+  const profiles = useMemo(() => attackProfiles(ctx), [ctx]);
   const [profileId, setProfileId] = useState(profiles[0]?.id ?? '');
-  const modes = useMemo(() => listAttackModes(ctx, profileId), [ctx, profileId]);
+  const effectiveProfileId = profiles.some((p) => p.id === profileId) ? profileId : profiles[0]?.id ?? '';
+  const modes = useMemo(() => listAttackModes(ctx, effectiveProfileId), [ctx, effectiveProfileId]);
   const [modeId, setModeId] = useState('full');
   const mode = modes.find((m) => m.modeId === modeId) ?? modes[1] ?? modes[0];
   const [expanded, setExpanded] = useState<number | undefined>();
   const [prompt, setPromptOpen] = useState<{ id: string; category?: string } | undefined>();
 
-  const result = useMemo(() => (mode && profiles.length ? resolveAttack(ctx, { profileId, modeId: mode.modeId }) : undefined), [ctx, profileId, mode, profiles.length]);
+  const result = useMemo(() => (mode && profiles.length ? resolveAttack(ctx, { profileId: effectiveProfileId, modeId: mode.modeId }) : undefined), [ctx, effectiveProfileId, mode, profiles.length]);
   const toggles = useMemo(() => collectToggles(ctx), [ctx]);
   const actions = useMemo(() => availableActions(ctx), [ctx]);
 
   const setToggle = (id: string, v: boolean) => setBattle({ ...battle, toggles: { ...battle.toggles, [id]: v } });
   const record = (a: AttackResult, res: 'hit' | 'miss' | 'crit') => {
     if (!target) return;
-    const r = logAttack(ctx, { targetId: target.id, profileId, modeId: mode!.modeId, attackIndex: a.index, result: res });
+    const r = logAttack(ctx, { targetId: target.id, profileId: effectiveProfileId, modeId: mode!.modeId, attackIndex: a.index, result: res });
     setBattle(r.battle); setCharacter(r.character);
     showToast(`#${a.index} ${res.toUpperCase()} vs ${target.name}`);
   };
@@ -37,7 +38,9 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
     showToast(`Used ${ctx.library.abilities[abilityId]?.name ?? abilityId}`);
   };
 
-  if (!profiles.length) return <p className="text-zinc-500">No attack profiles on the character.</p>;
+  const toggleActive = (abilityId: string, on: boolean) => { const r = setAbilityActive(ctx, abilityId, on); setBattle(r.battle); setCharacter(r.character); showToast(`${ctx.library.abilities[abilityId]?.name ?? abilityId} ${on ? 'on' : 'off'}`); };
+  const originLabel = (a: (typeof actions)[number]) => a.grantedBy ? ctx.library.abilities[a.grantedBy]?.name ?? a.grantedBy : a.origin === 'classFeature' ? `${ctx.library.classTables[ctx.library.abilities[a.abilityId]?.classId ?? '']?.name ?? 'class feature'}${ctx.library.abilities[a.abilityId]?.classLevel ? ` ${ctx.library.abilities[a.abilityId]!.classLevel}` : ''}` : a.origin;
+  if (!profiles.length) return <p className="text-zinc-500">No weapon equipped. Equip one in Inventory.</p>;
 
   return (
     <div>
@@ -54,7 +57,7 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
 
       {/* profile + mode */}
       <div className="mb-2 flex flex-wrap gap-2">
-        {profiles.map((p) => <Chip key={p.id} active={p.id === profileId} onClick={() => { setProfileId(p.id); setModeId('full'); }}>{p.kind === 'ranged' ? '🏹' : '🗡️'} {p.name}</Chip>)}
+        {profiles.map((p) => <Chip key={p.id} active={p.id === effectiveProfileId} onClick={() => { setProfileId(p.id); setModeId('full'); }}>{p.kind === 'ranged' ? '🏹' : '🗡️'} {p.name}</Chip>)}
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
         {modes.map((m) => <Chip key={m.modeId} tone="blue" active={m.modeId === mode?.modeId} onClick={() => setModeId(m.modeId)}>{m.label}</Chip>)}
@@ -77,7 +80,7 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
       {result && (
         <div className="space-y-2">
           {result.attacks.map((a) => {
-            const logged = battle.log.find((e) => e.kind === 'attack' && e.round === battle.round && e.targetId === target?.id && e.modeId === mode?.modeId && e.attackIndex === a.index && e.profileId === profileId);
+            const logged = battle.log.find((e) => e.kind === 'attack' && e.round === battle.round && e.targetId === target?.id && e.modeId === mode?.modeId && e.attackIndex === a.index && e.profileId === effectiveProfileId);
             if (logged && expanded !== a.index) {
               return (
                 <button key={a.index} data-attack={a.index} type="button" onClick={() => setExpanded(a.index)} className={cx('flex w-full items-center justify-between rounded-2xl border bg-zinc-900 px-3 py-2 text-left', logged.result === 'miss' ? 'border-red-900' : 'border-emerald-800')}>
@@ -134,18 +137,24 @@ export function AttackPanel({ ctx }: { ctx: EvalContext }) {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Abilities & charges</div>
           <div className="space-y-2">
             {actions.map((a) => (
-              <div key={a.abilityId} data-ability={a.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl border px-3 py-2', a.usable ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-70')}>
+              <div key={a.abilityId} data-ability={a.abilityId} className={cx('flex items-center justify-between gap-2 rounded-xl border px-3 py-2', a.usable ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-70', a.active && 'border-emerald-700')}>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{a.name}</div>
+                  <div className="font-medium truncate">{a.name}{a.active ? <span className="ml-2 text-xs text-emerald-300">ON</span> : null}</div>
+                  <div className="truncate text-xs text-zinc-500">{originLabel(a)}</div>
                   <div className="text-xs text-zinc-400">
-                    {a.resources.map((r) => <span key={r.id} className="mr-2">{r.label}: <b className={r.remaining === 0 ? 'text-red-400' : 'text-emerald-300'}>{r.remaining}/{r.max}</b> /{r.per}</span>)}
-                    {typeof a.activation === 'object' && <span className="mr-2">{a.activation.action} action</span>}
+                    {a.resources.map((r) => <span key={r.id} className="mr-2">{r.label}: <b className={r.remaining === 0 ? 'text-red-400' : 'text-emerald-300'}>{r.resetTo === 'zero' ? `${r.max - r.remaining}/${r.max}` : `${r.remaining}/${r.max}`}</b> /{r.resetOn}</span>)}
+                    {typeof a.activation === 'object' && 'action' in a.activation && <span className="mr-2">{typeof a.activation.action === 'string' ? a.activation.action : 'long'} action</span>}
                     {a.activation === 'declare' && <span className="mr-2">declare before roll</span>}
+                    {a.activation === 'atWill' && <span className="mr-2">at will</span>}
                   </div>
                   {a.reasons.map((r) => <div key={r} className="text-xs text-amber-300">{r}</div>)}
                   {a.notes.map((n) => <div key={n} className="text-xs text-zinc-300">{n}</div>)}
                 </div>
-                {a.activation !== 'passive' && a.activation !== 'toggle' && <Button size="sm" disabled={!a.usable} onClick={() => use(a.abilityId)}>Use</Button>}
+                {a.activation === 'toggle' ? (
+                  <Button size="sm" variant={a.active ? 'success' : 'default'} disabled={!a.active && !a.usable} onClick={() => toggleActive(a.abilityId, !a.active)}>{a.active ? 'On' : 'Off'}</Button>
+                ) : a.activation !== 'passive' ? (
+                  <Button size="sm" disabled={!a.usable} onClick={() => use(a.abilityId)}>Use</Button>
+                ) : null}
               </div>
             ))}
           </div>

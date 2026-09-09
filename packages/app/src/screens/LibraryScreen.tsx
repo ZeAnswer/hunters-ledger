@@ -4,7 +4,7 @@ import { useStore } from '../store/store';
 import { Button, Chip, Field, Sheet, cx, humanize, inputCls } from '../components/ui';
 import { AbilityEditor } from '../components/library/AbilityEditor';
 
-const SOURCES = ['feat', 'class', 'item', 'memory', 'buff', 'condition', 'spell', 'situational', 'core'] as const;
+const SOURCES = ['feat', 'classFeature', 'item', 'memory', 'buff', 'condition', 'spell', 'situational', 'core'] as const;
 const CATEGORIES = ['creatureType', 'subtype', 'habitat', 'condition', 'custom'] as const;
 const SIZES: Size[] = ['fine', 'diminutive', 'tiny', 'small', 'medium', 'large', 'huge', 'gargantuan', 'colossal'];
 
@@ -33,7 +33,7 @@ function Abilities() {
   const [src, setSrc] = useState<string | undefined>();
   const [editing, setEditing] = useState<Ability | undefined>();
 
-  const list = Object.values(library.abilities).filter((a) => (!q || a.name.toLowerCase().includes(q.toLowerCase())) && (!src || a.source === src)).sort((a, b) => a.name.localeCompare(b.name));
+  const list = Object.values(library.abilities).filter((a) => (!q || a.name.toLowerCase().includes(q.toLowerCase())) && (!src || a.origin === src)).sort((a, b) => a.name.localeCompare(b.name));
   const onChar = (id: string) => character?.abilities.some((x) => x.abilityId === id);
   const save = (parsed: Ability) => {
     const rest = { ...library.abilities };
@@ -52,7 +52,7 @@ function Abilities() {
     if (!character) return;
     setCharacter(onChar(id) ? { ...character, abilities: character.abilities.filter((x) => x.abilityId !== id) } : { ...character, abilities: [...character.abilities, { abilityId: id, enabled: true, paramValues: {} }] });
   };
-  const fresh = (): Ability => ({ id: `new-${Date.now().toString(36)}`, name: 'New ability', source: 'feat', activation: 'passive', enabledByDefault: true, effects: [{ id: 'e1', trigger: 'always', when: { kind: 'always' }, do: [{ kind: 'bonus', to: 'attack', value: 1, bonusType: 'untyped' }] }] });
+  const fresh = (): Ability => ({ id: `new-${Date.now().toString(36)}`, name: 'New ability', origin: 'feat', binding: 'none', activation: 'passive', cost: [], resources: [], grants: [], enabledByDefault: true, effects: [{ id: 'e1', trigger: 'always', when: { all: [] }, do: [{ verb: 'modify', to: 'attack', value: 1, type: 'untyped', mode: 'add' }] }] });
 
   return (
     <div>
@@ -63,7 +63,7 @@ function Abilities() {
           <div key={a.id} className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2">
             <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEditing(a)}>
               <div className="truncate">{a.name}</div>
-              <div className="truncate text-xs text-zinc-500">{a.source} · {a.effects.length} effect{a.effects.length === 1 ? '' : 's'}{a.todo ? ' · ⚑ ' + a.todo : ''}</div>
+              <div className="truncate text-xs text-zinc-500">{a.origin} · {a.effects.length} effect{a.effects.length === 1 ? '' : 's'}{a.todo ? ' · ⚑ ' + a.todo : ''}</div>
             </button>
             {character && <button type="button" onClick={() => toggleOnChar(a.id)} className={cx('rounded-full border px-2 py-0.5 text-xs', onChar(a.id) ? 'border-amber-500 text-amber-300' : 'border-zinc-700 text-zinc-500')}>{onChar(a.id) ? 'on sheet' : 'add'}</button>}
           </div>

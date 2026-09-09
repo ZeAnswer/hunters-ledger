@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import {
-  BattleSchema, CharacterSchema, PackSchema, emptyLibrary, mergePack, libraryToPack, newBattle,
+  AbilitySchema, BattleSchema, CharacterSchema, PackSchema, convertV1, emptyLibrary, mergePack, libraryToPack, newBattle,
   type Battle, type Character, type EvalContext, type LibraryWithMeta, type MergeReport, type Monster, type Pack,
 } from '@hl/engine';
 import { storage } from '../storage';
@@ -71,8 +71,10 @@ export const useStore = create<Store>((set, get) => ({
       set({ library: lib, character: ch, hydrated: true, screen: 'battle' });
       return;
     }
+    // Stored rules may be in the old v1 format: convert.
+    const converted = Object.fromEntries(Object.entries(library.abilities ?? {}).map(([id, a]) => { try { return [id, AbilitySchema.parse(convertV1(a))]; } catch { return [id, a]; } }));
     // Built-in packs newer than what this install has seen get merged in (same-pack newer version wins; user edits to other packs untouched).
-    let lib: FullLibrary = { ...fullEmpty(), ...library };
+    let lib: FullLibrary = { ...fullEmpty(), ...library, abilities: converted };
     const updated: string[] = [];
     for (const p of defaultPacks) {
       const seen = Math.max(0, ...Object.values(lib.meta).filter((m) => m.packId === p.id).map((m) => m.version));
@@ -155,8 +157,8 @@ export const useStore = create<Store>((set, get) => ({
     const packChar = defaultPacks.flatMap((p) => p.characters).find((c) => c.id === character.id);
     if (!packChar) return `No built-in character with id ${character.id}`;
     const itemIds = new Set(packChar.inventory.map((i) => i.abilityId).filter(Boolean));
-    const keep = character.abilities.filter((a) => library.abilities[a.abilityId]?.source !== 'item');
-    const items = packChar.abilities.filter((a) => itemIds.has(a.abilityId) || library.abilities[a.abilityId]?.source === 'item');
+    const keep = character.abilities.filter((a) => library.abilities[a.abilityId]?.origin !== 'item');
+    const items = packChar.abilities.filter((a) => itemIds.has(a.abilityId) || library.abilities[a.abilityId]?.origin === 'item');
     set({ character: { ...character, inventory: packChar.inventory, abilities: [...keep, ...items], journal: [...character.journal, { at: new Date().toISOString(), kind: 'edit', text: 'Inventory replaced from built-in pack' }] } });
     return undefined;
   },

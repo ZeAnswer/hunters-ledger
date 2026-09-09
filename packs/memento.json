@@ -1,7 +1,7 @@
 {
   "id": "memento",
   "name": "Memento (Ranger 5 / Monster Hunter 1)",
-  "version": 5,
+  "version": 6,
   "description": "Memento the archer: homebrew Monster Hunter prestige class, DM-granted memories, items, trophies, Vaelor's Monsters' Manual.",
   "tags": [
     {
@@ -17,38 +17,78 @@
   ],
   "abilities": [
     {
+      "id": "weapon-focus-longbow",
+      "name": "Weapon Focus (longbow)",
+      "origin": "feat",
+      "text": "+1 on attack rolls with longbows.",
+      "sourceRef": "PHB p.102",
+      "binding": "none",
+      "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "effects": [
+        {
+          "id": "wf",
+          "trigger": "always",
+          "when": {
+            "is": "attack.weapon.tag.longbow"
+          },
+          "do": [
+            {
+              "verb": "modify",
+              "to": "attack",
+              "value": 1,
+              "type": "untyped",
+              "mode": "add"
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
+    },
+    {
       "id": "woodland-archer",
       "name": "Woodland Archer",
-      "source": "feat",
+      "origin": "feat",
       "text": "Adjust for Range: after missing a foe with a ranged attack, +4 on later ranged attacks vs that foe this round. Pierce the Foliage: after hitting despite concealment, next round your ranged attacks vs that foe ignore that concealment. Moving Sniper: after a successful sniping attack you may move once before re-hiding.",
       "sourceRef": "Races of the Wild p.154",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "adjust",
           "label": "Adjust for Range",
           "trigger": "always",
           "when": {
-            "kind": "all",
-            "of": [
+            "all": [
               {
-                "kind": "attack.kind",
-                "attackKind": "ranged"
+                "compare": "attack.kind",
+                "op": "=",
+                "value": "ranged"
               },
               {
-                "kind": "log",
-                "event": "miss",
-                "target": "current",
-                "scope": "thisRound"
+                "history": {
+                  "event": "miss",
+                  "by": "me",
+                  "vs": "current",
+                  "scope": "thisRound"
+                },
+                "op": ">=",
+                "value": 1
               }
             ]
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "attack",
               "value": 4,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         },
@@ -57,30 +97,35 @@
           "label": "Pierce the Foliage",
           "trigger": "always",
           "when": {
-            "kind": "all",
-            "of": [
+            "all": [
               {
-                "kind": "attack.kind",
-                "attackKind": "ranged"
+                "compare": "attack.kind",
+                "op": "=",
+                "value": "ranged"
               },
               {
-                "kind": "target.hasCondition",
-                "condition": "concealed"
+                "is": "target.condition.concealed"
               },
               {
-                "kind": "log",
-                "event": "hit",
-                "target": "current",
-                "scope": "lastRound"
+                "history": {
+                  "event": "hit",
+                  "by": "me",
+                  "vs": "current",
+                  "scope": "lastRound"
+                },
+                "op": ">=",
+                "value": 1
               }
             ]
           },
           "do": [
             {
-              "kind": "ignoreConcealment"
+              "verb": "flag",
+              "flag": "ignoreConcealment",
+              "value": true
             },
             {
-              "kind": "note",
+              "verb": "note",
               "text": "Pierce the Foliage: ignore this foe's concealment miss chance this round."
             }
           ]
@@ -90,12 +135,11 @@
           "label": "Moving Sniper",
           "trigger": "always",
           "when": {
-            "kind": "toggle",
-            "id": "sniping"
+            "is": "battle.toggle.sniping"
           },
           "do": [
             {
-              "kind": "note",
+              "verb": "note",
               "text": "Moving Sniper: after a hit while sniping, take one move action before re-hiding."
             }
           ]
@@ -106,74 +150,84 @@
     {
       "id": "knowledge-devotion",
       "name": "Knowledge Devotion",
-      "source": "feat",
+      "origin": "feat",
       "text": "Once per creature type per combat, make a Knowledge check (need 1+ rank in the matching Knowledge skill). Insight bonus on attack and damage vs that type: 15 or less +1, 16-25 +2, 26-30 +3, 31-35 +4, 36+ +5.",
       "sourceRef": "Complete Champion",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "kd",
           "label": "Knowledge Devotion",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonusFromTable",
-              "promptId": "knowledge",
-              "perTagCategory": "creatureType",
-              "table": [
-                {
-                  "upTo": 15,
-                  "value": 1
-                },
-                {
-                  "upTo": 25,
-                  "value": 2
-                },
-                {
-                  "upTo": 30,
-                  "value": 3
-                },
-                {
-                  "upTo": 35,
-                  "value": 4
-                },
-                {
-                  "value": 5
-                }
-              ],
+              "verb": "modify",
               "to": "attack",
-              "bonusType": "insight"
+              "value": {
+                "prompt": "knowledge",
+                "per": "creatureType",
+                "table": [
+                  {
+                    "upTo": 15,
+                    "value": 1
+                  },
+                  {
+                    "upTo": 25,
+                    "value": 2
+                  },
+                  {
+                    "upTo": 30,
+                    "value": 3
+                  },
+                  {
+                    "upTo": 35,
+                    "value": 4
+                  },
+                  {
+                    "value": 5
+                  }
+                ]
+              },
+              "type": "insight",
+              "mode": "add"
             },
             {
-              "kind": "bonusFromTable",
-              "promptId": "knowledge",
-              "perTagCategory": "creatureType",
-              "table": [
-                {
-                  "upTo": 15,
-                  "value": 1
-                },
-                {
-                  "upTo": 25,
-                  "value": 2
-                },
-                {
-                  "upTo": 30,
-                  "value": 3
-                },
-                {
-                  "upTo": 35,
-                  "value": 4
-                },
-                {
-                  "value": 5
-                }
-              ],
+              "verb": "modify",
               "to": "damage",
-              "bonusType": "insight"
+              "value": {
+                "prompt": "knowledge",
+                "per": "creatureType",
+                "table": [
+                  {
+                    "upTo": 15,
+                    "value": 1
+                  },
+                  {
+                    "upTo": 25,
+                    "value": 2
+                  },
+                  {
+                    "upTo": 30,
+                    "value": 3
+                  },
+                  {
+                    "upTo": 35,
+                    "value": 4
+                  },
+                  {
+                    "value": 5
+                  }
+                ]
+              },
+              "type": "insight",
+              "mode": "add"
             }
           ]
         }
@@ -183,23 +237,27 @@
     {
       "id": "distracting-attack",
       "name": "Distracting Attack",
-      "source": "class",
+      "origin": "classFeature",
       "text": "Whenever you hit an enemy with a weapon attack, that enemy is considered flanked by you until the end of your next turn.",
       "sourceRef": "PHB2 ranger variant (replaces animal companion)",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "flank",
           "trigger": "onHit",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "applyTag",
+              "verb": "tag",
               "to": "target",
               "tag": "flanked",
-              "duration": "endOfNextTurn"
+              "duration": "untilMyNextTurn"
             }
           ]
         }
@@ -210,22 +268,27 @@
     {
       "id": "memento-aqua",
       "name": "Memento Aqua",
-      "source": "memory",
+      "origin": "memory",
       "text": "Memory fragment: +2 Swim; +2 attack and damage vs creatures whose habitat is mainly aquatic.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "swim",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "skill.swim",
               "value": 2,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         },
@@ -234,21 +297,22 @@
           "label": "vs aquatic",
           "trigger": "always",
           "when": {
-            "kind": "target.hasTag",
-            "tag": "aquatic"
+            "is": "target.tag.aquatic"
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "attack",
               "value": 2,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             },
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "damage",
               "value": 2,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         }
@@ -258,8 +322,12 @@
     {
       "id": "memento-formido",
       "name": "Memento Formido",
-      "source": "memory",
+      "origin": "memory",
       "text": "Memory fragment: +2 Will vs any monster of your favored enemy or Monster Killer types.",
+      "binding": "none",
+      "activation": "passive",
+      "cost": [],
+      "resources": [],
       "params": {
         "types": {
           "kind": "tags",
@@ -267,22 +335,22 @@
           "category": "creatureType"
         }
       },
-      "activation": "passive",
+      "grants": [],
       "effects": [
         {
           "id": "will",
           "trigger": "always",
           "when": {
-            "kind": "param",
-            "name": "types",
-            "includesTargetTag": true
+            "in": "target.tags",
+            "param": "types"
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "save.will",
               "value": 2,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         }
@@ -292,22 +360,27 @@
     {
       "id": "the-shit-ive-seen",
       "name": "The Shit I've Seen",
-      "source": "feat",
+      "origin": "feat",
       "text": "+4 Survival.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "s",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "skill.survival",
               "value": 4,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         }
@@ -317,8 +390,12 @@
     {
       "id": "monster-killer",
       "name": "Monster Killer",
-      "source": "class",
+      "origin": "classFeature",
       "text": "Chosen monster types (3 at MH1, 5 at MH5, 7 at MH8) usable for trophies, Monster Blow and Monster Horror. Monstrous Humanoid, Magical Beast and Outsider cost 2 picks; Dragon+Giant together cost 1.",
+      "binding": "none",
+      "activation": "passive",
+      "cost": [],
+      "resources": [],
       "params": {
         "types": {
           "kind": "tags",
@@ -326,7 +403,7 @@
           "category": "creatureType"
         }
       },
-      "activation": "passive",
+      "grants": [],
       "effects": [],
       "enabledByDefault": true,
       "todo": "Confirm the 3 chosen types."
@@ -334,8 +411,20 @@
     {
       "id": "monster-blow",
       "name": "Monster Blow",
-      "source": "class",
+      "origin": "classFeature",
       "text": "Declare before the attack roll. Target must be a Monster Killer type and below 50% HP. On hit: Fortitude save DC = damage dealt + MH level + Wis mod or die.",
+      "binding": "none",
+      "activation": "declare",
+      "cost": [],
+      "resources": [
+        {
+          "id": "monster-blow",
+          "label": "Monster Blow",
+          "max": "1 + floor(classLevel(monster-hunter) / 5) + floor(classLevel(monster-hunter) / 8)",
+          "resetOn": "day",
+          "resetTo": "max"
+        }
+      ],
       "params": {
         "types": {
           "kind": "tags",
@@ -343,41 +432,31 @@
           "category": "creatureType"
         }
       },
-      "activation": "declare",
-      "resources": [
-        {
-          "id": "monster-blow",
-          "label": "Monster Blow",
-          "max": "1 + floor(classLevel(monster-hunter) / 5) + floor(classLevel(monster-hunter) / 8)",
-          "per": "day"
-        }
-      ],
+      "grants": [],
       "effects": [
         {
           "id": "declared",
           "label": "Monster Blow",
           "trigger": "always",
           "when": {
-            "kind": "all",
-            "of": [
+            "all": [
               {
-                "kind": "toggle",
-                "id": "monster-blow"
+                "is": "battle.toggle.monster-blow"
               },
               {
-                "kind": "param",
-                "name": "types",
-                "includesTargetTag": true
+                "in": "target.tags",
+                "param": "types"
               },
               {
-                "kind": "target.hurtAtMost",
-                "hurt": "bloodied"
+                "compare": "target.hurt",
+                "op": ">=",
+                "value": "bloodied"
               }
             ]
           },
           "do": [
             {
-              "kind": "note",
+              "verb": "note",
               "text": "MONSTER BLOW: on hit, Fort DC = damage + classLevel(monster-hunter) + wisMod or die."
             }
           ]
@@ -386,12 +465,13 @@
           "id": "use",
           "trigger": "onUse",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "consume",
-              "resourceId": "monster-blow",
+              "verb": "resource",
+              "id": "monster-blow",
+              "op": "consume",
               "amount": 1
             }
           ]
@@ -402,78 +482,105 @@
     {
       "id": "trophy-crafting",
       "name": "Trophy Crafting",
-      "source": "class",
+      "origin": "classFeature",
       "text": "Harvest ≤2 parts (more with Knowledge (Monsters) DC 10+MH) within 1 minute from Large+ monsters you damaged, Monster Killer types only. Max trophies = MH×2 + Wis mod; active slots 4 (MH1), 6 (MH4), 8 (MH7). Trophy bonuses ×2 at MH5, ×3 at MH10.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": true
     },
     {
       "id": "imbue-trophy-arms",
       "name": "Imbue Trophy (Arms & Armor)",
-      "source": "class",
+      "origin": "classFeature",
       "text": "MH3: imbue trophies into magic weapons/armor/shields. 1 week, 1,000 gp per +1 equivalent, 50% failure destroys both.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": false
     },
     {
       "id": "modify-trophy",
       "name": "Modify Trophy",
-      "source": "class",
+      "origin": "classFeature",
       "text": "MH4: change a trophy's slot once. Knowledge (Monsters) DC 15+MH, Craft (Taxidermy) DC 20, 500 gp and 500 XP × MH level.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": false
     },
     {
       "id": "imbue-trophy-wondrous",
       "name": "Imbue Trophy (Wondrous Item)",
-      "source": "class",
+      "origin": "classFeature",
       "text": "MH6: imbue trophies into wondrous items. 25% failure; salvage trophy with Craft DC 30.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": false
     },
     {
       "id": "monster-horror",
       "name": "Monster Horror",
-      "source": "class",
+      "origin": "classFeature",
       "text": "MH10: immune to mind-affecting abilities of chosen types; +2 attack/damage/saves per matching trophy worn (min +2), enemies -2.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": false
     },
     {
       "id": "monster-lore",
       "name": "Monster Lore",
-      "source": "class",
+      "origin": "classFeature",
       "text": "MH2: Locate monster type DC 20, specific monster DC 30, assess below 50% HP DC 25 (+3 per size above Large).",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [],
       "enabledByDefault": false
     },
     {
       "id": "monster-knowledge",
       "name": "Monster Knowledge (Vaelor's Manual)",
-      "source": "item",
+      "origin": "item",
       "text": "Standard action: Knowledge check DC 16 to recall everything in the book about this monster (except HP). Enter the same check as Knowledge Devotion.",
+      "binding": "none",
       "activation": {
         "action": "standard"
       },
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "reveal",
           "trigger": "onUse",
           "when": {
-            "kind": "prompt",
-            "id": "knowledge",
-            "atLeast": 16,
-            "perTagCategory": "creatureType"
+            "compare": "battle.prompt.knowledge",
+            "op": ">=",
+            "value": 16
           },
           "do": [
             {
-              "kind": "revealTarget"
+              "verb": "reveal"
             }
           ]
         }
@@ -483,21 +590,25 @@
     {
       "id": "hunters-analysis",
       "name": "Hunter's Analysis (Vaelor's Manual)",
-      "source": "item",
+      "origin": "item",
       "text": "Spend a full round observing a monster. From your next turn, vs that monster for the rest of the battle: threat range ×2 (20 → 19-20). If immune to crits, instead reduce its DR/SR by half your MH level (min 1) for 1 round, or suppress one unique ability for 1 round with Knowledge DC 20.",
+      "binding": "none",
       "activation": {
-        "action": "full"
+        "action": "fullRound"
       },
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "mark",
           "trigger": "onUse",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "applyTag",
+              "verb": "tag",
               "to": "target",
               "tag": "analyzed",
               "duration": "encounter"
@@ -509,18 +620,18 @@
           "label": "Analyzed target",
           "trigger": "always",
           "when": {
-            "kind": "target.hasCondition",
-            "condition": "analyzed"
+            "is": "target.condition.analyzed"
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "critRange",
               "value": 1,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             },
             {
-              "kind": "note",
+              "verb": "note",
               "text": "Hunter's Analysis: threat range doubled vs this target (if base is 19-20 use 17-20). If crit-immune: DR/SR -1 for 1 round, or suppress one ability (Knowledge DC 20)."
             }
           ]
@@ -531,22 +642,27 @@
     {
       "id": "hunters-instinct",
       "name": "Hunter's Instinct (Vaelor's Manual)",
-      "source": "item",
+      "origin": "item",
       "text": "+1 on Knowledge checks to identify monsters.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "effects": [
         {
           "id": "k",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "skill.knowledge-monsters",
               "value": 1,
-              "bonusType": "untyped"
+              "type": "untyped",
+              "mode": "add"
             }
           ]
         }
@@ -556,512 +672,686 @@
     {
       "id": "boots-of-speed",
       "name": "Boots of Speed",
-      "source": "item",
+      "origin": "item",
       "text": "Free action: haste for up to 10 rounds per day, in any increments.",
+      "binding": "none",
       "activation": {
         "action": "free"
       },
+      "cost": [],
       "resources": [
         {
           "id": "boots-rounds",
           "label": "Haste rounds",
           "max": 10,
-          "per": "day"
+          "resetOn": "day",
+          "resetTo": "max"
         }
       ],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "feet",
+        "weight": 1,
+        "tags": []
+      },
       "effects": [
         {
           "id": "go",
           "trigger": "onUse",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "consume",
-              "resourceId": "boots-rounds",
+              "verb": "resource",
+              "id": "boots-rounds",
+              "op": "consume",
               "amount": 1
             }
           ]
         }
       ],
       "enabledByDefault": true,
-      "todo": "Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on.",
-      "item": {
-        "category": "wondrous",
-        "slot": "feet",
-        "weight": 1
-      }
+      "todo": "Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on."
     },
     {
       "id": "ring-of-protection-1",
       "name": "Ring of Protection +1",
-      "source": "item",
+      "origin": "item",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "ring",
+        "price": "2,000 gp",
+        "tags": []
+      },
       "effects": [
         {
           "id": "r",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ac",
               "value": 1,
-              "bonusType": "deflection"
+              "type": "deflection",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "ring",
-        "price": "2,000 gp"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "bracers-of-armor-1",
       "name": "Bracers of Armor +1",
-      "source": "item",
+      "origin": "item",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "arms",
+        "weight": 1,
+        "tags": []
+      },
       "effects": [
         {
           "id": "b",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ac",
               "value": 1,
-              "bonusType": "armor"
+              "type": "armor",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "arms",
-        "weight": 1
-      }
+      "enabledByDefault": true
     },
     {
       "id": "ring-of-swimming",
       "name": "Ring of Swimming (cursed)",
-      "source": "item",
+      "origin": "item",
       "text": "Cursed: cannot remove; must explore any new body of water (Will save).",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "ring",
+        "tags": []
+      },
       "effects": [
         {
           "id": "s",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "skill.swim",
               "value": 5,
-              "bonusType": "competence"
+              "type": "competence",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "ring"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "bracers-of-archery-lesser",
       "name": "Bracers of Archery, Lesser",
-      "source": "item",
+      "origin": "item",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "arms",
+        "tags": []
+      },
       "effects": [
         {
           "id": "b",
           "trigger": "always",
           "when": {
-            "kind": "attack.kind",
-            "attackKind": "ranged"
+            "compare": "attack.kind",
+            "op": "=",
+            "value": "ranged"
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "attack",
               "value": 1,
-              "bonusType": "competence"
+              "type": "competence",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "arms"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "belt-of-strength",
       "name": "Belt of Strength +2",
-      "source": "item",
+      "origin": "item",
       "text": "+2 enhancement bonus to Strength while worn.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "waist",
+        "tags": []
+      },
       "effects": [
         {
           "id": "str",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ability.str",
               "value": 2,
-              "bonusType": "enhancement"
+              "type": "enhancement",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "waist"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "hand-of-glory",
       "name": "Hand of Glory",
-      "source": "item",
+      "origin": "item",
       "text": "Daylight 1/day, See Invisibility 1/day; extra ring slot.",
+      "binding": "none",
       "activation": {
         "action": "standard"
       },
+      "cost": [],
       "resources": [
         {
           "id": "hog-daylight",
           "label": "Daylight",
           "max": 1,
-          "per": "day"
+          "resetOn": "day",
+          "resetTo": "max"
         },
         {
           "id": "hog-see-invis",
           "label": "See Invisibility",
           "max": 1,
-          "per": "day"
+          "resetOn": "day",
+          "resetTo": "max"
         }
       ],
+      "grants": [],
+      "item": {
+        "category": "wondrous",
+        "slot": "neck",
+        "weight": 2,
+        "tags": []
+      },
       "effects": [
         {
           "id": "slot",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "extraSlot",
+              "verb": "slot",
               "slot": "ring",
               "count": 1
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "wondrous",
-        "slot": "neck",
-        "weight": 2
-      }
+      "enabledByDefault": true
     },
     {
       "id": "pearl-of-sirines",
       "name": "Pearl of the Sirines",
-      "source": "item",
+      "origin": "item",
       "text": "Water breathing / freedom of movement underwater while held.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "wondrous",
-        "slot": "none"
-      }
+        "slot": "none",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "whistle-of-agony",
       "name": "Monsters' Agony Whisper Whistle",
-      "source": "item",
+      "origin": "item",
       "text": "1/day: every Monstrous Humanoid, Magical Beast, Aberration and oversized (above Large) monster within 2 km cries out, revealing itself. Listen DC 15 for direction. They also learn your direction. Outsiders unaffected.",
+      "binding": "none",
       "activation": {
         "action": "standard"
       },
+      "cost": [],
       "resources": [
         {
           "id": "whistle",
           "label": "Whistle",
           "max": 1,
-          "per": "day"
+          "resetOn": "day",
+          "resetTo": "max"
         }
       ],
-      "effects": [],
-      "enabledByDefault": true,
+      "grants": [],
       "item": {
         "category": "wondrous",
-        "slot": "none"
-      }
+        "slot": "none",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "strong-arm-composite-longbow-1",
       "name": "Strong-Arm Composite Longbow +1",
-      "source": "item",
-      "text": "Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. Attack profile \"bow\" on the sheet: 1d8, ×3, 110 ft.",
+      "origin": "item",
+      "text": "Composite longbow with a +1 enhancement bonus. DM homebrew: adds your full Strength modifier to damage, up to +4 (no penalty for a low score). Two-handed. 1d8, ×3, 110 ft.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "weapon",
         "slot": "mainHand",
-        "weight": 3
-      }
+        "weight": 3,
+        "tags": [
+          "bow",
+          "longbow",
+          "composite"
+        ],
+        "weapon": {
+          "kind": "ranged",
+          "dice": "1d8",
+          "critRange": 20,
+          "critMult": 3,
+          "rangeIncrement": 110,
+          "attackAbility": "dex",
+          "damageAbility": "str",
+          "maxDamageAbilityBonus": 4,
+          "damageAbilityMultiplier": 1,
+          "enhancement": 1,
+          "tags": []
+        }
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "studded-leather",
       "name": "Studded Leather Armor",
-      "source": "item",
+      "origin": "item",
       "text": "Light armor: +3 AC, max Dex +5, armor check penalty -1, 15% arcane spell failure.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "armor",
+        "slot": "armor",
+        "weight": 20,
+        "price": "25 gp",
+        "tags": []
+      },
       "effects": [
         {
           "id": "ac",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ac",
               "value": 3,
-              "bonusType": "armor"
+              "type": "armor",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "armor",
-        "slot": "armor",
-        "weight": 20,
-        "price": "25 gp"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "potion-cure-moderate",
       "name": "Potion of Cure Moderate Wounds",
-      "source": "item",
-      "text": "CL 3: heals 2d8+3 hp. Standard action to drink.",
+      "origin": "item",
+      "text": "CL 3: heals 2d8+3 hp. Standard action to drink; one potion is used up.",
+      "binding": "none",
       "activation": {
         "action": "standard"
       },
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [
+        {
+          "kind": "item",
+          "abilityId": "potion-cure-moderate",
+          "quantity": 1
+        }
+      ],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "potion",
         "weight": 0,
-        "price": "300 gp"
-      }
+        "price": "300 gp",
+        "tags": []
+      },
+      "effects": [
+        {
+          "id": "n",
+          "trigger": "onUse",
+          "when": {
+            "all": []
+          },
+          "do": [
+            {
+              "verb": "note",
+              "text": "Roll 2d8+3 and apply as healing."
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
     },
     {
       "id": "potion-cure-serious",
       "name": "Potion of Cure Serious Wounds",
-      "source": "item",
-      "text": "CL 5: heals 3d8+5 hp. Standard action to drink.",
+      "origin": "item",
+      "text": "CL 5: heals 3d8+5 hp. Standard action to drink; one potion is used up.",
+      "binding": "none",
       "activation": {
         "action": "standard"
       },
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [
+        {
+          "kind": "item",
+          "abilityId": "potion-cure-serious",
+          "quantity": 1
+        }
+      ],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "potion",
         "weight": 0,
-        "price": "750 gp"
-      }
+        "price": "750 gp",
+        "tags": []
+      },
+      "effects": [
+        {
+          "id": "n",
+          "trigger": "onUse",
+          "when": {
+            "all": []
+          },
+          "do": [
+            {
+              "verb": "note",
+              "text": "Roll 3d8+5 and apply as healing."
+            }
+          ]
+        }
+      ],
+      "enabledByDefault": true
     },
     {
       "id": "vaelors-manual",
       "name": "Vaelor's Monsters' Manual",
-      "source": "item",
+      "origin": "item",
       "text": "Unique artifact, no slot, CL 12. Grants Monster Knowledge, Hunter's Analysis, Hunter's Instinct and the Bestiary Collection.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "wondrous",
         "slot": "none",
-        "weight": 5
-      }
+        "weight": 5,
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "gargoyle-hands",
       "name": "Gargoyle's hands",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy crafting material (Monstrous humanoid). Crafts: Gargoyle bracers — DR 10/magic, freeze DC +15, +2 Con.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
-        "category": "material"
-      }
+        "category": "material",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "gorgon-scale",
       "name": "Gorgon's scale",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy crafting material (Magical beast). Crafts: Gorgon belt — +2d6 damage when charging, petrifying cone 60 ft 1/day DC +14 Fort negates.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": true,
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
-        "category": "material"
-      }
+        "category": "material",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": true
     },
     {
       "id": "chuul-gloves",
       "name": "Chuul Gloves (trophy)",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy: +4 initiative (improved initiative); paralysis touch DC 11+, Fort negates.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "trophy",
+        "slot": "hands",
+        "tags": []
+      },
       "effects": [
         {
           "id": "i",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "init",
               "value": "4 * trophyMultiplier",
-              "bonusType": "enhancement"
+              "type": "enhancement",
+              "mode": "add"
             }
           ]
         }
       ],
-      "enabledByDefault": true,
-      "item": {
-        "category": "trophy",
-        "slot": "hands"
-      }
+      "enabledByDefault": true
     },
     {
       "id": "gargoyle-bracers",
       "name": "Gargoyle Bracers (trophy)",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy: DR 10/magic, freeze (appear as statue, Spot DC 15 + MH + Wis), +2 Con. Trophy bonuses are enhancement-type.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "trophy",
+        "slot": "arms",
+        "tags": []
+      },
       "effects": [
         {
           "id": "con",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ability.con",
               "value": "2 * trophyMultiplier",
-              "bonusType": "enhancement"
+              "type": "enhancement",
+              "mode": "add"
             },
             {
-              "kind": "note",
+              "verb": "note",
               "text": "Gargoyle bracers: DR 10/magic."
             }
           ]
         }
       ],
       "enabledByDefault": false,
-      "todo": "Equip in Inventory if worn.",
-      "item": {
-        "category": "trophy",
-        "slot": "arms"
-      }
+      "todo": "Equip in Inventory if worn."
     },
     {
       "id": "rider-ring",
       "name": "Rider Ring (drider trophy)",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy: SR 14, darkness at will.",
+      "binding": "none",
       "activation": "passive",
-      "effects": [],
-      "enabledByDefault": false,
-      "todo": "Enable if worn.",
+      "cost": [],
+      "resources": [],
+      "grants": [],
       "item": {
         "category": "trophy",
-        "slot": "ring"
-      }
+        "slot": "ring",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": false,
+      "todo": "Enable if worn."
     },
     {
       "id": "medusa-mask",
       "name": "Medusa Mask (trophy)",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy: petrifying gaze 1/day DC 12 Fort; 3 snake attacks 5 ft +3, 1d4 + poison 1d6 Str DC 12.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
       "resources": [
         {
           "id": "medusa-gaze",
           "label": "Petrifying gaze",
           "max": 1,
-          "per": "day"
+          "resetOn": "day",
+          "resetTo": "max"
         }
       ],
-      "effects": [],
-      "enabledByDefault": false,
-      "todo": "Enable if worn.",
+      "grants": [],
       "item": {
         "category": "trophy",
-        "slot": "head"
-      }
+        "slot": "head",
+        "tags": []
+      },
+      "effects": [],
+      "enabledByDefault": false,
+      "todo": "Enable if worn."
     },
     {
       "id": "shield-amulet",
       "name": "Shield Amulet (shield guardian trophy)",
-      "source": "item",
+      "origin": "item",
       "text": "Trophy: +4 natural armor; stores one spell of each level 4/5/6.",
+      "binding": "none",
       "activation": "passive",
+      "cost": [],
+      "resources": [],
+      "grants": [],
+      "item": {
+        "category": "trophy",
+        "slot": "neck",
+        "tags": []
+      },
       "effects": [
         {
           "id": "n",
           "trigger": "always",
           "when": {
-            "kind": "always"
+            "all": []
           },
           "do": [
             {
-              "kind": "bonus",
+              "verb": "modify",
               "to": "ac",
               "value": "4 * trophyMultiplier",
-              "bonusType": "natural"
+              "type": "natural",
+              "mode": "add"
             }
           ]
         }
       ],
       "enabledByDefault": false,
-      "todo": "Enable if worn.",
-      "item": {
-        "category": "trophy",
-        "slot": "neck"
-      }
+      "todo": "Enable if worn."
     }
   ],
   "monsters": [],
@@ -1202,22 +1492,7 @@
           "ranks": 6
         }
       },
-      "attackProfiles": [
-        {
-          "id": "bow",
-          "name": "Strong-Arm Composite Longbow +1",
-          "kind": "ranged",
-          "baseDice": "1d8",
-          "enhancement": 1,
-          "critRange": 20,
-          "critMult": 3,
-          "rangeIncrement": 110,
-          "attackAbility": "dex",
-          "damageAbility": "str",
-          "maxDamageAbilityBonus": 4,
-          "damageAbilityMultiplier": 1
-        }
-      ],
+      "attackProfiles": [],
       "abilities": [
         {
           "abilityId": "favored-enemy-1",
@@ -1263,7 +1538,7 @@
           "paramValues": {}
         },
         {
-          "abilityId": "weapon-focus-ranged",
+          "abilityId": "weapon-focus-longbow",
           "enabled": true,
           "paramValues": {}
         },

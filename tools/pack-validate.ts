@@ -4,7 +4,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { PackSchema, emptyLibrary, mergePack, evalExpr, exprVars, resolveStat, resolveAttack, listAttackModes, type EvalContext, type Pack } from '../packages/engine/src';
+import { PackSchema, emptyLibrary, mergePack, evalExpr, exprVars, resolveStat, resolveAttack, listAttackModes, attackProfiles, type EvalContext, type Pack } from '../packages/engine/src';
 
 const dir = new URL('../packs/', import.meta.url).pathname;
 const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
@@ -26,21 +26,33 @@ for (const f of files) {
 const monsters = (lib as { monsters?: Record<string, unknown> }).monsters ?? {};
 const characters = (lib as { characters?: Record<string, Pack['characters'][number]> }).characters ?? {};
 
-const statIds = (a: Pack['abilities'][number]) => a.effects.flatMap((b) => b.do.flatMap((e) => ('to' in e ? [e.to] : [])));
+const checkSelector = (owner: string, sel: string) => {
+  const p = sel.split('.');
+  if (p[0] === 'target' && (p[1] === 'tag' || p[1] === 'condition') && !lib.tags[p.slice(2).join('.')]) problems.push(`${owner}: unknown tag in selector "${sel}"`);
+  if (p[0] === 'self' && p[1] === 'tag' && !lib.tags[p.slice(2).join('.')]) problems.push(`${owner}: unknown tag in selector "${sel}"`);
+  if (p[0] === 'self' && p[1] === 'skill' && !lib.skills[p.slice(2, -1).join('.')]) problems.push(`${owner}: unknown skill in selector "${sel}"`);
+  if (p[0] === 'self' && p[1] === 'ability' && !lib.abilities[p.slice(2, -1).join('.')]) problems.push(`${owner}: unknown ability in selector "${sel}"`);
+  if (p[0] === 'self' && p[1] === 'class' && !lib.classTables[p.slice(2, -1).join('.')]) problems.push(`${owner}: unknown class in selector "${sel}"`);
+};
 for (const a of Object.values(lib.abilities)) {
-  for (const s of statIds(a)) if (s.startsWith('skill.') && !lib.skills[s.slice(6)]) problems.push(`ability ${a.id}: unknown skill "${s}"`);
   const walk = (c: unknown): void => {
     if (!c || typeof c !== 'object') return;
     const o = c as Record<string, unknown>;
-    if (o.kind === 'target.hasTag' && !lib.tags[o.tag as string]) problems.push(`ability ${a.id}: unknown tag "${o.tag}"`);
-    if (o.kind === 'target.hasCondition' && !lib.tags[o.condition as string]) problems.push(`ability ${a.id}: unknown condition tag "${o.condition}"`);
-    if (o.kind === 'target.tagIn') for (const t of o.tags as string[]) if (!lib.tags[t]) problems.push(`ability ${a.id}: unknown tag "${t}"`);
-    if (Array.isArray(o.of)) o.of.forEach(walk); else if (o.of) walk(o.of);
+    for (const k of ['is', 'exists', 'compare', 'in']) if (typeof o[k] === 'string') checkSelector(`ability ${a.id}`, o[k] as string);
+    if (Array.isArray(o.set)) for (const t of o.set as string[]) if (!lib.tags[t]) problems.push(`ability ${a.id}: unknown tag "${t}"`);
+    for (const k of ['all', 'any', 'none', 'count']) if (Array.isArray(o[k])) (o[k] as unknown[]).forEach(walk);
+    if (o.not) walk(o.not);
   };
   for (const b of a.effects) {
     walk(b.when);
-    for (const e of b.do) if (e.kind === 'applyTag' && !lib.tags[e.tag]) problems.push(`ability ${a.id}: applyTag unknown tag "${e.tag}"`);
+    for (const e of b.do) {
+      if (e.verb === 'modify' && e.to.startsWith('skill.') && !lib.skills[e.to.slice(6)]) problems.push(`ability ${a.id}: unknown skill "${e.to}"`);
+      if (e.verb === 'tag' && !lib.tags[e.tag]) problems.push(`ability ${a.id}: tag verb unknown tag "${e.tag}"`);
+      if ((e.verb === 'grant' || e.verb === 'suppress') && !lib.abilities[e.ability]) problems.push(`ability ${a.id}: ${e.verb} unknown ability "${e.ability}"`);
+    }
   }
+  for (const g of a.grants) if (!lib.abilities[g]) problems.push(`ability ${a.id}: grants unknown ability "${g}"`);
+  for (const c of a.cost) if (c.kind === 'charge' && !a.resources.some((r) => r.id === c.resourceId) && !Object.values(lib.abilities).some((x) => x.resources.some((r) => r.id === c.resourceId))) problems.push(`ability ${a.id}: charge cost unknown resource "${c.resourceId}"`);
 }
 for (const m of Object.values(monsters) as { id: string; tags: string[] }[]) for (const t of m.tags) if (!lib.tags[t]) problems.push(`monster ${m.id}: unknown tag "${t}"`);
 
@@ -57,15 +69,15 @@ for (const ch of Object.values(characters)) {
       if (!vals?.length) problems.push(`character ${ch.id}: ${a.id} param "${p}" not chosen`);
       for (const v of vals ?? []) { const t = lib.tags[v]; if (!t) problems.push(`character ${ch.id}: ${a.id} param "${p}" unknown tag "${v}"`); else if (def.category && t.category !== def.category) problems.push(`character ${ch.id}: ${a.id} param "${p}" tag "${v}" is ${t.category}, expected ${def.category}`); }
     }
-    for (const r of a.resources ?? []) { try { evalExpr(r.max, vars); } catch (e) { problems.push(`${a.id} resource ${r.id}: ${(e as Error).message}`); } }
-    for (const b of a.effects) for (const e of b.do) if ((e.kind === 'bonus') && typeof e.value === 'string') { try { evalExpr(e.value, vars); } catch (err) { problems.push(`${a.id}/${b.id}: ${(err as Error).message}`); } }
+    for (const r of a.resources) { try { evalExpr(r.max, vars); } catch (e) { problems.push(`${a.id} resource ${r.id}: ${(e as Error).message}`); } }
+    for (const b of a.effects) for (const e of b.do) if (e.verb === 'modify' && typeof e.value === 'string') { try { evalExpr(e.value, vars); } catch (err) { problems.push(`${a.id}/${b.id}: ${(err as Error).message}`); } }
   }
   // smoke: every stat and attack mode resolves
   for (const stat of ['ac', 'ac.touch', 'ac.flatFooted', 'save.fort', 'save.ref', 'save.will', 'init', ...Object.keys(ch.skills).map((s) => `skill.${s}`)]) {
     const r = resolveStat(ctx, stat);
     for (const w of r.warnings) problems.push(`character ${ch.id} ${stat}: ${w}`);
   }
-  for (const p of ch.attackProfiles) for (const m of listAttackModes(ctx, p.id)) {
+  for (const p of attackProfiles(ctx)) for (const m of listAttackModes(ctx, p.id)) {
     const r = resolveAttack(ctx, { profileId: p.id, modeId: m.modeId });
     console.log(`  ${ch.name} ${p.name} / ${m.label}: ${r.attacks.map((a) => `+${a.attackBonus}`).join('/')}  dmg ${r.attacks[0]?.damage.dice.map((d) => d.dice).join('+')}+${r.attacks[0]?.damage.flat}`);
   }

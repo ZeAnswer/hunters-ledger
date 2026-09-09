@@ -16,6 +16,7 @@ export function BattleScreen() {
   const startBattle = useStore((s) => s.startBattle);
   const endBattle = useStore((s) => s.endBattle);
   const setBattle = useStore((s) => s.setBattle);
+  const setCharacter = useStore((s) => s.setCharacter);
   const [tab, setTab] = useState<'fight' | 'log'>('fight');
   const [buffs, setBuffs] = useState(false);
   const [sit, setSit] = useState(false);
@@ -52,7 +53,7 @@ export function BattleScreen() {
           <div className="text-2xl font-bold">Round {battle.round}</div>
         </div>
         <div className="flex gap-2">
-          <Button variant="primary" onClick={() => setBattle(nextRound(ctx))}>Next round ▶</Button>
+          <Button variant="primary" onClick={() => { const r = nextRound(ctx); setBattle(r.battle); setCharacter(r.character); }}>Next round ▶</Button>
           <Button variant="ghost" onClick={() => { if (confirm('End this battle?')) endBattle(); }}>End</Button>
         </div>
       </div>

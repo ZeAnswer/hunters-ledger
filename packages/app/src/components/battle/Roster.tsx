@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { addCombatant, type Combatant, type Hurt, type Size, type Monster } from '@hl/engine';
+import { addCombatant, logEnemyAction, setDistance, type Combatant, type Hurt, type Size, type Monster } from '@hl/engine';
+import { useCtx } from '../../store/hooks';
 import { useStore } from '../../store/store';
 import { Button, Chip, Field, Sheet, cx, humanize, inputCls } from '../ui';
 
@@ -7,6 +8,7 @@ const HURT: { id: Hurt; label: string; tone: 'green' | 'amber' | 'red' }[] = [
   { id: 'unhurt', label: 'Unhurt', tone: 'green' }, { id: 'scratched', label: 'Scratched', tone: 'green' }, { id: 'bloodied', label: 'Bloodied', tone: 'amber' }, { id: 'nearDeath', label: 'Near death', tone: 'red' },
 ];
 const SIZES: Size[] = ['tiny', 'small', 'medium', 'large', 'huge', 'gargantuan', 'colossal'];
+const DISTANCES: { feet: number; label: string }[] = [{ feet: 5, label: 'adjacent' }, { feet: 10, label: '10 ft' }, { feet: 30, label: '30 ft' }, { feet: 60, label: '60 ft' }, { feet: 120, label: 'far' }];
 
 export function Roster() {
   const battle = useStore((s) => s.battle)!;
@@ -28,6 +30,7 @@ export function Roster() {
             </div>
             <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-zinc-400">
               <span className={cx('rounded px-1', HURT.find((h) => h.id === c.hurt)?.tone === 'red' ? 'bg-red-900 text-red-200' : HURT.find((h) => h.id === c.hurt)?.tone === 'amber' ? 'bg-amber-900 text-amber-200' : 'bg-zinc-800')}>{HURT.find((h) => h.id === c.hurt)?.label}</span>
+              {c.distanceFeet !== undefined && <span className="rounded bg-zinc-800 px-1">{DISTANCES.find((d) => d.feet === c.distanceFeet)?.label ?? `${c.distanceFeet} ft`}</span>}
               {c.tags.slice(0, 2).map((t) => <span key={t} className="rounded bg-zinc-800 px-1">{tags[t]?.label ?? t}</span>)}
               {c.conditions.map((x) => <span key={x.tag} className="rounded bg-sky-900 px-1 text-sky-200">{tags[x.tag]?.label ?? humanize(x.tag)}</span>)}
             </div>
@@ -35,8 +38,37 @@ export function Roster() {
         ))}
         <button type="button" onClick={() => setAdding(true)} className="shrink-0 rounded-2xl border border-dashed border-zinc-600 px-4 py-2 text-zinc-400 min-w-24">+ Add</button>
       </div>
+      {targetId && <TargetControls targetId={targetId} />}
       <AddCombatantSheet open={adding} onClose={() => setAdding(false)} />
       {editing && <CombatantSheet id={editing} onClose={() => setEditing(undefined)} />}
+    </div>
+  );
+}
+
+function TargetControls({ targetId }: { targetId: string }) {
+  const ctx = useCtx();
+  const battle = useStore((s) => s.battle)!;
+  const setBattle = useStore((s) => s.setBattle);
+  const setCharacter = useStore((s) => s.setCharacter);
+  const showToast = useStore((s) => s.showToast);
+  const [dmg, setDmg] = useState('');
+  const c = battle.combatants.find((x) => x.id === targetId);
+  if (!c || !ctx) return null;
+  const enemy = (result: 'hit' | 'miss') => {
+    const damage = result === 'hit' && dmg ? Number(dmg) : undefined;
+    const r = logEnemyAction(ctx, { actorId: c.id, result, ...(damage !== undefined ? { damage } : {}) });
+    setBattle(r.battle); setCharacter(r.character); setDmg('');
+    showToast(`${c.name} ${result === 'hit' ? `hit you${damage ? ` for ${damage}` : ''}` : 'missed you'}`);
+  };
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
+      <span className="text-zinc-500">{c.name}:</span>
+      {DISTANCES.map((d) => <Chip key={d.feet} active={c.distanceFeet === d.feet} onClick={() => setBattle(setDistance(battle, c.id, c.distanceFeet === d.feet ? undefined : d.feet))}>{d.label}</Chip>)}
+      <span className="ml-auto flex items-center gap-1">
+        <input className="w-14 rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1" inputMode="numeric" placeholder="dmg" value={dmg} onChange={(e) => setDmg(e.target.value)} />
+        <Chip tone="red" onClick={() => enemy('hit')}>it hit me</Chip>
+        <Chip tone="green" onClick={() => enemy('miss')}>it missed</Chip>
+      </span>
     </div>
   );
 }

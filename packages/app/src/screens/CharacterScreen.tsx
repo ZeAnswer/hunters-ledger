@@ -8,9 +8,9 @@ import { AbilitySheet } from '../components/character/AbilitySheet';
 import { LevelLedger } from '../components/character/LevelLedger';
 import { CharacterOverrideSheet, LedgerOverrideSheet, SkillsEditSheet, StatsEditSheet } from '../components/character/EditSheets';
 
-const GROUPS: { id: string; title: string; sources: Ability['source'][] }[] = [
+const GROUPS: { id: string; title: string; sources: Ability['origin'][] }[] = [
   { id: 'feats', title: 'Feats', sources: ['feat'] },
-  { id: 'class', title: 'Class abilities', sources: ['class', 'core'] },
+  { id: 'class', title: 'Class abilities', sources: ['classFeature', 'core', 'race'] },
   { id: 'memories', title: 'Memories & DM grants', sources: ['memory'] },
   { id: 'spells', title: 'Spells', sources: ['spell'] },
 ];
@@ -48,7 +48,7 @@ export function CharacterScreen() {
   const classSkillIds = new Set(c.classLevels.flatMap((l) => ctx.library.classTables[l.classId]?.classSkills ?? []));
   const isClassSkill = (id: string) => classSkillIds.has(id) || !!c.skills[id]?.classSkillOverride;
   const skillRows = Object.values(ctx.library.skills).filter((s) => allSkills || isClassSkill(s.id) || (c.skills[s.id]?.ranks ?? 0) > 0).sort((a, b) => a.name.localeCompare(b.name));
-  const abilitiesOf = (sources: Ability['source'][]) => c.abilities.map((inst) => ({ inst, a: ctx.library.abilities[inst.abilityId] })).filter((x): x is { inst: typeof x.inst; a: Ability } => !!x.a && sources.includes(x.a.source));
+  const abilitiesOf = (sources: Ability['origin'][]) => c.abilities.map((inst) => ({ inst, a: ctx.library.abilities[inst.abilityId] })).filter((x): x is { inst: typeof x.inst; a: Ability } => !!x.a && sources.includes(x.a.origin));
 
   return (
     <div className="p-4">
@@ -102,7 +102,7 @@ export function CharacterScreen() {
               <button key={a.id} type="button" onClick={() => setAbilityId(a.id)} className="flex w-full items-center justify-between gap-2 rounded-xl bg-zinc-900 px-3 py-2 text-left">
                 <div className="min-w-0">
                   <div className="truncate">{a.name}{a.todo ? <span className="ml-1 text-amber-400" title={a.todo}>⚑</span> : null}</div>
-                  <div className="truncate text-xs text-zinc-500">{a.sourceRef ?? a.source}{act?.resources.map((r) => ` · ${r.label} ${r.remaining}/${r.max}`)}{Object.entries(inst.paramValues).map(([k, v]) => ` · ${k}: ${v.map((t) => ctx.library.tags[t]?.label ?? t).join(', ')}`)}{a.params && Object.keys(a.params).some((k) => !inst.paramValues[k]?.length) ? ' · ⚠ choose types' : ''}</div>
+                  <div className="truncate text-xs text-zinc-500">{a.sourceRef ?? a.origin}{act?.resources.map((r) => ` · ${r.label} ${r.remaining}/${r.max}`)}{Object.entries(inst.paramValues).map(([k, v]) => ` · ${k}: ${v.map((t) => ctx.library.tags[t]?.label ?? t).join(', ')}`)}{a.params && Object.keys(a.params).some((k) => !inst.paramValues[k]?.length) ? ' · ⚠ choose types' : ''}</div>
                 </div>
                 <span className="text-zinc-600">›</span>
               </button>
