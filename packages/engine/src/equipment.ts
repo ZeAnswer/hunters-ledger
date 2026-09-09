@@ -23,7 +23,7 @@ export function itemAbility(ctx: EvalContext, entry: InventoryEntry): Ability | 
 /** Slot capacities: base counts plus extraSlot effects from everything currently active. */
 export function slotCapacity(ctx: EvalContext): Record<SlotId, number> {
   const cap = Object.fromEntries(SLOTS.map((s) => [s.id, s.base])) as Record<SlotId, number>;
-  for (const src of activeSources(ctx)) for (const b of src.ability.effects) if (b.trigger === 'always') for (const e of b.do) if (e.kind === 'extraSlot') cap[e.slot] += e.count;
+  for (const src of activeSources(ctx)) for (const b of src.ability.effects) if (b.trigger === 'always') for (const e of b.do) if (e.verb === 'slot') cap[e.slot] += e.count;
   return cap;
 }
 

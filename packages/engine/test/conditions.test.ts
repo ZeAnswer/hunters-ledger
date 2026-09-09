@@ -1,5 +1,5 @@
 import { evalCondition } from '../src/conditions';
-import type { Condition } from '../src/schema';
+import { convertCondition } from '../src/migrate';
 import { makeCtx, makeBattle, makeCombatant, makeAbility, makeCharacter, ev } from './fixtures';
 
 const gargoyle = makeCombatant({ id: 'g1', tags: ['monstrous-humanoid'], size: 'medium', hurt: 'bloodied' });
@@ -19,7 +19,7 @@ function ctx(over: Parameters<typeof makeCtx>[0] = {}) {
   c.library.abilities['favored-enemy'] = favored;
   return c;
 }
-const t = (cond: Condition, c = ctx()) => evalCondition(cond, c);
+const t = (cond: unknown, c = ctx()) => evalCondition(convertCondition(cond), c);
 
 test('always / all / any / not', () => {
   expect(t({ kind: 'always' })).toBe(true);
@@ -64,7 +64,7 @@ test('suppressed buff does not count', () => {
 });
 
 test('attack leaves', () => {
-  const c = ctx({ attack: { profile: makeCharacter().attackProfiles[0]!, kind: 'ranged', index: 1, modeId: 'full', distanceFeet: 20 } });
+  const c = ctx({ attack: { profile: makeCharacter().attackProfiles[0]!, kind: 'ranged', index: 1, modeId: 'full' }, target: { ...chuul, distanceFeet: 20 } });
   expect(t({ kind: 'attack.kind', attackKind: 'ranged' }, c)).toBe(true);
   expect(t({ kind: 'attack.kind', attackKind: 'melee' }, c)).toBe(false);
   expect(t({ kind: 'attack.withinFeet', feet: 30 }, c)).toBe(true);

@@ -1,93 +1,60 @@
-import {
-  HURT_ORDER, SIZE_ORDER, findResourceDef, promptKey, resourceUsed, targetTags, targetTagsInCategory, type EvalContext,
-} from './context';
+import type { EvalContext } from './context';
 import { evalExpr } from './expr';
-import { exprVars } from './vars';
-import { countLogEvents, findLogEvents, isFirstAttackThisRound } from './log';
+import { countHistory } from './history';
 import type { Condition } from './schema';
+import { ORDINALS, readSelector, type SelValue } from './selectors';
+import { exprVars } from './vars';
+
+function cmp(op: string, a: number, b: number): boolean {
+  switch (op) {
+    case '=': return a === b;
+    case '!=': return a !== b;
+    case '<': return a < b;
+    case '<=': return a <= b;
+    case '>': return a > b;
+    case '>=': return a >= b;
+    default: return false;
+  }
+}
+
+/** Resolve the right-hand side of a compare: number, ordinal name, selector path, or expression. */
+function rhs(ctx: EvalContext, sel: string, value: number | string, left: SelValue): number | string | undefined {
+  if (typeof value === 'number') return value;
+  const ord = ORDINALS[sel];
+  if (ord) return ord.indexOf(value);
+  if (typeof left === 'string' || typeof left === 'boolean') return value;
+  if (/^(self|target|attack|battle|flag)\./.test(value)) { const v = readSelector(ctx, value); return typeof v === 'number' ? v : undefined; }
+  try { return evalExpr(value, exprVars(ctx)); } catch { return value; }
+}
 
 export function evalCondition(cond: Condition, ctx: EvalContext): boolean {
-  switch (cond.kind) {
-    case 'always': return true;
-    case 'all': return cond.of.every((c) => evalCondition(c, ctx));
-    case 'any': return cond.of.some((c) => evalCondition(c, ctx));
-    case 'not': return !evalCondition(cond.of, ctx);
-
-    case 'target.hasTag': return !!ctx.target && targetTags(ctx.target).includes(cond.tag);
-    case 'target.tagIn': return !!ctx.target && targetTags(ctx.target).some((t) => cond.tags.includes(t));
-    case 'target.sizeAtLeast':
-      return !!ctx.target && SIZE_ORDER.indexOf(ctx.target.size) >= SIZE_ORDER.indexOf(cond.size);
-    case 'target.hurtAtMost':
-      // "at most bloodied" means the target is at least that hurt (bloodied or worse)
-      return !!ctx.target && HURT_ORDER.indexOf(ctx.target.hurt) >= HURT_ORDER.indexOf(cond.hurt);
-    case 'target.hasCondition': return !!ctx.target && ctx.target.conditions.some((c) => c.tag === cond.condition);
-
-    case 'self.hasBuff':
-      return !!ctx.battle?.activeBuffs.some((b) => b.abilityId === cond.abilityId && b.owner === 'self' && !b.suppressed);
-    case 'self.hasCondition': return !!ctx.battle?.selfConditions.some((c) => c.tag === cond.condition);
-    case 'self.abilityEnabled':
-      return ctx.character.abilities.some((a) => a.abilityId === cond.abilityId && a.enabled) &&
-        !ctx.battle?.suppressedAbilities.includes(cond.abilityId);
-
-    case 'attack.kind': return ctx.attack?.kind === cond.attackKind;
-    case 'attack.withinFeet': return ctx.attack?.distanceFeet !== undefined && ctx.attack.distanceFeet <= cond.feet;
-    case 'attack.isFirstThisRound': return !!ctx.attack && (!ctx.battle || isFirstAttackThisRound(ctx.battle));
-    case 'attack.index': return ctx.attack?.index === cond.index;
-
-    case 'log': {
-      if (!ctx.battle) return false;
-      const target = cond.target ?? 'current';
-      if (target === 'current' && !ctx.target) return false;
-      const n = countLogEvents(ctx.battle, {
-        event: cond.event, scope: cond.scope, abilityId: cond.abilityId,
-        targetId: target === 'current' ? ctx.target!.id : undefined,
-      });
-      return n >= (cond.min ?? 1);
-    }
-
-    case 'used': {
-      if (cond.scope === 'day') {
-        const res = findResourceDef(ctx, cond.abilityId);
-        return !!res && resourceUsed(ctx, cond.abilityId, 'day') > 0;
-      }
-      if (!ctx.battle) return false;
-      const scope = cond.scope === 'round' ? 'thisRound' : 'encounter';
-      const uses = findLogEvents(ctx.battle, { event: 'use', abilityId: cond.abilityId, scope });
-      if (!cond.perTagCategory) return uses.length > 0;
-      if (!ctx.target) return false;
-      const wanted = new Set(targetTagsInCategory(ctx, ctx.target, cond.perTagCategory));
-      return uses.some((u) => {
-        const c = ctx.battle!.combatants.find((x) => x.id === u.targetId);
-        return !!c && targetTagsInCategory(ctx, c, cond.perTagCategory!).some((t) => wanted.has(t));
-      });
-    }
-
-    case 'resource': {
-      const res = findResourceDef(ctx, cond.id);
-      if (!res) return false;
-      const max = evalExpr(res.def.max, exprVars(ctx));
-      return max - resourceUsed(ctx, cond.id, res.def.per) >= cond.remainingAtLeast;
-    }
-
-    case 'toggle': return !!ctx.battle?.toggles[cond.id];
-
-    case 'prompt': {
-      const key = promptKey(ctx, cond.id, cond.perTagCategory);
-      if (!key) return false;
-      const v = ctx.battle?.prompts[key];
-      if (v === undefined) return false;
-      return cond.atLeast === undefined || v >= cond.atLeast;
-    }
-
-    case 'round': {
-      const r = ctx.battle?.round ?? 1;
-      return (cond.atLeast === undefined || r >= cond.atLeast) && (cond.atMost === undefined || r <= cond.atMost);
-    }
-
-    case 'param': {
-      if (!ctx.target || !ctx.abilityInstance) return false;
-      const chosen = ctx.abilityInstance.paramValues[cond.name] ?? [];
-      return targetTags(ctx.target).some((t) => chosen.includes(t));
-    }
+  if ('all' in cond) return cond.all.every((c) => evalCondition(c, ctx));
+  if ('any' in cond) return cond.any.some((c) => evalCondition(c, ctx));
+  if ('none' in cond) return !cond.none.some((c) => evalCondition(c, ctx));
+  if ('not' in cond) return !evalCondition(cond.not, ctx);
+  if ('count' in cond) return cond.count.filter((c) => evalCondition(c, ctx)).length >= cond.atLeast;
+  if ('is' in cond) { const v = readSelector(ctx, cond.is); return v === true || (typeof v === 'number' && v > 0); }
+  if ('exists' in cond) { const v = readSelector(ctx, cond.exists); return v !== undefined && v !== false && !(Array.isArray(v) && v.length === 0); }
+  if ('compare' in cond) {
+    const left = readSelector(ctx, cond.compare);
+    if (left === undefined) return false;
+    const ord = ORDINALS[cond.compare];
+    const l = ord ? ord.indexOf(String(left)) : typeof left === 'boolean' ? (left ? 1 : 0) : left;
+    const r = rhs(ctx, cond.compare, cond.value, left);
+    if (r === undefined) return false;
+    if (typeof l === 'number' && typeof r === 'number') return cmp(cond.op, l, r);
+    if (typeof l === 'string' && typeof r === 'string') return cond.op === '!=' ? l !== r : l === r;
+    return false;
   }
+  if ('in' in cond) {
+    const left = readSelector(ctx, cond.in);
+    const set = new Set(cond.set ?? (cond.param ? (readSelector(ctx, `self.param.${cond.param}`) as string[] | undefined) ?? [] : []));
+    if (Array.isArray(left)) return left.some((x) => set.has(x));
+    return typeof left === 'string' && set.has(left);
+  }
+  if ('history' in cond) {
+    const n = countHistory(ctx, cond.history);
+    return cmp(cond.op ?? '>=', n, cond.value ?? 1);
+  }
+  return false;
 }

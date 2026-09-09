@@ -1,9 +1,9 @@
-import { SIZE_MOD, abilityMod, promptKey, resourceUsed, targetTagsInCategory, type AbilityInstance, type AttackCtx, type EvalContext } from './context';
+import { SIZE_MOD, abilityMod, resourceUsed, targetTags, targetTagsInCategory, type AbilityInstance, type AttackCtx, type EvalContext } from './context';
 import { evalCondition } from './conditions';
 import { firstFailure, summarizeEffects } from './describe';
 import { evalExpr } from './expr';
 import { derivedFromLevels } from './levels';
-import type { Ability, AttackKind, BonusType, Effect, EffectBlock, StatId } from './schema';
+import type { Ability, AttackKind, AttackProfile, BonusType, Effect, EffectBlock, StatId, Value } from './schema';
 import { stackBonuses, type BonusEntry, type StackedEntry } from './stacking';
 import { exprVars } from './vars';
 
@@ -11,7 +11,6 @@ import { exprVars } from './vars';
 export type BreakdownEntry = StackedEntry & { sourceName: string };
 export type NearMiss = { source: string; sourceName: string; label: string; summary: string; failed: string };
 export type DiceEntry = { dice: string; label: string; damageType?: string };
-
 export type PromptRequest = { promptId: string; perTagCategory?: string; tag?: string; source: string; sourceName: string };
 
 export type StatResult = {
@@ -19,7 +18,7 @@ export type StatResult = {
   total: number;
   entries: BreakdownEntry[];
   dice: DiceEntry[];
-  flags: { ignoreConcealment: boolean };
+  flags: Record<string, boolean>;
   notes: string[];
   warnings: string[];
   nearMiss: NearMiss[];
@@ -52,34 +51,59 @@ export type AttackMode = { modeId: string; label: string; base: 'single' | 'full
 export type ActionInfo = {
   abilityId: string;
   name: string;
+  origin: Ability['origin'];
+  /** Ability that grants this one (Hand of Glory → Daylight), for subtext. */
+  grantedBy?: string;
   activation: Ability['activation'];
+  active: boolean;
   usable: boolean;
   eligible: boolean;
   reasons: string[];
-  resources: { id: string; label: string; remaining: number; max: number; per: 'day' | 'encounter' | 'round' }[];
+  resources: { id: string; label: string; remaining: number; max: number; resetOn: string; resetTo: 'max' | 'zero' }[];
   notes: string[];
 };
 
 // ---------- sources ----------
-type Source = { ability: Ability; instance: AbilityInstance | undefined; kind: 'ability' | 'buff' | 'situational' };
+export type Source = { ability: Ability; instance: AbilityInstance | undefined; kind: 'ability' | 'buff' | 'situational' | 'granted'; grantedBy?: string };
 
-/** Every ability currently contributing effects for the character. */
+function bindingOk(ctx: EvalContext, a: Ability): boolean {
+  const b = a.binding;
+  if (b === 'none' || b === 'thisItem') return true; // thisItem: enabled flag already follows equipped state
+  if (b === 'thisWeapon') return ctx.attack?.weaponAbilityId === a.id;
+  return ctx.character.inventory.some((i) => i.equipped && i.abilityId && ctx.library.abilities[i.abilityId]?.item?.slot === b.slot);
+}
+
+/** Every ability currently contributing effects for the character. Toggle abilities only while active; buffs via activeBuffs. */
 export function activeSources(ctx: EvalContext, warnings: string[] = []): Source[] {
   const out: Source[] = [];
+  const seen = new Set<string>();
   const suppressed = new Set(ctx.battle?.suppressedAbilities ?? []);
+  const push = (s: Source) => { if (seen.has(s.ability.id)) return; seen.add(s.ability.id); out.push(s); };
+  const addGranted = (parent: Ability, instance: AbilityInstance | undefined) => {
+    for (const gid of parent.grants) {
+      const g = ctx.library.abilities[gid];
+      if (!g || suppressed.has(gid)) continue;
+      if (g.activation === 'toggle' && !ctx.battle?.activeAbilities.includes(gid)) continue;
+      push({ ability: g, instance, kind: 'granted', grantedBy: parent.id });
+    }
+  };
   for (const inst of ctx.character.abilities) {
     if (!inst.enabled || suppressed.has(inst.abilityId)) continue;
     const ability = ctx.library.abilities[inst.abilityId];
     if (!ability) { warnings.push(`Unknown ability "${inst.abilityId}" on character; ignored.`); continue; }
-    if (ability.source === 'buff' || ability.source === 'condition') continue; // only via activeBuffs
-    out.push({ ability, instance: inst, kind: 'ability' });
+    if (ability.origin === 'buff' || ability.origin === 'condition') continue; // only via activeBuffs
+    if (ability.activation === 'toggle' && !ctx.battle?.activeAbilities.includes(ability.id)) { addGranted(ability, inst); continue; }
+    if (!bindingOk(ctx, ability)) continue;
+    push({ ability, instance: inst, kind: 'ability' });
+    addGranted(ability, inst);
   }
   for (const buff of ctx.battle?.activeBuffs ?? []) {
     if (buff.owner !== 'self' || buff.suppressed || suppressed.has(buff.abilityId)) continue;
     const ability = ctx.library.abilities[buff.abilityId] ?? ctx.battle?.situational.find((a) => a.id === buff.abilityId);
     if (!ability) { warnings.push(`Unknown buff "${buff.abilityId}"; ignored.`); continue; }
     const instance = ctx.character.abilities.find((a) => a.abilityId === buff.abilityId);
-    out.push({ ability, instance, kind: 'buff' });
+    push({ ability, instance, kind: 'buff' });
+    addGranted(ability, instance);
   }
   return out;
 }
@@ -88,11 +112,10 @@ type Applied = { source: Source; block: EffectBlock; effect: Effect };
 
 function relevantToStat(e: Effect, stat: StatId | undefined): boolean {
   if (!stat) return true;
-  switch (e.kind) {
-    case 'bonus': case 'bonusFromTable':
-      return e.to === stat || ((stat === 'ac.touch' || stat === 'ac.flatFooted') && e.to === 'ac');
-    case 'extraDice': return stat === 'damage';
-    case 'ignoreConcealment': case 'attackMode': case 'extraAttack': return stat === 'attack';
+  switch (e.verb) {
+    case 'modify': return e.to === stat || ((stat === 'ac.touch' || stat === 'ac.flatFooted') && e.to === 'ac');
+    case 'dice': return stat === 'damage';
+    case 'flag': case 'attack': return stat === 'attack';
     case 'note': return stat === 'attack' || stat === 'damage';
     default: return false;
   }
@@ -109,7 +132,7 @@ function acVariantAccepts(stat: StatId, bonusType: BonusType): boolean {
   return true;
 }
 
-/** Walk all 'always' effect blocks; return applied effects plus near-misses relevant to `stat`. */
+/** Walk effect blocks with a trigger; return applied effects plus near-misses relevant to `stat`. */
 export function collectEffects(ctx: EvalContext, stat?: StatId, trigger: EffectBlock['trigger'] = 'always') {
   const warnings: string[] = [];
   const applied: Applied[] = [];
@@ -122,12 +145,9 @@ export function collectEffects(ctx: EvalContext, stat?: StatId, trigger: EffectB
       if (relevant.length === 0) continue;
       if (evalCondition(block.when, sctx)) {
         for (const effect of relevant) applied.push({ source, block, effect });
-      } else if (stat && block.when.kind !== 'always') {
+      } else if (stat && !('all' in block.when && block.when.all.length === 0)) {
         const failed = firstFailure(block.when, sctx) ?? 'condition not met';
-        nearMiss.push({
-          source: source.ability.id, sourceName: source.ability.name,
-          label: block.label ?? source.ability.name, summary: summarizeEffects(block.do), failed,
-        });
+        nearMiss.push({ source: source.ability.id, sourceName: source.ability.name, label: block.label ?? source.ability.name, summary: summarizeEffects(block.do), failed });
       }
     }
   }
@@ -143,10 +163,65 @@ function base(label: string, value: number, bonusType: BonusType = 'untyped'): B
   return { source: 'base', label, value, bonusType };
 }
 
+// ---------- flags ----------
+let flagsDepth = 0;
+/** Boolean flags set by active abilities (ignoreConcealment, neverFlatFooted, immune.x, sense.x). */
+export function resolveFlags(ctx: EvalContext): Record<string, boolean> {
+  if (flagsDepth > 0) return {}; // a flag condition inside a flag block: treat nested reads as off
+  flagsDepth++;
+  try {
+    const out: Record<string, boolean> = {};
+    for (const source of activeSources(ctx)) {
+      const sctx: EvalContext = { ...ctx, abilityInstance: source.instance };
+      for (const block of source.ability.effects) {
+        if (block.trigger !== 'always' || !block.do.some((e) => e.verb === 'flag')) continue;
+        if (!evalCondition(block.when, sctx)) continue;
+        for (const e of block.do) if (e.verb === 'flag') out[e.flag] = e.value;
+      }
+    }
+    return out;
+  } finally { flagsDepth--; }
+}
+
+// ---------- attack profiles ----------
+const WEAPON_PROFILE_PREFIX = 'weapon:';
+
+/** Attack profiles: equipped weapon items first, then the character's manual list, then natural attacks from effects. */
+export function attackProfiles(ctx: EvalContext): (AttackProfile & { weaponAbilityId?: string })[] {
+  const out: (AttackProfile & { weaponAbilityId?: string })[] = [];
+  for (const i of ctx.character.inventory) {
+    if (!i.equipped || !i.abilityId) continue;
+    const a = ctx.library.abilities[i.abilityId];
+    const w = a?.item?.weapon;
+    if (!a || !w) continue;
+    out.push({ id: `${WEAPON_PROFILE_PREFIX}${a.id}`, name: a.name, kind: w.kind, baseDice: w.dice, enhancement: w.enhancement, critRange: w.critRange, critMult: w.critMult, ...(w.rangeIncrement !== undefined ? { rangeIncrement: w.rangeIncrement } : {}), attackAbility: w.attackAbility, ...(w.damageAbility ? { damageAbility: w.damageAbility } : {}), ...(w.maxDamageAbilityBonus !== undefined ? { maxDamageAbilityBonus: w.maxDamageAbilityBonus } : {}), damageAbilityMultiplier: w.damageAbilityMultiplier, weaponAbilityId: a.id });
+  }
+  out.push(...ctx.character.attackProfiles);
+  for (const { source, effect } of collectEffects(ctx, undefined).applied) {
+    if (effect.verb === 'attack' && effect.naturalAttack) {
+      const n = effect.naturalAttack;
+      out.push({ id: `natural:${source.ability.id}:${n.name}`, name: `${n.name} (${source.ability.name})`, kind: 'melee', baseDice: n.dice, enhancement: n.attackBonus, critRange: 20, critMult: 2, attackAbility: 'str', damageAbilityMultiplier: 1 });
+    }
+  }
+  return out;
+}
+
 // ---------- base values ----------
+const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+type Scores = Record<(typeof ABILITY_KEYS)[number], number>;
+
+const inProgress = new Set<string>();
+
+/** Ability scores after enhancement/inherent/etc. bonuses from active abilities and buffs. */
+export function effectiveScores(ctx: EvalContext): Scores {
+  const out = { ...ctx.character.abilityScores };
+  for (const k of ABILITY_KEYS) out[k] = resolveStat(ctx, `ability.${k}`).total;
+  return out;
+}
+
 function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entries: BonusEntry[]; dice: DiceEntry[] } {
   const c = ctx.character;
-  const s = stat.startsWith('ability.') ? c.abilityScores : effectiveScores(ctx);
+  const s = stat.startsWith('ability.') || inProgress.size > 6 ? c.abilityScores : effectiveScores(ctx);
   const d = derivedFromLevels(c, ctx.library);
   warnings.push(...d.warnings);
   const sizeMod = SIZE_MOD[c.size];
@@ -190,7 +265,6 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     case 'init': entries.push(base('DEX mod', abilityMod(s.dex))); break;
     case 'hp.max':
       if (d.hpFromLevels !== undefined) {
-        // Con is retroactive: use the effective score (items and buffs included), min 1 hp per level.
         const con = abilityMod(s.con);
         const levels = c.levelHistory.length;
         const fromCon = c.levelHistory.reduce((sum, r) => sum + Math.max(1, r.hpRolled + con) - r.hpRolled, 0);
@@ -201,119 +275,131 @@ function baseEntries(ctx: EvalContext, stat: StatId, warnings: string[]): { entr
     case 'speed': entries.push(base('Base speed', c.speed)); break;
     case 'critRange': entries.push(base('Threat range', a ? 21 - a.profile.critRange : 1)); break;
     case 'critMult': entries.push(base('Multiplier', a ? a.profile.critMult : 2)); break;
+    case 'casterLevel': case 'spellDC': case 'dr': case 'sr': break;
     default: {
-      if (stat.startsWith('ability.')) {
-        const k = stat.slice('ability.'.length) as (typeof ABILITY_KEYS)[number];
-        entries.push(base('Base score', c.abilityScores[k]));
-        break;
-      }
+      if (stat.startsWith('ability.')) { entries.push(base('Base score', c.abilityScores[stat.slice(8) as 'str'])); break; }
+      if (stat.startsWith('resist.')) break;
       if (stat.startsWith('skill.')) {
         const id = stat.slice('skill.'.length);
         const skill = ctx.library.skills[id];
         if (!skill) { warnings.push(`Unknown skill "${id}".`); break; }
-        const ranks = c.skills[id]?.ranks ?? 0;
-        entries.push(base('Ranks', ranks), base(`${skill.ability.toUpperCase()} mod`, abilityMod(s[skill.ability])));
+        entries.push(base('Ranks', c.skills[id]?.ranks ?? 0), base(`${skill.ability.toUpperCase()} mod`, abilityMod(s[skill.ability])));
       }
     }
   }
   return { entries, dice };
 }
 
-const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
-type Scores = Record<(typeof ABILITY_KEYS)[number], number>;
-
-/** Ability scores after enhancement/inherent/etc. bonuses from active abilities and buffs. */
-export function effectiveScores(ctx: EvalContext): Scores {
-  const out = { ...ctx.character.abilityScores };
-  for (const k of ABILITY_KEYS) out[k] = resolveStat(ctx, `ability.${k}`).total;
-  return out;
-}
-
 function statIsAttackLike(stat: StatId) {
   return stat === 'attack' || stat === 'damage' || stat === 'critRange' || stat === 'critMult';
 }
 
+function resolveValue(ctx: EvalContext, source: Source, value: Value, vars: ReturnType<typeof exprVars>, out: { warnings: string[]; promptsNeeded: PromptRequest[] }): number | undefined {
+  if (typeof value !== 'object') return evalExpr(value, vars);
+  const key = value.per && ctx.target ? targetTagsInCategory(ctx, ctx.target, value.per)[0] : undefined;
+  const stored = value.per ? (key ? ctx.battle?.prompts[`${value.prompt}:${key}`] : undefined) : ctx.battle?.prompts[value.prompt];
+  if (stored === undefined) {
+    const req: PromptRequest = { promptId: value.prompt, ...(value.per ? { perTagCategory: value.per } : {}), ...(key ? { tag: key } : {}), source: source.ability.id, sourceName: source.ability.name };
+    if (!out.promptsNeeded.some((p) => p.promptId === req.promptId && p.source === req.source)) out.promptsNeeded.push(req);
+    const vs = key ? ` vs ${ctx.library.tags[key]?.label ?? key}` : value.per && !ctx.target ? ' (pick a target)' : '';
+    const w = `${source.ability.name}: needs a ${value.prompt[0]!.toUpperCase()}${value.prompt.slice(1)} check${vs}`;
+    if (!out.warnings.includes(w)) out.warnings.push(w);
+    return undefined;
+  }
+  return tableValue(value.table, stored);
+}
+
+/** Interpolate {expr} placeholders in note text. */
+export function interpolate(text: string, vars: ReturnType<typeof exprVars>): string {
+  return text.replace(/\{([^}]+)\}/g, (_, e: string) => { try { return String(evalExpr(e.trim(), vars)); } catch { return `{${e}}`; } });
+}
+
 // ---------- resolveStat ----------
 export function resolveStat(ctx: EvalContext, stat: StatId): StatResult {
-  const warnings: string[] = [];
-  const { entries, dice } = baseEntries(ctx, stat, warnings);
-  const bonuses: BonusEntry[] = [...entries];
-  const names: Record<string, string> = { base: 'Base' };
-  const notes: string[] = [];
-  const flags = { ignoreConcealment: false };
-  const promptsNeeded: PromptRequest[] = [];
-  // Ability-score stats feed the vars themselves; evaluate their expressions on raw scores to avoid recursion.
-  const vars = exprVars(ctx, { rawScores: stat.startsWith('ability.') });
+  const guardKey = stat;
+  if (inProgress.has(guardKey)) {
+    // re-entrant read of the same stat (a condition on this stat inside its own bonus): base only
+    const warnings: string[] = [];
+    const { entries } = baseEntries({ ...ctx }, stat, warnings);
+    const st = stackBonuses(entries);
+    return { stat, total: st.total, entries: st.entries.map((e) => ({ ...e, sourceName: 'Base' })), dice: [], flags: {}, notes: [], warnings, nearMiss: [], promptsNeeded: [] };
+  }
+  inProgress.add(guardKey);
+  try {
+    const warnings: string[] = [];
+    const { entries, dice } = baseEntries(ctx, stat, warnings);
+    const bonuses: BonusEntry[] = [...entries];
+    const names: Record<string, string> = { base: 'Base' };
+    const notes: string[] = [];
+    const promptsNeeded: PromptRequest[] = [];
+    const vars = exprVars(ctx, { rawScores: stat.startsWith('ability.') });
+    const sets: number[] = [];
+    let multiplier = 1;
 
-  const col = collectEffects(ctx, stat);
-  warnings.push(...col.warnings);
-  for (const { source, block, effect } of col.applied) {
-    names[source.ability.id] = source.ability.name;
-    const label = block.label ?? source.ability.name;
-    switch (effect.kind) {
-      case 'bonus':
-        if (statIsAttackLike(stat) && !kindMatches(effect.attackKind, ctx)) break;
-        if (!acVariantAccepts(stat, effect.bonusType)) break;
-        bonuses.push({ source: source.ability.id, label, value: evalExpr(effect.value, vars), bonusType: effect.bonusType });
-        break;
-      case 'bonusFromTable': {
-        if (statIsAttackLike(stat) && !kindMatches(effect.attackKind, ctx)) break;
-        if (!acVariantAccepts(stat, effect.bonusType)) break;
-        const key = promptKey(ctx, effect.promptId, effect.perTagCategory);
-        const v = key ? ctx.battle?.prompts[key] : undefined;
-        if (v === undefined) {
-          const tag = effect.perTagCategory && ctx.target ? targetTagsInCategory(ctx, ctx.target, effect.perTagCategory)[0] : undefined;
-          const req: PromptRequest = { promptId: effect.promptId, ...(effect.perTagCategory ? { perTagCategory: effect.perTagCategory } : {}), ...(tag ? { tag } : {}), source: source.ability.id, sourceName: source.ability.name };
-          if (!promptsNeeded.some((p) => p.promptId === req.promptId && p.source === req.source)) promptsNeeded.push(req);
-          const vs = tag ? ` vs ${ctx.library.tags[tag]?.label ?? tag}` : effect.perTagCategory && !ctx.target ? ' (pick a target)' : '';
-          const w = `${source.ability.name}: needs a ${effect.promptId[0]!.toUpperCase()}${effect.promptId.slice(1)} check${vs}`;
-          if (!warnings.includes(w)) warnings.push(w);
+    const col = collectEffects(ctx, stat);
+    warnings.push(...col.warnings);
+    for (const { source, block, effect } of col.applied) {
+      names[source.ability.id] = source.ability.name;
+      const label = block.label ?? source.ability.name;
+      switch (effect.verb) {
+        case 'modify': {
+          if (statIsAttackLike(stat) && !kindMatches(effect.attackKind, ctx)) break;
+          if (!acVariantAccepts(stat, effect.type)) break;
+          const v = resolveValue(ctx, source, effect.value, vars, { warnings, promptsNeeded });
+          if (v === undefined) break;
+          const lab = typeof effect.value === 'object' ? `${label} (${ctx.battle?.prompts[effect.value.per && ctx.target ? `${effect.value.prompt}:${targetTagsInCategory(ctx, ctx.target, effect.value.per)[0]}` : effect.value.prompt]})` : label;
+          if (effect.mode === 'set') sets.push(v);
+          else if (effect.mode === 'multiply') multiplier *= v;
+          else bonuses.push({ source: source.ability.id, label: lab, value: v, bonusType: effect.type });
           break;
         }
-        bonuses.push({ source: source.ability.id, label: `${label} (${v})`, value: tableValue(effect.table, v), bonusType: effect.bonusType });
-        break;
+        case 'dice':
+          if (!kindMatches(effect.attackKind, ctx)) break;
+          dice.push({ dice: effect.dice, label: effect.label ?? source.ability.name, ...(effect.damageType ? { damageType: effect.damageType } : {}) });
+          break;
+        case 'note': {
+          const text = interpolate(effect.text, vars) + (effect.dc !== undefined ? ` (DC ${(() => { try { return evalExpr(effect.dc, vars); } catch { return '?'; } })()})` : '');
+          if (!notes.includes(text)) notes.push(text);
+          break;
+        }
+        default: break;
       }
-      case 'extraDice':
-        if (!kindMatches(effect.attackKind, ctx)) break;
-        dice.push({ dice: effect.dice, label: effect.label ?? source.ability.name, ...(effect.damageType ? { damageType: effect.damageType } : {}) });
-        break;
-      case 'ignoreConcealment': flags.ignoreConcealment = true; break;
-      case 'note': if (!notes.includes(effect.text)) notes.push(effect.text); break;
-      default: break;
     }
-  }
 
-  const stacked = stackBonuses(bonuses);
-  const result: StatResult = {
-    stat,
-    total: stacked.total,
-    entries: stacked.entries.map((e) => ({ ...e, sourceName: names[e.source] ?? e.source })),
-    dice, flags, notes, warnings, nearMiss: col.nearMiss, promptsNeeded,
-  };
-  if (stat === 'critRange') result.total = 21 - Math.max(1, Math.min(20, stacked.total));
-  return result;
+    const stacked = stackBonuses(bonuses);
+    let total = stacked.total;
+    if (sets.length) total = Math.max(...sets);
+    total = Math.round(total * multiplier);
+    const result: StatResult = {
+      stat, total,
+      entries: stacked.entries.map((e) => ({ ...e, sourceName: names[e.source] ?? e.source })),
+      dice, flags: stat === 'attack' ? resolveFlags(ctx) : {}, notes, warnings, nearMiss: col.nearMiss, promptsNeeded,
+    };
+    if (stat === 'critRange') result.total = 21 - Math.max(1, Math.min(20, total));
+    return result;
+  } finally { inProgress.delete(guardKey); }
 }
 
 // ---------- attack modes ----------
 export function listAttackModes(ctx: EvalContext, profileId: string): AttackMode[] {
-  const profile = ctx.character.attackProfiles.find((p) => p.id === profileId);
+  const profile = attackProfiles(ctx).find((p) => p.id === profileId);
   if (!profile) return [];
   const modes: AttackMode[] = [
     { modeId: 'single', label: 'Single attack', base: 'single', extraAttacksAtTop: 0, penalty: 0, source: 'base' },
     { modeId: 'full', label: 'Full attack', base: 'full', extraAttacksAtTop: 0, penalty: 0, source: 'base' },
   ];
-  const actx: EvalContext = { ...ctx, attack: { profile, kind: profile.kind, index: 1, modeId: 'single' } };
+  const actx: EvalContext = { ...ctx, attack: { profile, kind: profile.kind, index: 1, modeId: 'single', ...(profile.weaponAbilityId ? { weaponAbilityId: profile.weaponAbilityId } : {}) } };
   for (const { source, effect } of collectEffects(actx, 'attack').applied) {
-    if (effect.kind !== 'attackMode' || !kindMatches(effect.attackKind, actx)) continue;
-    modes.push({ modeId: effect.modeId, label: effect.label, base: effect.base, extraAttacksAtTop: effect.extraAttacksAtTop, penalty: effect.penalty, source: source.ability.id, ...(effect.note ? { note: effect.note } : {}) });
+    if (effect.verb !== 'attack' || !effect.mode || !kindMatches(effect.attackKind, actx)) continue;
+    modes.push({ modeId: effect.mode.id, label: effect.mode.label, base: effect.mode.base, extraAttacksAtTop: effect.extraAttacks, penalty: effect.penaltyAll, source: source.ability.id, ...(effect.mode.note ? { note: effect.mode.note } : {}) });
   }
   return modes;
 }
 
-export type ResolveAttackOptions = { profileId: string; modeId: string; distanceFeet?: number };
+export type ResolveAttackOptions = { profileId: string; modeId: string };
 
 export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): AttackSequenceResult {
-  const profile = ctx.character.attackProfiles.find((p) => p.id === opts.profileId);
+  const profile = attackProfiles(ctx).find((p) => p.id === opts.profileId);
   if (!profile) throw new Error(`Unknown attack profile "${opts.profileId}"`);
   const mode = listAttackModes(ctx, opts.profileId).find((m) => m.modeId === opts.modeId);
   if (!mode) throw new Error(`Attack mode "${opts.modeId}" not available for ${profile.name}`);
@@ -323,11 +409,10 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
   const babs = mode.base === 'full' ? [...d.iterativeAttacks] : [top];
   for (let i = 0; i < mode.extraAttacksAtTop; i++) babs.unshift(top);
 
-  const mk = (index: number): AttackCtx => ({ profile, kind: profile.kind, index, modeId: mode.modeId, ...(opts.distanceFeet !== undefined ? { distanceFeet: opts.distanceFeet } : {}) });
-  // extra attacks from buffs (haste) evaluated once with attack #1 context
+  const mk = (index: number): AttackCtx => ({ profile, kind: profile.kind, index, modeId: mode.modeId, ...(profile.weaponAbilityId ? { weaponAbilityId: profile.weaponAbilityId } : {}) });
   for (const { effect } of collectEffects({ ...ctx, attack: mk(1) }, 'attack').applied) {
-    if (effect.kind === 'extraAttack' && (effect.appliesToBase === 'any' || effect.appliesToBase === mode.base) && kindMatches(effect.attackKind, { ...ctx, attack: mk(1) })) {
-      for (let i = 0; i < effect.count; i++) babs.unshift(top);
+    if (effect.verb === 'attack' && !effect.mode && effect.extraAttacks > 0 && (effect.appliesToBase === 'any' || (effect.appliesToBase ?? 'full') === mode.base) && kindMatches(effect.attackKind, { ...ctx, attack: mk(1) })) {
+      for (let i = 0; i < effect.extraAttacks; i++) babs.unshift(top);
     }
   }
 
@@ -338,8 +423,7 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
   const attacks: AttackResult[] = babs.map((bab, i) => {
     const actx: EvalContext = { ...ctx, attack: mk(i + 1) };
     const atk = resolveStat(actx, 'attack');
-    // swap the generic BAB entry for this attack's iterative value, add mode penalty
-    const entries = atk.entries.map((e) => (e.source === 'base' && e.label === 'Base attack' ? { ...e, value: bab, label: i === 0 ? 'Base attack' : `Base attack (iterative)` } : e));
+    const entries = atk.entries.map((e) => (e.source === 'base' && e.label === 'Base attack' ? { ...e, value: bab, label: i === 0 ? 'Base attack' : 'Base attack (iterative)' } : e));
     let attackBonus = atk.total - d.bab + bab;
     if (mode.penalty) {
       entries.push({ source: mode.source, sourceName: mode.label, label: mode.label, value: mode.penalty, bonusType: 'untyped', applied: true });
@@ -354,14 +438,9 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
     const nearMiss = [...atk.nearMiss];
     for (const nm of dmg.nearMiss) if (!nearMiss.some((x) => x.source === nm.source && x.label === nm.label)) nearMiss.push(nm);
     return {
-      index: i + 1,
-      attackBonus,
-      attackBreakdown: entries,
+      index: i + 1, attackBonus, attackBreakdown: entries,
       damage: { flat: dmg.total, dice: dmg.dice, breakdown: dmg.entries },
-      critRange: crit.total,
-      critMult: mult.total,
-      ignoreConcealment: atk.flags.ignoreConcealment,
-      nearMiss,
+      critRange: crit.total, critMult: mult.total, ignoreConcealment: !!atk.flags.ignoreConcealment, nearMiss,
     };
   });
 
@@ -372,34 +451,42 @@ export function resolveAttack(ctx: EvalContext, opts: ResolveAttackOptions): Att
 export function availableActions(ctx: EvalContext): ActionInfo[] {
   const out: ActionInfo[] = [];
   const vars = exprVars(ctx);
-  for (const source of activeSources(ctx)) {
-    const { ability } = source;
-    if (ability.activation === 'passive' && !ability.resources?.length) continue;
+  const suppressed = new Set(ctx.battle?.suppressedAbilities ?? []);
+  const seen = new Set<string>();
+  const consider = (ability: Ability, instance: AbilityInstance | undefined, grantedBy?: string) => {
+    if (seen.has(ability.id)) return;
+    seen.add(ability.id);
+    for (const gid of ability.grants) { const g = ctx.library.abilities[gid]; if (g && !suppressed.has(gid)) consider(g, instance, ability.id); }
+    if (ability.activation === 'passive' && ability.resources.length === 0) return;
     const reasons: string[] = [];
-    const resources = (ability.resources ?? []).map((r) => {
+    const resources = ability.resources.map((r) => {
       const max = evalExpr(r.max, vars);
-      const remaining = max - resourceUsed(ctx, r.id, r.per);
-      return { id: r.id, label: r.label ?? ability.name, remaining, max, per: r.per };
+      const remaining = max - resourceUsed(ctx, r.id, r.resetOn);
+      return { id: r.id, label: r.label ?? ability.name, remaining, max, resetOn: r.resetOn, resetTo: r.resetTo };
     });
-    const usable = resources.every((r) => r.remaining > 0);
-    if (!usable) reasons.push(`No charges left (${resources.map((r) => `${r.remaining}/${r.max} per ${r.per}`).join(', ')})`);
-
-    // eligibility: pretend this ability is declared, check its effect conditions against current target
-    const declared: EvalContext = {
-      ...ctx,
-      abilityInstance: source.instance,
-      ...(ctx.battle ? { battle: { ...ctx.battle, toggles: { ...ctx.battle.toggles, [ability.id]: true } } } : {}),
-    };
+    const chargeCosts = ability.cost.filter((c) => c.kind === 'charge');
+    const pools = chargeCosts.length ? resources.filter((r) => chargeCosts.some((c) => c.kind === 'charge' && c.resourceId === r.id)) : resources;
+    const usable = pools.every((r) => r.remaining > 0);
+    if (!usable) reasons.push(`No charges left (${pools.map((r) => `${r.remaining}/${r.max} per ${r.resetOn}`).join(', ')})`);
+    const declared: EvalContext = { ...ctx, abilityInstance: instance, ...(ctx.battle ? { battle: { ...ctx.battle, toggles: { ...ctx.battle.toggles, [ability.id]: true } } } : {}) };
     let eligible = true;
     const notes: string[] = [];
-    const blocks = ability.effects.filter((b) => b.trigger === 'always' || b.trigger === 'onUse');
+    const blocks = ability.effects.filter((b) => b.trigger === 'always' || b.trigger === 'onUse' || b.trigger === 'onActivate');
     if (blocks.length) {
       const passing = blocks.filter((b) => evalCondition(b.when, declared));
       eligible = passing.length > 0;
       if (!eligible) for (const b of blocks) { const f = firstFailure(b.when, declared); if (f) reasons.push(`Needs: ${f}`); }
-      for (const b of passing) for (const e of b.do) if (e.kind === 'note') notes.push(e.text);
+      for (const b of passing) for (const e of b.do) if (e.verb === 'note') notes.push(interpolate(e.text, vars));
     }
-    out.push({ abilityId: ability.id, name: ability.name, activation: ability.activation, usable, eligible, reasons, resources, notes });
+    const active = !!ctx.battle?.activeAbilities.includes(ability.id) || !!ctx.battle?.activeBuffs.some((b) => b.abilityId === ability.id && !b.suppressed);
+    out.push({ abilityId: ability.id, name: ability.name, origin: ability.origin, ...(grantedBy ? { grantedBy } : {}), activation: ability.activation, active, usable, eligible, reasons, resources, notes });
+  };
+  for (const inst of ctx.character.abilities) {
+    if (!inst.enabled || suppressed.has(inst.abilityId)) continue;
+    const a = ctx.library.abilities[inst.abilityId];
+    if (a) consider(a, inst);
   }
   return out;
 }
+
+export { targetTags };

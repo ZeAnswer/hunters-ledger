@@ -5,9 +5,11 @@
  * Functions: floor, min, max, classLevel(<classId>), prompt(<promptId>).
  */
 export type ExprVars = {
-  [name: string]: number | Record<string, number> | undefined;
+  [name: string]: number | Record<string, number> | ((name: string) => number | undefined) | undefined;
   classLevel?: Record<string, number>;
   prompt?: Record<string, number>;
+  /** Fallback for unknown identifiers (dot-path selectors such as self.class.ranger.level). */
+  resolve?: (name: string) => number | undefined;
 };
 
 export type Expr = number | string;
@@ -79,7 +81,7 @@ class Parser {
       this.i += num[0].length;
       return Number(num[0]);
     }
-    const id = /^[A-Za-z_][A-Za-z0-9_]*/.exec(this.src.slice(this.i));
+    const id = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)*/.exec(this.src.slice(this.i));
     if (!id) throw new Error(`Unexpected "${c}" at ${this.i} in "${this.src}"`);
     this.i += id[0].length;
     const name = id[0];
@@ -89,17 +91,20 @@ class Parser {
       return this.callFn(name);
     }
     const v = this.vars[name];
-    if (typeof v !== 'number') throw new Error(`Unknown variable "${name}" in "${this.src}"`);
-    return v;
+    if (typeof v === 'number') return v;
+    const r = this.vars.resolve;
+    if (typeof r === 'function') { const rv = r(name); if (typeof rv === 'number') return rv; }
+    throw new Error(`Unknown variable "${name}" in "${this.src}"`);
   }
 
   private callFn(name: string): number {
-    if (name === 'classLevel' || name === 'prompt') {
+    if (name === 'classLevel' || name === 'prompt' || name === 'sel') {
       this.ws();
-      const id = /^[A-Za-z_][A-Za-z0-9_.-]*/.exec(this.src.slice(this.i));
+      const id = /^[A-Za-z_][A-Za-z0-9_.:-]*/.exec(this.src.slice(this.i));
       if (!id) throw new Error(`${name}() needs an identifier in "${this.src}"`);
       this.i += id[0].length;
       this.expect(')');
+      if (name === 'sel') { const r = this.vars.resolve; const v = typeof r === 'function' ? r(id[0]) : undefined; if (typeof v !== 'number') throw new Error(`sel(${id[0]}) is not a number`); return v; }
       const table = (this.vars[name] ?? {}) as Record<string, number>;
       return table[id[0]] ?? 0;
     }

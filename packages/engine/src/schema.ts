@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { convertV1 } from './migrate';
 
 // ---------- primitives ----------
 export const BonusTypeSchema = z.enum([
@@ -25,175 +26,211 @@ export const SlotIdSchema = z.enum(SLOT_IDS);
 export type SlotId = z.infer<typeof SlotIdSchema>;
 export const ItemCategorySchema = z.enum(['weapon', 'armor', 'shield', 'ammunition', 'wondrous', 'potion', 'scroll', 'wand', 'tool', 'trophy', 'material', 'gear']);
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;
-/** Item metadata on an ability with source 'item'. slot 'none' = active while carried (no body slot). */
-export const ItemMetaSchema = z.object({
-  category: ItemCategorySchema,
-  slot: z.union([SlotIdSchema, z.literal('none')]).optional(),
-  weight: z.number().optional(),
-  price: z.string().optional(),
-});
-export type ItemMeta = z.infer<typeof ItemMetaSchema>;
 
 
 /** Numeric literal or expression string, see expr.ts */
 export const ExprSchema = z.union([z.number(), z.string().min(1)]);
 export type Expr = z.infer<typeof ExprSchema>;
 
-/** Stat ids: fixed set plus skill.<id> */
+/** Stat ids a bonus can target. */
 export const StatIdSchema = z.string().regex(
-  /^(attack|damage|ac|ac\.touch|ac\.flatFooted|save\.fort|save\.ref|save\.will|init|critRange|critMult|hp\.max|speed|ability\.(str|dex|con|int|wis|cha)|skill\.[A-Za-z0-9_-]+)$/,
+  /^(attack|damage|ac|ac\.touch|ac\.flatFooted|save\.fort|save\.ref|save\.will|init|critRange|critMult|hp\.max|speed|casterLevel|spellDC|dr|sr|resist\.[a-z]+|ability\.(str|dex|con|int|wis|cha)|skill\.[A-Za-z0-9_-]+)$/,
   'unknown stat id',
 );
 export type StatId = z.infer<typeof StatIdSchema>;
 
 export const DurationSchema = z.union([
-  z.object({ rounds: z.number().int().positive() }),
-  z.literal('untilRemoved'),
-  z.literal('endOfNextTurn'),
-  z.literal('endOfRound'),
-  z.literal('encounter'),
+  z.literal('instant'), z.literal('thisAttack'), z.literal('thisTurn'), z.literal('untilMyNextTurn'), z.literal('endOfRound'),
+  z.object({ rounds: z.union([z.number().int().positive(), z.string()]) }), z.object({ minutes: z.number().positive() }),
+  z.literal('encounter'), z.literal('untilRemoved'), z.literal('whileActive'), z.literal('concentration'),
 ]);
 export type Duration = z.infer<typeof DurationSchema>;
 
-// ---------- conditions ----------
-const LogScope = z.enum(['thisRound', 'lastRound', 'encounter']);
+// ---------- selectors ----------
+/**
+ * Dot-path naming a piece of state, shared by conditions, effect targets and expressions. Domains:
+ * self.stat.<statId> · self.skill.<id>.(ranks|total|classSkill) · self.class.<id>.level · self.tag.<tag> · self.ability.<id>.(enabled|active|usesLeft|used)
+ * self.equipped.(item.<id>|slot.<slot>|category.<cat>|count.tag.<tag>) · self.param.<name> · self.var.<name> · self.hp.(current|max)
+ * target.(exists|tags|type|size|hurt|distance|revealed|tag.<tag>|condition.<tag>) · attack.(exists|kind|index|isFirstThisRound|mode|weapon.id|weapon.category|weapon.tag.<tag>)
+ * battle.(round|toggle.<id>|prompt.<id>|tag.<tag>) · flag.<name>
+ */
+export const SelectorSchema = z.string().regex(/^(self|target|attack|battle|flag)(\.[A-Za-z0-9_-]+)+$/, 'selector must be a dot path like target.tag.aquatic');
+export type Selector = z.infer<typeof SelectorSchema>;
 
+export const CompareOpSchema = z.enum(['=', '!=', '<', '<=', '>', '>=']);
+export type CompareOp = z.infer<typeof CompareOpSchema>;
+
+export const HistoryFilterSchema = z.object({
+  event: z.enum(['hit', 'miss', 'crit', 'attack', 'used', 'activated', 'damaged', 'moved']),
+  by: z.enum(['me', 'target', 'any']).default('me'),
+  /** current = the selected target; sameCategory = any target sharing the current target's tag in `category` */
+  vs: z.enum(['current', 'any', 'sameCategory']).default('current'),
+  category: z.string().optional(),
+  scope: z.enum(['thisAttackSequence', 'thisRound', 'lastRound', 'encounter', 'day']).default('thisRound'),
+  abilityId: z.string().optional(),
+});
+export type HistoryFilter = z.infer<typeof HistoryFilterSchema>;
+
+// ---------- conditions ----------
 export type Condition =
-  | { kind: 'always' }
-  | { kind: 'all'; of: Condition[] }
-  | { kind: 'any'; of: Condition[] }
-  | { kind: 'not'; of: Condition }
-  | { kind: 'target.hasTag'; tag: string }
-  | { kind: 'target.tagIn'; tags: string[] }
-  | { kind: 'target.sizeAtLeast'; size: Size }
-  | { kind: 'target.hurtAtMost'; hurt: Hurt }
-  | { kind: 'target.hasCondition'; condition: string }
-  | { kind: 'self.hasBuff'; abilityId: string }
-  | { kind: 'self.hasCondition'; condition: string }
-  | { kind: 'self.abilityEnabled'; abilityId: string }
-  | { kind: 'attack.kind'; attackKind: AttackKind }
-  | { kind: 'attack.withinFeet'; feet: number }
-  | { kind: 'attack.isFirstThisRound' }
-  | { kind: 'attack.index'; index: number }
-  | { kind: 'log'; event: 'hit' | 'miss' | 'crit' | 'use'; target?: 'current' | 'any'; scope: 'thisRound' | 'lastRound' | 'encounter'; abilityId?: string; min?: number }
-  | { kind: 'used'; abilityId: string; scope: 'round' | 'encounter' | 'day'; perTagCategory?: string }
-  | { kind: 'resource'; id: string; remainingAtLeast: number }
-  | { kind: 'toggle'; id: string }
-  | { kind: 'prompt'; id: string; atLeast?: number; perTagCategory?: string }
-  | { kind: 'round'; atLeast?: number; atMost?: number }
-  | { kind: 'param'; name: string; includesTargetTag: true };
+  | { all: Condition[] }
+  | { any: Condition[] }
+  | { none: Condition[] }
+  | { not: Condition }
+  | { count: Condition[]; atLeast: number }
+  | { is: Selector }
+  | { exists: Selector }
+  | { compare: Selector; op: CompareOp; value: number | string }
+  | { in: Selector; set?: string[]; param?: string }
+  | { history: HistoryFilter; op?: CompareOp; value?: number };
 
 export const ConditionSchema: z.ZodType<Condition> = z.lazy(() =>
-  z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('always') }),
-    z.object({ kind: z.literal('all'), of: z.array(ConditionSchema) }),
-    z.object({ kind: z.literal('any'), of: z.array(ConditionSchema) }),
-    z.object({ kind: z.literal('not'), of: ConditionSchema }),
-    z.object({ kind: z.literal('target.hasTag'), tag: z.string() }),
-    z.object({ kind: z.literal('target.tagIn'), tags: z.array(z.string()) }),
-    z.object({ kind: z.literal('target.sizeAtLeast'), size: SizeSchema }),
-    z.object({ kind: z.literal('target.hurtAtMost'), hurt: HurtSchema }),
-    z.object({ kind: z.literal('target.hasCondition'), condition: z.string() }),
-    z.object({ kind: z.literal('self.hasBuff'), abilityId: z.string() }),
-    z.object({ kind: z.literal('self.hasCondition'), condition: z.string() }),
-    z.object({ kind: z.literal('self.abilityEnabled'), abilityId: z.string() }),
-    z.object({ kind: z.literal('attack.kind'), attackKind: AttackKindSchema }),
-    z.object({ kind: z.literal('attack.withinFeet'), feet: z.number() }),
-    z.object({ kind: z.literal('attack.isFirstThisRound') }),
-    z.object({ kind: z.literal('attack.index'), index: z.number().int() }),
-    z.object({
-      kind: z.literal('log'), event: z.enum(['hit', 'miss', 'crit', 'use']),
-      target: z.enum(['current', 'any']).optional(), scope: LogScope,
-      abilityId: z.string().optional(), min: z.number().int().optional(),
-    }),
-    z.object({ kind: z.literal('used'), abilityId: z.string(), scope: z.enum(['round', 'encounter', 'day']), perTagCategory: z.string().optional() }),
-    z.object({ kind: z.literal('resource'), id: z.string(), remainingAtLeast: z.number().int() }),
-    z.object({ kind: z.literal('toggle'), id: z.string() }),
-    z.object({ kind: z.literal('prompt'), id: z.string(), atLeast: z.number().optional(), perTagCategory: z.string().optional() }),
-    z.object({ kind: z.literal('round'), atLeast: z.number().int().optional(), atMost: z.number().int().optional() }),
-    z.object({ kind: z.literal('param'), name: z.string(), includesTargetTag: z.literal(true) }),
+  z.union([
+    z.object({ all: z.array(ConditionSchema) }).strict(),
+    z.object({ any: z.array(ConditionSchema) }).strict(),
+    z.object({ none: z.array(ConditionSchema) }).strict(),
+    z.object({ not: ConditionSchema }).strict(),
+    z.object({ count: z.array(ConditionSchema), atLeast: z.number().int() }).strict(),
+    z.object({ is: SelectorSchema }).strict(),
+    z.object({ exists: SelectorSchema }).strict(),
+    z.object({ compare: SelectorSchema, op: CompareOpSchema, value: z.union([z.number(), z.string()]) }).strict(),
+    z.object({ in: SelectorSchema, set: z.array(z.string()).optional(), param: z.string().optional() }).strict(),
+    z.object({ history: HistoryFilterSchema, op: CompareOpSchema.optional(), value: z.number().optional() }).strict(),
   ]),
 ) as z.ZodType<Condition>;
 
-// ---------- effects ----------
-export const EffectSchema = z.discriminatedUnion('kind', [
+export const ALWAYS: Condition = { all: [] };
+
+// ---------- effects (verbs) ----------
+export const TableValueSchema = z.object({
+  prompt: z.string(),
+  per: z.string().optional(),
+  table: z.array(z.object({ upTo: z.number().optional(), value: z.number() })).min(1),
+});
+export const ValueSchema = z.union([ExprSchema, TableValueSchema]);
+export type Value = z.infer<typeof ValueSchema>;
+
+export const EffectSchema = z.discriminatedUnion('verb', [
+  z.object({ verb: z.literal('modify'), to: StatIdSchema, value: ValueSchema, type: BonusTypeSchema.default('untyped'), mode: z.enum(['add', 'set', 'multiply']).default('add'), attackKind: AttackKindSchema.optional() }),
+  z.object({ verb: z.literal('dice'), dice: z.string().regex(/^\d+d\d+$/), damageType: z.string().optional(), label: z.string().optional(), attackKind: AttackKindSchema.optional() }),
+  z.object({ verb: z.literal('flag'), flag: z.string(), value: z.boolean().default(true) }),
+  z.object({ verb: z.literal('tag'), to: z.enum(['self', 'target', 'allEnemies']), tag: z.string(), duration: DurationSchema.default('untilRemoved') }),
+  z.object({ verb: z.literal('grant'), ability: z.string(), duration: DurationSchema.optional() }),
+  z.object({ verb: z.literal('suppress'), ability: z.string() }),
+  z.object({ verb: z.literal('resource'), id: z.string(), op: z.enum(['consume', 'restore', 'set']).default('consume'), amount: ExprSchema.default(1) }),
   z.object({
-    kind: z.literal('bonus'), to: StatIdSchema, value: ExprSchema,
-    bonusType: BonusTypeSchema.default('untyped'), attackKind: AttackKindSchema.optional(),
+    verb: z.literal('attack'),
+    mode: z.object({ id: z.string(), label: z.string(), base: z.enum(['single', 'full']), note: z.string().optional() }).optional(),
+    extraAttacks: z.number().int().default(0), penaltyAll: z.number().int().default(0), appliesToBase: z.enum(['single', 'full', 'any']).optional(),
+    naturalAttack: z.object({ name: z.string(), dice: z.string(), count: z.number().int().positive().default(1), attackBonus: z.number().int().default(0) }).optional(),
+    attackKind: AttackKindSchema.optional(),
   }),
-  z.object({ kind: z.literal('extraDice'), dice: z.string().regex(/^\d+d\d+$/), damageType: z.string().optional(), label: z.string().optional(), attackKind: AttackKindSchema.optional() }),
-  z.object({ kind: z.literal('ignoreConcealment') }),
-  z.object({ kind: z.literal('applyTag'), to: z.enum(['target', 'self']), tag: z.string(), duration: DurationSchema.default('untilRemoved') }),
-  z.object({ kind: z.literal('consume'), resourceId: z.string(), amount: z.number().int().positive().default(1) }),
-  z.object({ kind: z.literal('note'), text: z.string() }),
-  z.object({
-    kind: z.literal('bonusFromTable'), promptId: z.string(), perTagCategory: z.string().optional(),
-    table: z.array(z.object({ upTo: z.number().optional(), value: z.number() })).min(1),
-    to: StatIdSchema, bonusType: BonusTypeSchema.default('untyped'), attackKind: AttackKindSchema.optional(),
-  }),
-  z.object({ kind: z.literal('suppress'), abilityId: z.string() }),
-  z.object({ kind: z.literal('extraAttack'), appliesToBase: z.enum(['single', 'full', 'any']).default('full'), count: z.number().int().positive().default(1), attackKind: AttackKindSchema.optional() }),
-  z.object({ kind: z.literal('revealTarget') }),
-  z.object({ kind: z.literal('extraSlot'), slot: SlotIdSchema, count: z.number().int().positive().default(1) }),
-  z.object({
-    kind: z.literal('attackMode'), modeId: z.string(), label: z.string(),
-    base: z.enum(['single', 'full']), extraAttacksAtTop: z.number().int().default(0),
-    penalty: z.number().int().default(0), attackKind: AttackKindSchema.optional(), note: z.string().optional(),
-  }),
+  z.object({ verb: z.literal('slot'), slot: SlotIdSchema, count: z.number().int().default(1) }),
+  z.object({ verb: z.literal('hp'), op: z.enum(['damage', 'heal', 'temp']), amount: ExprSchema }),
+  z.object({ verb: z.literal('prompt'), id: z.string(), label: z.string().optional(), per: z.string().optional(), remember: z.enum(['encounter', 'day']).default('encounter') }),
+  z.object({ verb: z.literal('note'), text: z.string(), dc: ExprSchema.optional() }),
+  z.object({ verb: z.literal('reveal') }),
 ]);
 export type Effect = z.infer<typeof EffectSchema>;
 
-export const TriggerSchema = z.enum(['always', 'onHit', 'onMiss', 'onCrit', 'onUse', 'onRoundStart']);
+export const TriggerSchema = z.enum(['always', 'onUse', 'onActivate', 'onDeactivate', 'onHit', 'onMiss', 'onCrit', 'onDamaged', 'onRoundStart', 'onRoundEnd']);
 export type Trigger = z.infer<typeof TriggerSchema>;
 
 export const EffectBlockSchema = z.object({
   id: z.string(),
   label: z.string().optional(),
   trigger: TriggerSchema.default('always'),
-  when: ConditionSchema.default({ kind: 'always' }),
+  when: ConditionSchema.default(ALWAYS),
   do: z.array(EffectSchema).min(1),
 });
 export type EffectBlock = z.infer<typeof EffectBlockSchema>;
 
-// ---------- ability ----------
+// ---------- ability envelope ----------
+export const ActionSchema = z.union([z.enum(['free', 'swift', 'immediate', 'move', 'standard', 'fullRound']), z.object({ minutes: z.number().positive() }), z.object({ hours: z.number().positive() })]);
 export const ActivationSchema = z.union([
-  z.enum(['passive', 'toggle', 'declare']),
-  z.object({ action: z.enum(['standard', 'move', 'full', 'swift', 'free', 'immediate']) }),
+  z.enum(['passive', 'toggle', 'declare', 'atWill']),
+  z.object({ action: ActionSchema }),
+  z.object({ reaction: TriggerSchema }),
 ]);
 export type Activation = z.infer<typeof ActivationSchema>;
+
+export const CostSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('charge'), resourceId: z.string(), amount: ExprSchema.default(1) }),
+  z.object({ kind: z.literal('gold'), amount: z.number() }),
+  z.object({ kind: z.literal('xp'), amount: z.number() }),
+  z.object({ kind: z.literal('hp'), amount: ExprSchema }),
+  z.object({ kind: z.literal('item'), abilityId: z.string(), quantity: z.number().int().positive().default(1) }),
+  z.object({ kind: z.literal('spellSlot'), level: z.number().int() }),
+]);
+export type Cost = z.infer<typeof CostSchema>;
 
 export const ResourceDefSchema = z.object({
   id: z.string(),
   label: z.string().optional(),
   max: ExprSchema,
-  per: z.enum(['day', 'encounter', 'round']),
+  resetOn: z.enum(['round', 'encounter', 'day', 'rest', 'manual', 'never']).default('day'),
+  resetTo: z.enum(['max', 'zero']).default('max'),
 });
 export type ResourceDef = z.infer<typeof ResourceDefSchema>;
 
-export const ParamDefSchema = z.object({
-  kind: z.literal('tags'),
-  label: z.string().optional(),
-  category: z.string().optional(),
-  count: z.number().int().positive().optional(),
-});
+export const ParamDefSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('tags'), label: z.string().optional(), category: z.string().optional(), count: z.number().int().positive().optional() }),
+  z.object({ kind: z.literal('number'), label: z.string().optional(), min: z.number().optional(), max: z.number().optional() }),
+  z.object({ kind: z.literal('choice'), label: z.string().optional(), options: z.array(z.string()) }),
+]);
 export type ParamDef = z.infer<typeof ParamDefSchema>;
 
-export const AbilitySourceSchema = z.enum(['feat', 'item', 'class', 'spell', 'buff', 'memory', 'situational', 'condition', 'core']);
+export const OriginSchema = z.enum(['feat', 'classFeature', 'race', 'item', 'spell', 'buff', 'condition', 'memory', 'situational', 'monster', 'core']);
+export type Origin = z.infer<typeof OriginSchema>;
+
+export const BindingSchema = z.union([z.enum(['none', 'thisItem', 'thisWeapon']), z.object({ slot: SlotIdSchema })]);
+export type Binding = z.infer<typeof BindingSchema>;
+
+export const WeaponMetaSchema = z.object({
+  kind: AttackKindSchema,
+  dice: z.string().regex(/^\d+d\d+$/),
+  critRange: z.number().int().min(2).max(20).default(20),
+  critMult: z.number().int().min(2).default(2),
+  rangeIncrement: z.number().int().optional(),
+  attackAbility: AbilityKeySchema,
+  damageAbility: AbilityKeySchema.optional(),
+  maxDamageAbilityBonus: z.number().int().optional(),
+  damageAbilityMultiplier: z.number().default(1),
+  enhancement: z.number().int().default(0),
+  tags: z.array(z.string()).default([]),
+});
+export type WeaponMeta = z.infer<typeof WeaponMetaSchema>;
+
+/** Item metadata on an ability with origin 'item'. slot 'none' = active while carried (no body slot). */
+export const ItemMetaSchema = z.object({
+  category: ItemCategorySchema,
+  slot: z.union([SlotIdSchema, z.literal('none')]).optional(),
+  weight: z.number().optional(),
+  price: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  weapon: WeaponMetaSchema.optional(),
+});
+export type ItemMeta = z.infer<typeof ItemMetaSchema>;
 
 export const AbilitySchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  source: AbilitySourceSchema,
+  origin: OriginSchema,
+  classId: z.string().optional(),
+  classLevel: z.number().int().optional(),
   text: z.string().optional(),
   sourceRef: z.string().optional(),
-  params: z.record(ParamDefSchema).optional(),
+  binding: BindingSchema.default('none'),
   activation: ActivationSchema.default('passive'),
-  resources: z.array(ResourceDefSchema).optional(),
+  cost: z.array(CostSchema).default([]),
   duration: DurationSchema.optional(),
+  resources: z.array(ResourceDefSchema).default([]),
+  params: z.record(ParamDefSchema).optional(),
+  grants: z.array(z.string()).default([]),
+  item: ItemMetaSchema.optional(),
   effects: z.array(EffectBlockSchema).default([]),
   enabledByDefault: z.boolean().default(true),
   todo: z.string().optional(),
-  item: ItemMetaSchema.optional(),
 });
 export type Ability = z.infer<typeof AbilitySchema>;
 export type AbilityInput = z.input<typeof AbilitySchema>;
@@ -334,7 +371,8 @@ export const PackSchema = z.object({
   version: z.number().int().nonnegative(),
   description: z.string().optional(),
   tags: z.array(TagSchema).default([]),
-  abilities: z.array(AbilitySchema).default([]),
+  /** Packs written in the v1 format are converted on parse. */
+  abilities: z.array(z.preprocess((a) => convertV1(a), AbilitySchema)).default([]),
   monsters: z.array(MonsterSchema).default([]),
   skills: z.array(SkillSchema).default([]),
   classTables: z.array(ClassTableSchema).default([]),
@@ -354,6 +392,8 @@ export const CombatantSchema = z.object({
   conditions: z.array(z.object({ tag: z.string(), expires: DurationSchema.optional(), appliedRound: z.number().int().optional(), source: z.string().optional() })).default([]),
   dead: z.boolean().default(false),
   revealed: z.boolean().default(false),
+  /** Distance from the character in feet (5 = adjacent). Undefined = unknown. */
+  distanceFeet: z.number().int().nonnegative().optional(),
   notes: z.string().optional(),
 });
 export type Combatant = z.infer<typeof CombatantSchema>;
@@ -372,7 +412,8 @@ export const LogEventSchema = z.object({
   id: z.string().min(1),
   round: z.number().int().nonnegative(),
   seq: z.number().int().nonnegative(),
-  kind: z.enum(['roundStart', 'attack', 'use', 'tag', 'buff', 'hp', 'note']),
+  /** attack = the character attacks targetId; enemy = targetId acts on the character (result hit/miss, damage) */
+  kind: z.enum(['roundStart', 'attack', 'enemy', 'use', 'activate', 'deactivate', 'tag', 'buff', 'hp', 'move', 'note']),
   actor: z.string().default('self'),
   targetId: z.string().optional(),
   profileId: z.string().optional(),
@@ -395,8 +436,12 @@ export const BattleSchema = z.object({
   activeBuffs: z.array(ActiveBuffSchema).default([]),
   situational: z.array(AbilitySchema).default([]),
   suppressedAbilities: z.array(z.string()).default([]),
+  /** Abilities currently switched on (toggle activation). */
+  activeAbilities: z.array(z.string()).default([]),
   selfConditions: z.array(z.object({ tag: z.string(), expires: DurationSchema.optional(), appliedRound: z.number().int().optional(), source: z.string().optional() })).default([]),
   toggles: z.record(z.boolean()).default({}),
+  /** Environment tags for this battle (underwater, darkness, forest…). */
+  tags: z.array(z.string()).default([]),
   encounterResources: z.record(z.number().int().nonnegative()).default({}),
   roundResources: z.record(z.number().int().nonnegative()).default({}),
   prompts: z.record(z.number()).default({}),

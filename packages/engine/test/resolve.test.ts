@@ -221,7 +221,7 @@ test('initiative and hp.max', () => {
 test('availableActions reports charges and eligibility reasons', () => {
   const c = ctxWith([monsterBlow], {}, { 'monster-blow': { types: ['aberration'] } });
   const [mb] = availableActions(c);
-  expect(mb).toMatchObject({ abilityId: 'monster-blow', usable: true, eligible: true, resources: [{ id: 'monster-blow', remaining: 1, max: 1, per: 'day' }] });
+  expect(mb).toMatchObject({ abilityId: 'monster-blow', usable: true, eligible: true, resources: [{ id: 'monster-blow', remaining: 1, max: 1, resetOn: 'day' }] });
 
   const spent = ctxWith([monsterBlow], {}, { 'monster-blow': { types: ['aberration'] } });
   spent.character.resourceState['monster-blow'] = { used: 1 };

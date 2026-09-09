@@ -47,7 +47,7 @@ test('onHit trigger applies a condition to the target that later effects can see
   const c = ctx();
   const { battle } = logAttack(c, { targetId: 'c1', profileId: 'bow', modeId: 'full', attackIndex: 1, result: 'hit' });
   const target = battle.combatants[0]!;
-  expect(target.conditions).toEqual([{ tag: 'flanked', expires: 'endOfNextTurn', appliedRound: 1, source: 'distracting-attack' }]);
+  expect(target.conditions).toEqual([{ tag: 'flanked', expires: 'untilMyNextTurn', appliedRound: 1, source: 'distracting-attack' }]);
   const r = resolveAttack({ ...c, battle, target }, { profileId: 'bow', modeId: 'full' });
   expect(r.attacks[0]!.damage.dice.some((d) => d.label === 'Sneak')).toBe(true);
 });
@@ -98,7 +98,7 @@ test('nextRound increments, logs roundStart, ticks buffs and expires conditions'
   battle.toggles['in-aura'] = true;
   battle.roundResources['x'] = 1;
 
-  const r2 = nextRound({ ...c, battle });
+  const r2 = nextRound({ ...c, battle }).battle;
   expect(r2.round).toBe(2);
   expect(r2.log.at(-1)).toMatchObject({ kind: 'roundStart', round: 2 });
   expect(r2.activeBuffs[0]!.remainingRounds).toBe(1);
@@ -108,7 +108,7 @@ test('nextRound increments, logs roundStart, ticks buffs and expires conditions'
   expect(r2.toggles['in-aura']).toBe(true); // manual toggles persist
   expect(r2.roundResources).toEqual({});
 
-  const r3 = nextRound({ ...c, battle: r2 });
+  const r3 = nextRound({ ...c, battle: r2 }).battle;
   expect(r3.round).toBe(3);
   expect(r3.activeBuffs).toEqual([]); // haste expired
   expect(r3.combatants[0]!.conditions).toEqual([]); // flanked expired

@@ -14,7 +14,8 @@ export type AttackCtx = {
   /** 1-based attack number within the sequence */
   index: number;
   modeId: string;
-  distanceFeet?: number;
+  /** Library id of the weapon item this profile comes from, if any. */
+  weaponAbilityId?: string;
 };
 
 export type AbilityInstance = Character['abilities'][number];
@@ -27,6 +28,8 @@ export type EvalContext = {
   attack?: AttackCtx;
   /** The character's instance of the ability currently being evaluated (for params). */
   abilityInstance?: AbilityInstance;
+  /** Damage just dealt (for DC formulas and hp effects in triggers). */
+  lastDamage?: number;
 };
 
 export const SIZE_ORDER = ['fine', 'diminutive', 'tiny', 'small', 'medium', 'large', 'huge', 'gargantuan', 'colossal'] as const;
@@ -61,18 +64,21 @@ export function promptKey(ctx: EvalContext, promptId: string, perTagCategory?: s
 
 export function findResourceDef(ctx: EvalContext, resourceId: string) {
   for (const inst of ctx.character.abilities) {
-    const def = ctx.library.abilities[inst.abilityId]?.resources?.find((r) => r.id === resourceId);
+    const def = ctx.library.abilities[inst.abilityId]?.resources.find((r) => r.id === resourceId);
     if (def) return { def, abilityId: inst.abilityId };
   }
-  for (const a of ctx.battle?.situational ?? []) {
-    const def = a.resources?.find((r) => r.id === resourceId);
+  for (const a of [...Object.values(ctx.library.abilities), ...(ctx.battle?.situational ?? [])]) {
+    const def = a.resources.find((r) => r.id === resourceId);
     if (def) return { def, abilityId: a.id };
   }
   return undefined;
 }
 
-export function resourceUsed(ctx: EvalContext, resourceId: string, per: 'day' | 'encounter' | 'round'): number {
-  if (per === 'day') return ctx.character.resourceState[resourceId]?.used ?? 0;
-  if (per === 'encounter') return ctx.battle?.encounterResources[resourceId] ?? 0;
-  return ctx.battle?.roundResources[resourceId] ?? 0;
+export type ResetOn = 'round' | 'encounter' | 'day' | 'rest' | 'manual' | 'never';
+
+/** Where a resource's usage counter lives: round/encounter on the battle, everything else on the character. */
+export function resourceUsed(ctx: EvalContext, resourceId: string, resetOn: ResetOn): number {
+  if (resetOn === 'round') return ctx.battle?.roundResources[resourceId] ?? 0;
+  if (resetOn === 'encounter') return ctx.battle?.encounterResources[resourceId] ?? 0;
+  return ctx.character.resourceState[resourceId]?.used ?? 0;
 }

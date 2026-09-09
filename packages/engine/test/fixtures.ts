@@ -1,8 +1,9 @@
 import {
   AbilitySchema, BattleSchema, CharacterSchema, ClassTableSchema, CombatantSchema, SkillSchema, TagSchema,
-  type Ability, type AbilityInput, type Battle, type Character, type CharacterInput, type ClassTable, type Combatant, type LogEvent, type Skill, type Tag,
+  type Ability, type Battle, type Character, type CharacterInput, type ClassTable, type Combatant, type LogEvent, type Skill, type Tag,
 } from '../src/schema';
 import type { EvalContext, Library } from '../src/context';
+import { convertV1 } from '../src/migrate';
 
 export const ranger: ClassTable = ClassTableSchema.parse({
   id: 'ranger', name: 'Ranger', hitDie: 8, skillPointsPerLevel: 6,
@@ -33,8 +34,8 @@ export const skills: Skill[] = [
   { id: 'knowledge-monsters', name: 'Knowledge (Monsters)', ability: 'int' },
 ].map((s) => SkillSchema.parse(s));
 
-export function makeAbility(a: Partial<AbilityInput> & { id: string }): Ability {
-  return AbilitySchema.parse({ name: a.id, source: 'feat', ...a });
+export function makeAbility(a: Record<string, unknown> & { id: string }): Ability {
+  return AbilitySchema.parse(convertV1({ name: a.id, source: 'feat', ...a }));
 }
 
 export function makeCharacter(over: Partial<CharacterInput> = {}): Character {
