@@ -10,6 +10,9 @@ export function LogView({ battle }: { battle: Battle }) {
     switch (e.kind) {
       case 'roundStart': return `— Round ${e.round} —`;
       case 'attack': return `Attack #${e.attackIndex} vs ${name(e.targetId)}${e.modeId ? ` (${e.modeId})` : ''}`;
+      case 'enemy': return `${name(e.actor)} ${e.result === 'miss' ? 'missed you' : `${e.result === 'crit' ? 'critted' : 'hit'} you${e.damage ? ` for ${e.damage}` : ''}`}`;
+      case 'activate': return `${lib.abilities[e.abilityId ?? '']?.name ?? e.abilityId} switched on`;
+      case 'deactivate': return `${lib.abilities[e.abilityId ?? '']?.name ?? e.abilityId} switched off${e.text ? ` (${e.text})` : ''}`;
       case 'use': return `Used ${lib.abilities[e.abilityId ?? '']?.name ?? e.abilityId}${e.targetId ? ` on ${name(e.targetId)}` : ''}`;
       case 'hp': return e.text ?? 'HP change';
       default: return e.text ?? e.kind;

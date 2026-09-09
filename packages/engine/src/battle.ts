@@ -318,7 +318,14 @@ export function longRest(character: Character, library?: { abilities: Record<str
   return { ...character, resourceState: keep };
 }
 
-export type AddCombatantInput = { monster: Monster; name?: string } | { name: string; tags?: string[]; size?: Size };
+export type MonsterOverlay = { addTags?: string[]; removeTags?: string[]; notes?: string };
+export type AddCombatantInput = { monster: Monster; name?: string; overlay?: MonsterOverlay } | { name: string; tags?: string[]; size?: Size };
+
+/** Tags of a bestiary monster after the user's overlay (tags added/removed for every copy of that monster). */
+export function monsterTags(monster: Monster, overlay?: MonsterOverlay): string[] {
+  const removed = new Set(overlay?.removeTags ?? []);
+  return [...new Set([...monster.tags.filter((t) => !removed.has(t)), ...(overlay?.addTags ?? [])])];
+}
 
 export function addCombatant(battle: Battle, input: AddCombatantInput): Battle {
   const base = 'monster' in input ? input.name ?? input.monster.name : input.name;
@@ -327,7 +334,7 @@ export function addCombatant(battle: Battle, input: AddCombatantInput): Battle {
   for (let n = 2; taken.has(name); n++) name = `${base} ${n}`;
   const combatant: Combatant = {
     id: newId('cb'), name, hurt: 'unhurt', conditions: [], dead: false, revealed: false,
-    ...('monster' in input ? { monsterId: input.monster.id, tags: [...input.monster.tags], size: input.monster.size } : { tags: input.tags ?? [], size: input.size ?? 'medium' }),
+    ...('monster' in input ? { monsterId: input.monster.id, tags: monsterTags(input.monster, input.overlay), size: input.monster.size, ...(input.overlay?.notes ? { notes: input.overlay.notes } : {}) } : { tags: input.tags ?? [], size: input.size ?? 'medium' }),
   };
   return { ...battle, combatants: [...battle.combatants, combatant] };
 }

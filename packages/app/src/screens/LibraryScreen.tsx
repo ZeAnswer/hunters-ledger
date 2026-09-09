@@ -120,7 +120,7 @@ function Monsters() {
         {list.map((m) => (
           <button key={m.id} type="button" onClick={() => setEditing(m)} className="flex w-full items-center justify-between rounded-xl bg-zinc-900 px-3 py-2 text-left">
             <span>{m.name}<span className="ml-2 text-xs text-zinc-500">{humanize(m.size)}{m.cr !== undefined ? ` · CR ${m.cr}` : ''}</span></span>
-            <span className="text-xs text-zinc-500">{m.tags.slice(0, 3).map((t) => library.tags[t]?.label ?? t).join(', ')}</span>
+            <span className="text-xs text-zinc-500">{m.tags.slice(0, 3).map((t) => library.tags[t]?.label ?? t).join(', ')}{library.monsterOverlay[m.id] ? ' · ✎ yours' : ''}</span>
           </button>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { addCombatant, logEnemyAction, setDistance, type Combatant, type Hurt, type Size, type Monster } from '@hl/engine';
+import { addCombatant, logEnemyAction, monsterTags, setDistance, type Combatant, type Hurt, type Size, type Monster } from '@hl/engine';
 import { useCtx } from '../../store/hooks';
 import { useStore } from '../../store/store';
 import { Button, Chip, Field, Sheet, cx, humanize, inputCls } from '../ui';
@@ -100,7 +100,7 @@ function AddCombatantSheet({ open, onClose }: { open: boolean; onClose: () => vo
       {Object.keys(library.monsters).length > 0 && (
         <Field label="From bestiary">
           <input className={inputCls} placeholder="Search monsters…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="mt-2 flex flex-wrap gap-2">{monsters.map((m: Monster) => <Chip key={m.id} onClick={() => add({ monster: m })}>{m.name}{m.cr !== undefined ? ` · CR ${m.cr}` : ''}</Chip>)}</div>
+          <div className="mt-2 flex flex-wrap gap-2">{monsters.map((m: Monster) => <Chip key={m.id} onClick={() => add({ monster: m, overlay: library.monsterOverlay[m.id] })}>{m.name}{m.cr !== undefined ? ` · CR ${m.cr}` : ''}</Chip>)}</div>
         </Field>
       )}
       <Field label="Quick add: name"><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Gargoyle" /></Field>
@@ -117,6 +117,8 @@ export function CombatantSheet({ id, onClose }: { id: string; onClose: () => voi
   const battle = useStore((s) => s.battle)!;
   const setBattle = useStore((s) => s.setBattle);
   const setTarget = useStore((s) => s.setTarget);
+  const setMonsterOverlay = useStore((s) => s.setMonsterOverlay);
+  const showToast = useStore((s) => s.showToast);
   const c = battle.combatants.find((x) => x.id === id);
   if (!c) return null;
   const update = (patch: Partial<Combatant>) => setBattle({ ...battle, combatants: battle.combatants.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
@@ -132,7 +134,12 @@ export function CombatantSheet({ id, onClose }: { id: string; onClose: () => voi
       <Field label="Hurt"><div className="flex flex-wrap gap-2">{HURT.map((h) => <Chip key={h.id} tone={h.tone} active={c.hurt === h.id} onClick={() => update({ hurt: h.id })}>{h.label}</Chip>)}</div></Field>
       <Field label="Conditions"><div className="flex flex-wrap gap-2">{condTags.map((t) => <Chip key={t.id} tone="blue" active={c.conditions.some((x) => x.tag === t.id)} onClick={() => toggleCond(t.id)}>{t.label}</Chip>)}</div></Field>
       <Field label="Size"><div className="flex flex-wrap gap-2">{SIZES.map((s) => <Chip key={s} active={c.size === s} onClick={() => update({ size: s })}>{humanize(s)}</Chip>)}</div></Field>
-      <Field label="Tags"><div className="flex flex-wrap gap-2">{allTags.map((t) => <Chip key={t.id} active={c.tags.includes(t.id)} onClick={() => toggleTag(t.id)}>{t.label}</Chip>)}</div></Field>
+      <Field label="Tags">
+        <div className="flex flex-wrap gap-2">{allTags.map((t) => <Chip key={t.id} active={c.tags.includes(t.id)} onClick={() => toggleTag(t.id)}>{t.label}</Chip>)}</div>
+        {monster && (() => { const base = monsterTags(monster); const addTags = c.tags.filter((t) => !base.includes(t)); const removeTags = base.filter((t) => !c.tags.includes(t)); const changed = addTags.length + removeTags.length > 0; return (
+          <Button size="sm" className="mt-2" disabled={!changed} onClick={() => { setMonsterOverlay(monster.id, { addTags, removeTags }); showToast(`Remembered for every ${monster.name}`); }}>Remember these tags for all {monster.name}s</Button>
+        ); })()}
+      </Field>
       <div className="mb-3 flex flex-wrap gap-2">
         <Chip tone="red" active={c.dead} onClick={() => update({ dead: !c.dead })}>💀 Dead</Chip>
         <Chip tone="amber" active={c.revealed} onClick={() => update({ revealed: !c.revealed })}>📖 Lore revealed</Chip>

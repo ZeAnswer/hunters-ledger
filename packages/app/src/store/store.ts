@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import {
   AbilitySchema, BattleSchema, CharacterSchema, PackSchema, convertV1, emptyLibrary, mergePack, libraryToPack, newBattle,
-  type Battle, type Character, type EvalContext, type LibraryWithMeta, type MergeReport, type Monster, type Pack,
+  type Battle, type Character, type EvalContext, type LibraryWithMeta, type MergeReport, type Monster, type MonsterOverlay, type Pack,
 } from '@hl/engine';
 import { storage } from '../storage';
 import { defaultPacks } from '../data/defaultPacks';
 
-export type FullLibrary = LibraryWithMeta & { monsters: Record<string, Monster>; characters: Record<string, Character> };
+export type FullLibrary = LibraryWithMeta & { monsters: Record<string, Monster>; characters: Record<string, Character>; monsterOverlay: Record<string, MonsterOverlay> };
 
 export type Screen = 'battle' | 'character' | 'inventory' | 'library' | 'settings';
 
@@ -30,6 +30,8 @@ type Actions = {
   startBattle(name?: string): void;
   endBattle(): void;
   setLibrary(l: FullLibrary): void;
+  /** Remember a tag change for every future copy of a bestiary monster. */
+  setMonsterOverlay(monsterId: string, overlay: MonsterOverlay): void;
   importPack(pack: Pack, opts?: { overwrite?: boolean }): MergeReport;
   importText(text: string, opts?: { overwrite?: boolean }): { report?: MergeReport; error?: string };
   exportLibraryText(): string;
@@ -46,7 +48,7 @@ export type Store = State & Actions;
 const KEYS = { library: 'hl.library', character: 'hl.character', battle: 'hl.battle', past: 'hl.pastBattles', screen: 'hl.screen' } as const;
 
 function fullEmpty(): FullLibrary {
-  return { ...emptyLibrary(), monsters: {}, characters: {} };
+  return { ...emptyLibrary(), monsters: {}, characters: {}, monsterOverlay: {} };
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -66,7 +68,7 @@ export const useStore = create<Store>((set, get) => ({
     ]);
     if (!library) {
       let lib = fullEmpty();
-      for (const p of defaultPacks) lib = mergePack(lib, p).library as FullLibrary;
+      for (const p of defaultPacks) lib = { ...lib, ...(mergePack(lib, p).library as FullLibrary) };
       const ch = Object.values(lib.characters)[0];
       set({ library: lib, character: ch, hydrated: true, screen: 'battle' });
       return;
@@ -78,7 +80,7 @@ export const useStore = create<Store>((set, get) => ({
     const updated: string[] = [];
     for (const p of defaultPacks) {
       const seen = Math.max(0, ...Object.values(lib.meta).filter((m) => m.packId === p.id).map((m) => m.version));
-      if (p.version > seen) { lib = mergePack(lib, { ...p, characters: [] }, {}).library as FullLibrary; updated.push(p.name); }
+      if (p.version > seen) { lib = { ...lib, ...(mergePack(lib, { ...p, characters: [] }, {}).library as FullLibrary) }; updated.push(p.name); }
     }
     set({
       library: lib,
@@ -102,11 +104,12 @@ export const useStore = create<Store>((set, get) => ({
     set({ battle: undefined, targetId: undefined, pastBattles: [{ ...battle, ended: true }, ...pastBattles].slice(0, 20) });
   },
   setLibrary: (library) => set({ library }),
+  setMonsterOverlay: (monsterId, overlay) => set((s) => ({ library: { ...s.library, monsterOverlay: { ...s.library.monsterOverlay, [monsterId]: overlay } } })),
 
   importPack(pack, opts) {
     const { library, character } = get();
     const m = mergePack(library, pack, opts);
-    const lib = { ...fullEmpty(), ...m.library } as FullLibrary;
+    const lib = { ...fullEmpty(), ...library, ...m.library } as FullLibrary;
     // If the pack carries the active character (or we have none), refresh it.
     const incoming = pack.characters.find((c) => c.id === character?.id) ?? (character ? undefined : pack.characters[0]);
     set({ library: lib, ...(incoming && (opts?.overwrite || !character || !m.report.conflicts.some((c) => c.key === `character:${incoming.id}`)) ? { character: incoming } : {}) });

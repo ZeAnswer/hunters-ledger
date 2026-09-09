@@ -673,12 +673,16 @@
       "id": "boots-of-speed",
       "name": "Boots of Speed",
       "origin": "item",
-      "text": "Free action: haste for up to 10 rounds per day, in any increments.",
+      "text": "Free action to switch on or off: haste for up to 10 rounds per day, in any increments. While on: one extra attack on a full attack, +1 dodge to attack and AC, +1 Reflex, +30 ft speed. Spends one round at each round start.",
       "binding": "none",
-      "activation": {
-        "action": "free"
-      },
-      "cost": [],
+      "activation": "toggle",
+      "cost": [
+        {
+          "kind": "charge",
+          "resourceId": "boots-rounds",
+          "amount": 1
+        }
+      ],
       "resources": [
         {
           "id": "boots-rounds",
@@ -693,12 +697,57 @@
         "category": "wondrous",
         "slot": "feet",
         "weight": 1,
+        "price": "12,000 gp",
         "tags": []
       },
       "effects": [
         {
-          "id": "go",
-          "trigger": "onUse",
+          "id": "haste",
+          "label": "Haste",
+          "trigger": "always",
+          "when": {
+            "all": []
+          },
+          "do": [
+            {
+              "verb": "attack",
+              "extraAttacks": 1,
+              "penaltyAll": 0,
+              "appliesToBase": "full"
+            },
+            {
+              "verb": "modify",
+              "to": "attack",
+              "value": 1,
+              "type": "dodge",
+              "mode": "add"
+            },
+            {
+              "verb": "modify",
+              "to": "ac",
+              "value": 1,
+              "type": "dodge",
+              "mode": "add"
+            },
+            {
+              "verb": "modify",
+              "to": "save.ref",
+              "value": 1,
+              "type": "dodge",
+              "mode": "add"
+            },
+            {
+              "verb": "modify",
+              "to": "speed",
+              "value": 30,
+              "type": "untyped",
+              "mode": "add"
+            }
+          ]
+        },
+        {
+          "id": "tick",
+          "trigger": "onRoundStart",
           "when": {
             "all": []
           },
@@ -712,8 +761,7 @@
           ]
         }
       ],
-      "enabledByDefault": true,
-      "todo": "Using this consumes 1 round per activation; also add the Haste buff from the buffs drawer for the rounds you keep them on."
+      "enabledByDefault": true
     },
     {
       "id": "ring-of-protection-1",
@@ -824,6 +872,7 @@
       "id": "bracers-of-archery-lesser",
       "name": "Bracers of Archery, Lesser",
       "origin": "item",
+      "text": "+1 competence bonus on attack rolls with any bow (not crossbows); grants bow proficiency.",
       "binding": "none",
       "activation": "passive",
       "cost": [],
@@ -839,9 +888,7 @@
           "id": "b",
           "trigger": "always",
           "when": {
-            "compare": "attack.kind",
-            "op": "=",
-            "value": "ranged"
+            "is": "attack.weapon.tag.bow"
           },
           "do": [
             {
@@ -895,33 +942,20 @@
       "id": "hand-of-glory",
       "name": "Hand of Glory",
       "origin": "item",
-      "text": "Daylight 1/day, See Invisibility 1/day; extra ring slot.",
+      "text": "Worn around the neck. Grants an extra ring slot (a ring worn on the hand works), Daylight 1/day and See Invisibility 1/day.",
       "binding": "none",
-      "activation": {
-        "action": "standard"
-      },
+      "activation": "passive",
       "cost": [],
-      "resources": [
-        {
-          "id": "hog-daylight",
-          "label": "Daylight",
-          "max": 1,
-          "resetOn": "day",
-          "resetTo": "max"
-        },
-        {
-          "id": "hog-see-invis",
-          "label": "See Invisibility",
-          "max": 1,
-          "resetOn": "day",
-          "resetTo": "max"
-        }
+      "resources": [],
+      "grants": [
+        "hog-daylight",
+        "hog-see-invisibility"
       ],
-      "grants": [],
       "item": {
         "category": "wondrous",
         "slot": "neck",
         "weight": 2,
+        "price": "8,000 gp",
         "tags": []
       },
       "effects": [
@@ -940,6 +974,52 @@
           ]
         }
       ],
+      "enabledByDefault": true
+    },
+    {
+      "id": "hog-daylight",
+      "name": "Daylight",
+      "origin": "spell",
+      "text": "CL 5: 60-ft radius bright light for 50 minutes.",
+      "binding": "none",
+      "activation": {
+        "action": "standard"
+      },
+      "cost": [],
+      "resources": [
+        {
+          "id": "hog-daylight",
+          "label": "Daylight",
+          "max": 1,
+          "resetOn": "day",
+          "resetTo": "max"
+        }
+      ],
+      "grants": [],
+      "effects": [],
+      "enabledByDefault": true
+    },
+    {
+      "id": "hog-see-invisibility",
+      "name": "See Invisibility",
+      "origin": "spell",
+      "text": "CL 5: see invisible creatures and objects for 50 minutes.",
+      "binding": "none",
+      "activation": {
+        "action": "standard"
+      },
+      "cost": [],
+      "resources": [
+        {
+          "id": "hog-see-invis",
+          "label": "See Invisibility",
+          "max": 1,
+          "resetOn": "day",
+          "resetTo": "max"
+        }
+      ],
+      "grants": [],
+      "effects": [],
       "enabledByDefault": true
     },
     {
